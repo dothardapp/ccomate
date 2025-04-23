@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+
+    <!-- Configuración para transport.edge-access.net (TV Pública, Crónica TV, Telefe) -->
+    <domain-config>
+        <domain includeSubdomains="true">transport.edge-access.net</domain>
+        <trust-anchors>
+            <certificates src="@raw/isrgrootx1" />
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+
+    <!-- Configuración para stream-gtlc.telecentro.net.ar (Canal 26) -->
+    <domain-config>
+        <domain includeSubdomains="true">stream-gtlc.telecentro.net.ar</domain>
+        <trust-anchors>
+            <certificates src="@raw/telecentro_cert" />
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+
+    <!-- Configuración para 10.224.24.232 (tráfico en texto claro) -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">10.224.24.232</domain>
+    </domain-config>
+
+    <!-- Configuración para pruebas: permitir certificados no confiables (inseguro, solo para depuración) -->
+    <debug-overrides>
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+            <!-- Advertencia: Esto permite certificados no confiables en modo de depuración -->
+            <certificates src="system" overridePins="true" />
+        </trust-anchors>
+    </debug-overrides>
+
+</network-security-config>
