@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Permiso necesario para acceder a recursos de red (videos HTTP/HTTPS) -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Soporte para dispositivos sin pantalla táctil (como Android TV) -->
+    <uses-feature
+        android:name="android.hardware.touchscreen"
+        android:required="false" />
+    <!-- Soporte para Android TV (Leanback) -->
+    <uses-feature
+        android:name="android.software.leanback"
+        android:required="false" />
+
+    <application
+        android:allowBackup="true"
+        android:banner="@mipmap/ic_launcher"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.CCOMate"
+        android:networkSecurityConfig="@xml/network_security_config">
+
+        <!-- Actividad principal para lanzamiento en dispositivos móviles y Android TV -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Actividad para reproducción de video (versión sin SSL) -->
+        <activity
+            android:name=".ui.PlayerActivityMedia3WithoutSSL"
+            android:exported="false"
+            android:theme="@style/Theme.CCOMate" />
+
+        <!-- Actividad para reproducción de video (versión con SSL) -->
+        <activity
+            android:name=".ui.PlayerActivityMedia3"
+            android:exported="false"
+            android:theme="@style/Theme.CCOMate" />
+
+    </application>
+
+</manifest>
