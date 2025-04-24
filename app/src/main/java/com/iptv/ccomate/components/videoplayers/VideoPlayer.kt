@@ -86,13 +86,13 @@ fun VideoPlayer(
 
     // Determinar el tipo de MediaSource según la URL
     val mediaSourceFactory = if (videoUrl.lowercase().contains(".m3u8")) {
-        Log.d("VideoPlayer", "Usando HlsMediaSource para $videoUrl")
+        Log.d("VideoPlayerWithoutSSL02", "Usando HlsMediaSource para $videoUrl")
         HlsMediaSource.Factory(dataSourceFactory)
     } else if (videoUrl.lowercase().endsWith(".flv")) {
-        Log.d("VideoPlayer", "Usando ProgressiveMediaSource para $videoUrl")
+        Log.d("VideoPlayerWithoutSSL02", "Usando ProgressiveMediaSource para $videoUrl")
         ProgressiveMediaSource.Factory(dataSourceFactory)
     } else {
-        Log.d("VideoPlayer", "Usando HlsMediaSource para $videoUrl")
+        Log.d("VideoPlayerWithoutSSL02", "Usando HlsMediaSource para $videoUrl")
         HlsMediaSource.Factory(dataSourceFactory)
     }
 
@@ -113,14 +113,14 @@ fun VideoPlayer(
                         prepare()
                         playWhenReady = true
                     } catch (e: Exception) {
-                        Log.e("VideoPlayer", "Error al configurar media: ${e.message}")
+                        Log.e("VideoPlayerWithoutSSL02", "Error al configurar media: ${e.message}", e)
                         onPlaybackError?.invoke(e)
                     }
                 }
 
             exoPlayer = player
         } else {
-            Log.w("VideoPlayer", "URL inválida: $videoUrl")
+            Log.w("VideoPlayerWithoutSSL02", "URL inválida: $videoUrl")
             onPlaybackError?.invoke(IllegalArgumentException("URL inválida: $videoUrl"))
         }
     }
@@ -162,7 +162,7 @@ fun VideoPlayer(
             override fun onPlayerError(error: PlaybackException) {
                 isBuffering = false
                 showOverlay = false
-                Log.e("VideoPlayer", "Error de reproducción: ${error.message}", error)
+                Log.e("VideoPlayerWithoutSSL02", "Error de reproducción: ${error.message}", error)
                 onPlaybackError?.invoke(error)
             }
         }
@@ -175,7 +175,7 @@ fun VideoPlayer(
                 player.removeListener(listener)
                 player.release()
             } catch (e: Exception) {
-                Log.e("VideoPlayer", "Error al liberar reproductor: ${e.message}")
+                Log.e("VideoPlayerWithoutSSL02", "Error al liberar reproductor: ${e.message}", e)
             }
         }
     }
@@ -197,6 +197,7 @@ fun VideoPlayer(
                         layoutParams = FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT)
                         this.player = player
                         useController = false
+                        keepScreenOn = true
                     }
                 },
                 update = { it.player = player },
