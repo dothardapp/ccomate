@@ -19,6 +19,15 @@
         </trust-anchors>
     </domain-config>
 
+    <!-- Configuración para prd.pluto.tv (Pluto TV) -->
+    <domain-config>
+        <domain includeSubdomains="true">prd.pluto.tv</domain>
+        <trust-anchors>
+            <certificates src="@raw/pluto_cert" />
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+
     <!-- Configuración para 10.224.24.232 (tráfico en texto claro) -->
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">10.224.24.232</domain>
