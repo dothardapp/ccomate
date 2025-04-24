@@ -21,7 +21,6 @@ import androidx.tv.material3.Text
 import coil.compose.AsyncImage
 import com.iptv.ccomate.components.*
 import com.iptv.ccomate.components.videopanels.VideoPanel
-import com.iptv.ccomate.components.videopanels.VideoPanelWithoutSSL
 import com.iptv.ccomate.data.M3UParser
 import com.iptv.ccomate.data.Network
 import com.iptv.ccomate.model.Channel
@@ -226,7 +225,7 @@ fun TDAScreen() {
                     .weight(2f)
                     .background(Color.Black)
             ) {
-                ChannelListWithoutSSL(
+                ChannelList(
                     channels = filteredChannels,
                     selectedUrl = selectedChannelUrl,
                     lastClickedUrl = lastClickedChannelUrl,

@@ -1,5 +1,6 @@
 package com.iptv.ccomate.ui
 
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.WindowManager
@@ -65,11 +66,19 @@ class PlayerActivityMedia3 : ComponentActivity() {
             .setBufferDurationsMs(10000, 30000, 1000, 2000)
             .build()
 
-        // Configurar DataSource.Factory
+        // Construir un User-Agent dinámico
+        fun buildDynamicUserAgent(): String {
+            val androidVersion = Build.VERSION.RELEASE
+            val deviceModel = Build.MODEL
+            val chromeVersion = "129.0.0.0" // Ajusta según la versión actual de Chrome
+            return "Mozilla/5.0 (Linux; Android $androidVersion; $deviceModel) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/$chromeVersion Mobile Safari/537.36 CCO IPTV"
+        }
+
+        // Configurar DataSource.Factory personalizado con encabezados
         val dataSourceFactory = object : DataSource.Factory {
             override fun createDataSource(): DataSource {
                 return DefaultHttpDataSource.Factory()
-                    .setUserAgent("Mozilla/5.0 (Android; CCOMate IPTV) AppleWebKit/537.36")
+                    .setUserAgent(buildDynamicUserAgent())
                     .setConnectTimeoutMs(8000)
                     .setReadTimeoutMs(8000)
                     .setAllowCrossProtocolRedirects(true)

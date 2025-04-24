@@ -22,7 +22,7 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import coil.compose.AsyncImage
 import com.iptv.ccomate.components.*
-import com.iptv.ccomate.components.videopanels.VideoPanelWithoutSSL
+import com.iptv.ccomate.components.videopanels.VideoPanel
 import com.iptv.ccomate.data.M3UParser
 import com.iptv.ccomate.data.Network
 import com.iptv.ccomate.model.Channel
@@ -139,7 +139,7 @@ fun PlutoTvScreenGrok() {
 
                     // Reproductor de video
                     key(playerRestartKey) {
-                        VideoPanelWithoutSSL(
+                        VideoPanel(
                             context = context,
                             videoUrl = selectedChannelUrl,
                             channelName = selectedChannel?.name,

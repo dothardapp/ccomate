@@ -18,7 +18,6 @@ import androidx.tv.material3.*
 import coil.compose.AsyncImage
 import com.iptv.ccomate.model.Channel
 import com.iptv.ccomate.ui.PlayerActivityMedia3
-import com.iptv.ccomate.ui.PlayerActivityMedia3WithoutSSL
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
