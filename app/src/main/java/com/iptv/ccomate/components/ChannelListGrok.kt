@@ -34,9 +34,10 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.iptv.ccomate.model.Channel
 import com.iptv.ccomate.screens.pluto.PlutoTvTheme
-import com.iptv.ccomate.ui.PlayerActivityMedia3WithoutSSL
+import com.iptv.ccomate.ui.PlayerActivityMedia3
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.jvm.java
 
 @Composable
 fun ChannelListGrok(
@@ -88,7 +89,7 @@ fun ChannelListGrok(
                         .clickable {
                             if (lastClickedUrl == channel.url) {
                                 // Segundo clic, ir a fullscreen
-                                val intent = Intent(context, PlayerActivityMedia3WithoutSSL::class.java)
+                                val intent = Intent(context, PlayerActivityMedia3::class.java)
                                 intent.putExtra("url", channel.url)
                                 intent.putExtra("name", channel.name)
                                 intent.putExtra("logo", channel.logo ?: "")

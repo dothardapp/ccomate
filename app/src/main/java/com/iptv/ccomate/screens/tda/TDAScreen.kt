@@ -24,6 +24,7 @@ import com.iptv.ccomate.components.videopanels.VideoPanel
 import com.iptv.ccomate.data.M3UParser
 import com.iptv.ccomate.data.Network
 import com.iptv.ccomate.model.Channel
+import com.iptv.ccomate.util.DeviceIdentifier
 import com.iptv.ccomate.util.TimeUtils
 import kotlinx.coroutines.launch
 
@@ -47,6 +48,8 @@ fun TDAScreen() {
     val isTimeIncorrect = remember { !TimeUtils.isSystemTimeValid() }
     val currentTimeMessage = remember { TimeUtils.getSystemTimeMessage() }
 
+
+
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _: LifecycleOwner, event: Lifecycle.Event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -58,6 +61,10 @@ fun TDAScreen() {
     }
 
     LaunchedEffect(Unit) {
+        val installationId = DeviceIdentifier.getInstallationId(context)
+        val deviceInfo = DeviceIdentifier.getDeviceInfo(context)
+        Log.d("DeviceIdentifier", "Device Info: $deviceInfo")
+        Log.d("InstallationId", "Installation Info: $installationId")
         coroutineScope.launch {
             try {
                 statusMessage = "Conectando con TDA..."

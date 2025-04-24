@@ -80,9 +80,6 @@ dependencies {
     //Librerias para el splash screen
     implementation (libs.androidx.animation)
 
-    //Libreria VLC Player
-    implementation(libs.libvlc.all)
-
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     androidTestImplementation(platform(libs.androidx.compose.bom))
