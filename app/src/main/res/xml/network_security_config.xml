@@ -19,12 +19,15 @@
         </trust-anchors>
     </domain-config>
 
-    <!-- Configuración para prd.pluto.tv (Pluto TV) -->
-    <domain-config>
+    <!-- Configuración para prd.pluto.tv (Pluto TV) - Permitir tráfico inseguro temporalmente -->
+    <domain-config cleartextTrafficPermitted="false">
         <domain includeSubdomains="true">prd.pluto.tv</domain>
         <trust-anchors>
             <certificates src="@raw/pluto_cert" />
             <certificates src="system" />
+            <!-- Agregar certificados de usuario y permitir certificados no confiables -->
+            <certificates src="user" />
+            <certificates src="system" overridePins="true" />
         </trust-anchors>
     </domain-config>
 
@@ -32,15 +35,5 @@
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">10.224.24.232</domain>
     </domain-config>
-
-    <!-- Configuración para pruebas: permitir certificados no confiables (inseguro, solo para depuración) -->
-    <debug-overrides>
-        <trust-anchors>
-            <certificates src="system" />
-            <certificates src="user" />
-            <!-- Advertencia: Esto permite certificados no confiables en modo de depuración -->
-            <certificates src="system" overridePins="true" />
-        </trust-anchors>
-    </debug-overrides>
 
 </network-security-config>

@@ -1,7 +1,6 @@
 package com.iptv.ccomate.components.videoplayers
 
 import android.content.Context
-import android.os.Build
 import android.util.Log
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.widget.FrameLayout
@@ -20,22 +19,17 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.media3.common.MediaItem
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.datasource.DataSource
-import androidx.media3.datasource.DefaultHttpDataSource
-import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.exoplayer.hls.HlsMediaSource
-import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.ui.PlayerView
 import androidx.tv.material3.Text
+import com.iptv.ccomate.model.VideoPlayerViewModel
 import kotlinx.coroutines.delay
 
 @OptIn(UnstableApi::class)
@@ -51,89 +45,46 @@ fun VideoPlayer(
     var isBuffering by remember { mutableStateOf(true) }
     var showOverlay by remember { mutableStateOf(false) }
     val lifecycleOwner = LocalLifecycleOwner.current
+
+    // Obtener el ViewModel
+    val viewModel: VideoPlayerViewModel = viewModel()
+
+    // Estado para el ExoPlayer
     var exoPlayer by remember { mutableStateOf<ExoPlayer?>(null) }
 
-    // Configurar LoadControl para optimizar el búfer
-    val loadControl = DefaultLoadControl.Builder()
-        .setBufferDurationsMs(10000, 30000, 1000, 2000)
-        .build()
-
-    // Construir un User-Agent dinámico
-    fun buildDynamicUserAgent(): String {
-        val androidVersion = Build.VERSION.RELEASE
-        val deviceModel = Build.MODEL
-        val chromeVersion = "129.0.0.0" // Ajusta según la versión actual de Chrome
-        return "Mozilla/5.0 (Linux; Android $androidVersion; $deviceModel) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/$chromeVersion Mobile Safari/537.36 CCO IPTV"
-    }
-
-    // Configurar DataSource.Factory personalizado con encabezados
-    val dataSourceFactory = object : DataSource.Factory {
-        override fun createDataSource(): DataSource {
-            return DefaultHttpDataSource.Factory()
-                .setUserAgent(buildDynamicUserAgent())
-                .setConnectTimeoutMs(8000)
-                .setReadTimeoutMs(8000)
-                .setAllowCrossProtocolRedirects(true)
-                .setDefaultRequestProperties(
-                    mapOf(
-                        "Referer" to "https://ccomate.iptv.com",
-                        "Origin" to "https://ccomate.iptv.com"
-                    )
-                )
-                .createDataSource()
-        }
-    }
-
-    // Determinar el tipo de MediaSource según la URL
-    val mediaSourceFactory = if (videoUrl.lowercase().contains(".m3u8")) {
-        Log.d("VideoPlayerWithoutSSL02", "Usando HlsMediaSource para $videoUrl")
-        HlsMediaSource.Factory(dataSourceFactory)
-    } else if (videoUrl.lowercase().endsWith(".flv")) {
-        Log.d("VideoPlayerWithoutSSL02", "Usando ProgressiveMediaSource para $videoUrl")
-        ProgressiveMediaSource.Factory(dataSourceFactory)
-    } else {
-        Log.d("VideoPlayerWithoutSSL02", "Usando HlsMediaSource para $videoUrl")
-        HlsMediaSource.Factory(dataSourceFactory)
-    }
-
-    // Crear/Recrear player al cambiar de canal
+    // Actualizar el ExoPlayer cuando cambie la URL
     LaunchedEffect(videoUrl) {
-        if (videoUrl.isNotEmpty() && (videoUrl.startsWith("http://") || videoUrl.startsWith("https://"))) {
-            isBuffering = true
-            showOverlay = false
-
-            exoPlayer?.release()
-
-            val player = ExoPlayer.Builder(context)
-                .setLoadControl(loadControl)
-                .setMediaSourceFactory(mediaSourceFactory)
-                .build().apply {
-                    try {
-                        setMediaItem(MediaItem.fromUri(videoUrl.toUri()))
-                        prepare()
-                        playWhenReady = true
-                    } catch (e: Exception) {
-                        Log.e("VideoPlayerWithoutSSL02", "Error al configurar media: ${e.message}", e)
-                        onPlaybackError?.invoke(e)
-                    }
-                }
-
+        viewModel.setPlayer(context, videoUrl).onSuccess { player ->
             exoPlayer = player
-        } else {
-            Log.w("VideoPlayerWithoutSSL02", "URL inválida: $videoUrl")
-            onPlaybackError?.invoke(IllegalArgumentException("URL inválida: $videoUrl"))
+        }.onFailure { error ->
+            onPlaybackError?.invoke(error)
         }
     }
 
-    // Liberar correctamente al salir de la app
+    // Manejar el ciclo de vida y eventos del ExoPlayer
     DisposableEffect(lifecycleOwner, exoPlayer) {
         val player = exoPlayer ?: return@DisposableEffect onDispose {}
 
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_PAUSE -> player.pause()
-                Lifecycle.Event.ON_START -> player.playWhenReady = true
-                Lifecycle.Event.ON_STOP -> player.release()
+                Lifecycle.Event.ON_PAUSE -> {
+                    player.playWhenReady = false
+                    player.pause()
+                    Log.d("VideoPlayerWithoutSSL02", "Pausado en ON_PAUSE")
+                }
+                Lifecycle.Event.ON_START -> {
+                    player.playWhenReady = true
+                    Log.d("VideoPlayerWithoutSSL02", "Reanudado en ON_START")
+                }
+                Lifecycle.Event.ON_STOP -> {
+                    player.playWhenReady = false
+                    player.pause()
+                    Log.d("VideoPlayerWithoutSSL02", "Pausado en ON_STOP")
+                }
+                Lifecycle.Event.ON_DESTROY -> {
+                    Log.d("VideoPlayerWithoutSSL02", "ON_DESTROY - No se detiene el ExoPlayer, lo hace el ViewModel")
+                    // No detenemos ni liberamos aquí, el ViewModel se encarga de eso
+                }
                 else -> {}
             }
         }
@@ -170,13 +121,10 @@ fun VideoPlayer(
         player.addListener(listener)
 
         onDispose {
-            try {
-                lifecycleOwner.lifecycle.removeObserver(observer)
-                player.removeListener(listener)
-                player.release()
-            } catch (e: Exception) {
-                Log.e("VideoPlayerWithoutSSL02", "Error al liberar reproductor: ${e.message}", e)
-            }
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            player.removeListener(listener)
+            Log.d("VideoPlayerWithoutSSL02", "onDispose - No se detiene el ExoPlayer, lo hace el ViewModel")
+            // No llamamos a stop() ni clearMediaItems() aquí, el ViewModel se encarga de liberar el ExoPlayer
         }
     }
 
