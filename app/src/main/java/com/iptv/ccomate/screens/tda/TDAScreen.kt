@@ -20,9 +20,9 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.tv.material3.Text
 import coil.compose.AsyncImage
 import com.iptv.ccomate.components.*
-import com.iptv.ccomate.components.videopanels.VideoPanel
+import com.iptv.ccomate.ui.video.VideoPanel
 import com.iptv.ccomate.data.M3UParser
-import com.iptv.ccomate.data.Network
+import com.iptv.ccomate.data.NetworkClient
 import com.iptv.ccomate.model.Channel
 import com.iptv.ccomate.util.DeviceIdentifier
 import com.iptv.ccomate.util.TimeUtils
@@ -68,7 +68,7 @@ fun TDAScreen() {
         coroutineScope.launch {
             try {
                 statusMessage = "Conectando con TDA..."
-                val m3uContent = Network.fetchM3U("http://10.224.24.232:8081/tda.m3u")
+                val m3uContent = NetworkClient.fetchM3U("http://10.224.24.232:8081/tda.m3u")
                 statusMessage = "Procesando canales..."
                 val channels = M3UParser.parse(m3uContent)
                 groups = channels.mapNotNull { it.group }.distinct()

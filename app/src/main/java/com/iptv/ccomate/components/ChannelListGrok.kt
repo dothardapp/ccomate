@@ -1,5 +1,6 @@
 package com.iptv.ccomate.components
 
+import android.R
 import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
@@ -33,7 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.iptv.ccomate.model.Channel
-import com.iptv.ccomate.screens.pluto.PlutoTvTheme
+import com.iptv.ccomate.ui.theme.PlutoTvTheme
 import com.iptv.ccomate.ui.PlayerActivityMedia3
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -133,8 +134,8 @@ fun ChannelListGrok(
                                     .size(width = 80.dp, height = 45.dp)
                                     .clip(RoundedCornerShape(8.dp))
                                     .background(Color.Black),
-                                placeholder = painterResource(id = android.R.drawable.ic_menu_gallery),
-                                error = painterResource(id = android.R.drawable.ic_menu_report_image)
+                                placeholder = painterResource(id = R.drawable.ic_menu_gallery),
+                                error = painterResource(id = R.drawable.ic_menu_report_image)
                             )
                             Text(
                                 text = channel.name,

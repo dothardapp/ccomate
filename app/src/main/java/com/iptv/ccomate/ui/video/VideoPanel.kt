@@ -1,13 +1,15 @@
-package com.iptv.ccomate.components.videopanels
+package com.iptv.ccomate.ui.video
 
 import android.content.Context
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -21,7 +23,7 @@ fun VideoPanel(
     channelName: String?,
     onPlaybackStarted: () -> Unit,
     onPlaybackError: (Throwable) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier.Companion
 ) {
     Box(
         modifier = modifier
@@ -34,13 +36,13 @@ fun VideoPanel(
             exit = fadeOut()
         ) {
             Box(
-                modifier = Modifier
+                modifier = Modifier.Companion
                     .fillMaxSize()
                     .background(Color(0x66000000)),
-                contentAlignment = Alignment.Center
+                contentAlignment = Alignment.Companion.Center
             ) {
                 CircularProgressIndicator(
-                    color = Color.White,
+                    color = Color.Companion.White,
                     strokeWidth = 3.dp
                 )
             }
@@ -52,8 +54,8 @@ fun VideoPanel(
                 context = context,
                 videoUrl = it,
                 channelName = channelName,
-                modifier = Modifier
-                    .background(Color.Transparent)
+                modifier = Modifier.Companion
+                    .background(Color.Companion.Transparent)
                     .fillMaxSize()
                     .padding(1.dp),
                 onPlaybackStarted = onPlaybackStarted,

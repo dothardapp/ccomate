@@ -1,6 +1,8 @@
-package com.iptv.ccomate.screens.pluto
+package com.iptv.ccomate.ui.theme
 
-import androidx.compose.material3.*
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Typography
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
@@ -15,11 +17,11 @@ val PlutoTvColors = darkColorScheme(
     background = Color(0xFF0A0F12), // Fondo oscuro
     surface = Color(0xFF1A1A1A), // Superficie gris oscuro
     error = Color(0xFFB71C1C), // Rojo para errores
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onBackground = Color.White,
-    onSurface = Color.White,
-    onError = Color.White
+    onPrimary = Color.Companion.White,
+    onSecondary = Color.Companion.White,
+    onBackground = Color.Companion.White,
+    onSurface = Color.Companion.White,
+    onError = Color.Companion.White
 )
 
 @Composable
@@ -29,27 +31,27 @@ fun PlutoTvTheme(content: @Composable () -> Unit) {
         typography = Typography(
             titleLarge = TextStyle(
                 fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.Companion.Bold,
                 lineHeight = 28.sp
             ),
             titleMedium = TextStyle(
                 fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.Companion.Bold,
                 lineHeight = 24.sp
             ),
             bodyLarge = TextStyle(
                 fontSize = 16.sp,
-                fontWeight = FontWeight.Normal,
+                fontWeight = FontWeight.Companion.Normal,
                 lineHeight = 24.sp
             ),
             bodyMedium = TextStyle(
                 fontSize = 14.sp,
-                fontWeight = FontWeight.Medium,
+                fontWeight = FontWeight.Companion.Medium,
                 lineHeight = 20.sp
             ),
             labelSmall = TextStyle(
                 fontSize = 12.sp,
-                fontWeight = FontWeight.Medium,
+                fontWeight = FontWeight.Companion.Medium,
                 lineHeight = 16.sp
             )
         ),

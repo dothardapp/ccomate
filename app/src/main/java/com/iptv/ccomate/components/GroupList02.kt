@@ -23,7 +23,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.iptv.ccomate.screens.pluto.PlutoTvTheme
+import com.iptv.ccomate.ui.theme.PlutoTvTheme
 import kotlinx.coroutines.launch
 
 @Composable

@@ -1,6 +1,11 @@
-package com.iptv.ccomate.screens.pluto
+package com.iptv.ccomate.ui.theme
 
-import androidx.compose.material3.*
+import android.os.Build
+import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Typography
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -17,38 +22,38 @@ private val PlutoTvStaticColors = darkColorScheme(
     background = Color(0xFF0D0D1A), // Fondo azul oscuro
     surface = Color(0xFF1A1A2E), // Superficie gris-azul
     error = Color(0xFFE63946), // Rojo para errores
-    onPrimary = Color.White,
-    onSecondary = Color.White,
+    onPrimary = Color.Companion.White,
+    onSecondary = Color.Companion.White,
     onBackground = Color(0xFFE6E6FA), // Blanco suave para texto
     onSurface = Color(0xFFE6E6FA),
-    onError = Color.White
+    onError = Color.Companion.White
 )
 
 // Tipografía personalizada con más estilos
 private val PlutoTvTypography = Typography(
     titleLarge = TextStyle(
         fontSize = 22.sp,
-        fontWeight = FontWeight.Bold,
+        fontWeight = FontWeight.Companion.Bold,
         lineHeight = 28.sp
     ),
     titleMedium = TextStyle(
         fontSize = 16.sp,
-        fontWeight = FontWeight.Bold,
+        fontWeight = FontWeight.Companion.Bold,
         lineHeight = 24.sp
     ),
     bodyLarge = TextStyle(
         fontSize = 16.sp,
-        fontWeight = FontWeight.Normal,
+        fontWeight = FontWeight.Companion.Normal,
         lineHeight = 24.sp
     ),
     bodyMedium = TextStyle(
         fontSize = 14.sp,
-        fontWeight = FontWeight.Medium,
+        fontWeight = FontWeight.Companion.Medium,
         lineHeight = 20.sp
     ),
     labelSmall = TextStyle(
         fontSize = 12.sp,
-        fontWeight = FontWeight.Medium,
+        fontWeight = FontWeight.Companion.Medium,
         lineHeight = 16.sp
     )
 )
@@ -61,7 +66,7 @@ fun PlutoTvThemeAlternative(
 ) {
     val context = LocalContext.current
     val colorScheme = when {
-        useDynamicColors && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S -> {
+        useDynamicColors && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             dynamicDarkColorScheme(context)
         }
         customColorScheme != null -> customColorScheme

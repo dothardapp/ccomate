@@ -5,7 +5,7 @@ import io.ktor.client.engine.cio.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.bodyAsText
 
-object Network {
+object NetworkClient {
     val client = HttpClient(CIO)
 
     suspend fun fetchM3U(url: String): String {
