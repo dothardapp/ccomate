@@ -1,4 +1,4 @@
-package com.iptv.ccomate.components.videopanels
+package com.iptv.ccomate.ui.video
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column

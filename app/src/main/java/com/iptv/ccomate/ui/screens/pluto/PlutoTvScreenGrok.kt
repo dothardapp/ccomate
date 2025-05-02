@@ -1,4 +1,4 @@
-package com.iptv.ccomate.screens.pluto
+package com.iptv.ccomate.ui.screens.pluto
 
 import android.util.Log
 import androidx.compose.foundation.BorderStroke
@@ -21,7 +21,6 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import coil.compose.AsyncImage
-import com.iptv.ccomate.components.*
 import com.iptv.ccomate.ui.video.VideoPanel
 import com.iptv.ccomate.data.M3UParser
 import com.iptv.ccomate.data.NetworkClient

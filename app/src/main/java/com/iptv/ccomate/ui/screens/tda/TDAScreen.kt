@@ -1,11 +1,30 @@
-package com.iptv.ccomate.screens.pluto
+package com.iptv.ccomate.ui.screens.tda
 
 import android.util.Log
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -19,18 +38,18 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.tv.material3.Text
 import coil.compose.AsyncImage
-import com.iptv.ccomate.components.*
-import com.iptv.ccomate.ui.video.VideoPanel
 import com.iptv.ccomate.data.M3UParser
 import com.iptv.ccomate.data.NetworkClient
 import com.iptv.ccomate.model.Channel
 import com.iptv.ccomate.ui.screens.ChannelList
 import com.iptv.ccomate.ui.screens.GroupList
+import com.iptv.ccomate.ui.video.VideoPanel
+import com.iptv.ccomate.util.DeviceIdentifier
 import com.iptv.ccomate.util.TimeUtils
 import kotlinx.coroutines.launch
 
 @Composable
-fun PlutoTvScreen() {
+fun TDAScreen() {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val coroutineScope = rememberCoroutineScope()
@@ -40,7 +59,7 @@ fun PlutoTvScreen() {
     var allChannels by remember { mutableStateOf<List<Channel>>(emptyList()) }
     var selectedChannelUrl by remember { mutableStateOf<String?>(null) }
     var selectedChannelName by remember { mutableStateOf<String?>(null) }
-    var statusMessage by remember { mutableStateOf("Inicializando...") }
+    var statusMessage by remember { mutableStateOf("Inicializando TDA...") }
     var playbackError by remember { mutableStateOf<Throwable?>(null) }
     var isPlaying by remember { mutableStateOf(false) }
     var playerRestartKey by remember { mutableIntStateOf(0) }
@@ -49,7 +68,8 @@ fun PlutoTvScreen() {
     val isTimeIncorrect = remember { !TimeUtils.isSystemTimeValid() }
     val currentTimeMessage = remember { TimeUtils.getSystemTimeMessage() }
 
-    // 👁️ Detectar regreso de pantalla (ON_RESUME)
+
+
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _: LifecycleOwner, event: Lifecycle.Event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -60,17 +80,20 @@ fun PlutoTvScreen() {
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    // 📡 Carga de canales M3U
     LaunchedEffect(Unit) {
+        val installationId = DeviceIdentifier.getInstallationId(context)
+        val deviceInfo = DeviceIdentifier.getDeviceInfo(context)
+        Log.d("DeviceIdentifier", "Device Info: $deviceInfo")
+        Log.d("InstallationId", "Installation Info: $installationId")
         coroutineScope.launch {
             try {
-                statusMessage = "Conectando con el servidor..."
-                val m3uContent = NetworkClient.fetchM3U("http://10.224.24.232:8081/playlist.m3u")
+                statusMessage = "Conectando con TDA..."
+                val m3uContent = NetworkClient.fetchM3U("http://10.224.24.232:8081/tda.m3u")
                 statusMessage = "Procesando canales..."
                 val channels = M3UParser.parse(m3uContent)
                 groups = channels.mapNotNull { it.group }.distinct()
                 allChannels = channels
-                statusMessage = "Listo. Se cargaron ${channels.size} canales."
+                statusMessage = "Listo. Se cargaron ${channels.size} canales TDA."
 
                 if (selectedChannelUrl == null) {
                     val first = channels.firstOrNull()
@@ -82,9 +105,10 @@ fun PlutoTvScreen() {
                 playerRestartKey++
 
             } catch (e: Exception) {
-                statusMessage = "❌ Error al cargar canales: ${e.localizedMessage ?: "desconocido"}"
+                statusMessage =
+                    "❌ Error al cargar canales TDA: ${e.localizedMessage ?: "desconocido"}"
                 groups = listOf("Error al cargar")
-                Log.e("PlutoScreen", "Error al cargar M3U", e)
+                Log.e("TDAScreen", "Error al cargar M3U", e)
             }
         }
     }
@@ -95,48 +119,46 @@ fun PlutoTvScreen() {
     val selectedChannelLogo = selectedChannel?.logo
 
     Column(
-        modifier = Modifier
+        modifier = Modifier.Companion
             .fillMaxSize()
             .padding(3.dp)
     ) {
         Row(
-            modifier = Modifier
+            modifier = Modifier.Companion
                 .weight(1f)
                 .fillMaxWidth()
-                .background(Color.LightGray)
+                .background(Color.Companion.DarkGray)
         ) {
-            Box(modifier = Modifier.weight(1f).padding(6.dp)) {
+            Box(modifier = Modifier.Companion.weight(1f).padding(6.dp)) {
                 Box(
-                    modifier = Modifier
+                    modifier = Modifier.Companion
                         .fillMaxSize()
                         .clip(RoundedCornerShape(2.dp))
-                        .background(Color.Black)
+                        .background(Color.Companion.Black)
                 ) {
-                    // ⏰ Banner de advertencia de hora incorrecta (visible arriba del video)
                     if (isTimeIncorrect) {
                         Box(
-                            modifier = Modifier
+                            modifier = Modifier.Companion
                                 .fillMaxWidth()
                                 .background(Color(0xFFB71C1C))
                                 .padding(8.dp)
-                                .align(Alignment.TopCenter)
+                                .align(Alignment.Companion.TopCenter)
                         ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Column(horizontalAlignment = Alignment.Companion.CenterHorizontally) {
                                 Text(
                                     text = "⚠️ El reloj del dispositivo está mal configurado.",
-                                    color = Color.White,
+                                    color = Color.Companion.White,
                                     fontSize = 14.sp
                                 )
                                 Text(
                                     text = currentTimeMessage,
-                                    color = Color.LightGray,
+                                    color = Color.Companion.LightGray,
                                     fontSize = 12.sp
                                 )
                             }
                         }
                     }
 
-                    // 🎬 VideoPlayer
                     key(playerRestartKey) {
                         VideoPanel(
                             context = context,
@@ -153,9 +175,9 @@ fun PlutoTvScreen() {
                                 isPlaying = false
                                 statusMessage =
                                     "❌ Error al reproducir: ${error.localizedMessage ?: "desconocido"}"
-                                Log.e("VideoPanel", "Error de reproducción", error)
+                                Log.e("VideoPanelTDAScreen", "Error de reproducción", error)
                             },
-                            modifier = Modifier.fillMaxSize()
+                            modifier = Modifier.Companion.fillMaxSize()
                         )
                     }
                 }
@@ -163,35 +185,35 @@ fun PlutoTvScreen() {
 
             if (!selectedChannelLogo.isNullOrBlank()) {
                 Box(
-                    modifier = Modifier
+                    modifier = Modifier.Companion
                         .weight(1.6f)
                         .padding(6.dp)
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
                         .background(Color(0xFF1C1C1C))
                         .padding(horizontal = 16.dp, vertical = 12.dp)
                 ) {
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
+                        verticalAlignment = Alignment.Companion.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         AsyncImage(
                             model = selectedChannelLogo,
                             contentDescription = "Logo canal",
-                            modifier = Modifier
+                            modifier = Modifier.Companion
                                 .size(width = 100.dp, height = 56.dp)
-                                .background(Color.Black)
+                                .background(Color.Companion.Black)
                         )
 
                         Column {
                             Text(
                                 text = statusMessage,
-                                color = Color.White,
+                                color = Color.Companion.White,
                                 fontSize = 14.sp
                             )
                             if (playbackError != null) {
                                 Text(
                                     text = "Error de reproducción: ${playbackError?.localizedMessage ?: "desconocido"}",
-                                    color = Color.Red,
+                                    color = Color.Companion.Red,
                                     fontSize = 12.sp
                                 )
                             }
@@ -201,21 +223,21 @@ fun PlutoTvScreen() {
             }
         }
 
-        Spacer(modifier = Modifier.height(3.dp))
-        HorizontalDivider(thickness = 1.dp, color = Color.White)
-        Spacer(modifier = Modifier.height(3.dp))
+        Spacer(modifier = Modifier.Companion.height(3.dp))
+        HorizontalDivider(thickness = 1.dp, color = Color.Companion.White)
+        Spacer(modifier = Modifier.Companion.height(3.dp))
 
         Row(
-            modifier = Modifier
+            modifier = Modifier.Companion
                 .weight(1.8f)
                 .fillMaxSize()
-                .background(Color(0xAB030301))
+                .background(Color(0xFF101010))
                 .padding(18.dp)
         ) {
             Box(
-                modifier = Modifier
+                modifier = Modifier.Companion
                     .weight(1f)
-                    .background(Color.Black)
+                    .background(Color.Companion.Black)
             ) {
                 GroupList(
                     groups = groups,
@@ -224,12 +246,12 @@ fun PlutoTvScreen() {
                 )
             }
 
-            Spacer(modifier = Modifier.width(15.dp))
+            Spacer(modifier = Modifier.Companion.width(15.dp))
 
             Box(
-                modifier = Modifier
+                modifier = Modifier.Companion
                     .weight(2f)
-                    .background(Color.Black)
+                    .background(Color.Companion.Black)
             ) {
                 ChannelList(
                     channels = filteredChannels,

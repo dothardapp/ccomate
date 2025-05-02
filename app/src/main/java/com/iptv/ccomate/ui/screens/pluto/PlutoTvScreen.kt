@@ -1,4 +1,4 @@
-package com.iptv.ccomate.screens.tda
+package com.iptv.ccomate.ui.screens.pluto
 
 import android.util.Log
 import androidx.compose.foundation.background
@@ -19,19 +19,17 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.tv.material3.Text
 import coil.compose.AsyncImage
-import com.iptv.ccomate.components.*
 import com.iptv.ccomate.ui.video.VideoPanel
 import com.iptv.ccomate.data.M3UParser
 import com.iptv.ccomate.data.NetworkClient
 import com.iptv.ccomate.model.Channel
 import com.iptv.ccomate.ui.screens.ChannelList
 import com.iptv.ccomate.ui.screens.GroupList
-import com.iptv.ccomate.util.DeviceIdentifier
 import com.iptv.ccomate.util.TimeUtils
 import kotlinx.coroutines.launch
 
 @Composable
-fun TDAScreen() {
+fun PlutoTvScreen() {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val coroutineScope = rememberCoroutineScope()
@@ -41,7 +39,7 @@ fun TDAScreen() {
     var allChannels by remember { mutableStateOf<List<Channel>>(emptyList()) }
     var selectedChannelUrl by remember { mutableStateOf<String?>(null) }
     var selectedChannelName by remember { mutableStateOf<String?>(null) }
-    var statusMessage by remember { mutableStateOf("Inicializando TDA...") }
+    var statusMessage by remember { mutableStateOf("Inicializando...") }
     var playbackError by remember { mutableStateOf<Throwable?>(null) }
     var isPlaying by remember { mutableStateOf(false) }
     var playerRestartKey by remember { mutableIntStateOf(0) }
@@ -50,8 +48,7 @@ fun TDAScreen() {
     val isTimeIncorrect = remember { !TimeUtils.isSystemTimeValid() }
     val currentTimeMessage = remember { TimeUtils.getSystemTimeMessage() }
 
-
-
+    // 👁️ Detectar regreso de pantalla (ON_RESUME)
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _: LifecycleOwner, event: Lifecycle.Event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -62,20 +59,17 @@ fun TDAScreen() {
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
+    // 📡 Carga de canales M3U
     LaunchedEffect(Unit) {
-        val installationId = DeviceIdentifier.getInstallationId(context)
-        val deviceInfo = DeviceIdentifier.getDeviceInfo(context)
-        Log.d("DeviceIdentifier", "Device Info: $deviceInfo")
-        Log.d("InstallationId", "Installation Info: $installationId")
         coroutineScope.launch {
             try {
-                statusMessage = "Conectando con TDA..."
-                val m3uContent = NetworkClient.fetchM3U("http://10.224.24.232:8081/tda.m3u")
+                statusMessage = "Conectando con el servidor..."
+                val m3uContent = NetworkClient.fetchM3U("http://10.224.24.232:8081/playlist.m3u")
                 statusMessage = "Procesando canales..."
                 val channels = M3UParser.parse(m3uContent)
                 groups = channels.mapNotNull { it.group }.distinct()
                 allChannels = channels
-                statusMessage = "Listo. Se cargaron ${channels.size} canales TDA."
+                statusMessage = "Listo. Se cargaron ${channels.size} canales."
 
                 if (selectedChannelUrl == null) {
                     val first = channels.firstOrNull()
@@ -87,9 +81,9 @@ fun TDAScreen() {
                 playerRestartKey++
 
             } catch (e: Exception) {
-                statusMessage = "❌ Error al cargar canales TDA: ${e.localizedMessage ?: "desconocido"}"
+                statusMessage = "❌ Error al cargar canales: ${e.localizedMessage ?: "desconocido"}"
                 groups = listOf("Error al cargar")
-                Log.e("TDAScreen", "Error al cargar M3U", e)
+                Log.e("PlutoScreen", "Error al cargar M3U", e)
             }
         }
     }
@@ -108,7 +102,7 @@ fun TDAScreen() {
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
-                .background(Color.DarkGray)
+                .background(Color.LightGray)
         ) {
             Box(modifier = Modifier.weight(1f).padding(6.dp)) {
                 Box(
@@ -117,6 +111,7 @@ fun TDAScreen() {
                         .clip(RoundedCornerShape(2.dp))
                         .background(Color.Black)
                 ) {
+                    // ⏰ Banner de advertencia de hora incorrecta (visible arriba del video)
                     if (isTimeIncorrect) {
                         Box(
                             modifier = Modifier
@@ -140,6 +135,7 @@ fun TDAScreen() {
                         }
                     }
 
+                    // 🎬 VideoPlayer
                     key(playerRestartKey) {
                         VideoPanel(
                             context = context,
@@ -156,7 +152,7 @@ fun TDAScreen() {
                                 isPlaying = false
                                 statusMessage =
                                     "❌ Error al reproducir: ${error.localizedMessage ?: "desconocido"}"
-                                Log.e("VideoPanelTDAScreen", "Error de reproducción", error)
+                                Log.e("VideoPanel", "Error de reproducción", error)
                             },
                             modifier = Modifier.fillMaxSize()
                         )
@@ -212,7 +208,7 @@ fun TDAScreen() {
             modifier = Modifier
                 .weight(1.8f)
                 .fillMaxSize()
-                .background(Color(0xFF101010))
+                .background(Color(0xAB030301))
                 .padding(18.dp)
         ) {
             Box(
