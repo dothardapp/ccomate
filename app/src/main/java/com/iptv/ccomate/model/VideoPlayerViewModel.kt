@@ -104,6 +104,7 @@ class VideoPlayerViewModel : ViewModel() {
 
                     exoPlayer = player
                     Log.d("VideoPlayerViewModel", "ExoPlayer created successfully: $player")
+                    Result.success(player) // Cambiar a player en lugar de exoPlayer!!
                 } else {
                     // Reutilizar el player existente
                     withContext(Dispatchers.Main) {
@@ -112,8 +113,8 @@ class VideoPlayerViewModel : ViewModel() {
                         currentPlayer.playWhenReady = true
                     }
                     Log.d("VideoPlayerViewModel", "Reutilizando ExoPlayer con nueva URL: $videoUrl")
+                    Result.success(currentPlayer)
                 }
-                Result.success(exoPlayer!!)
             } else {
                 Log.w("VideoPlayerViewModel", "URL inválida: $videoUrl")
                 Result.failure(IllegalArgumentException("URL inválida: $videoUrl"))
@@ -136,38 +137,40 @@ class VideoPlayerViewModel : ViewModel() {
         exoPlayer = null
     }
 
-    // Métodos para manejar el ciclo de vida
-    fun pausePlayer() {
+    // Métodos para manejar el ciclo de vida (convertidos a suspend)
+    suspend fun pausePlayer() = withContext(Dispatchers.Main) {
         exoPlayer?.let {
-            it.playWhenReady = false
-            it.pause()
-            Log.d("VideoPlayerViewModel", "Player paused")
-        }
+            if (it.playbackState != Player.STATE_ENDED) {
+                it.playWhenReady = false
+                it.pause()
+                Log.d("VideoPlayerViewModel", "Player paused")
+            }
+        } ?: Log.w("VideoPlayerViewModel", "No se puede pausar: ExoPlayer es null")
     }
 
-    fun resumePlayer() {
+    suspend fun resumePlayer() = withContext(Dispatchers.Main) {
         exoPlayer?.let {
-            it.playWhenReady = true
-            Log.d("VideoPlayerViewModel", "Player resumed")
-        }
+            if (it.playbackState != Player.STATE_ENDED) {
+                it.playWhenReady = true
+                Log.d("VideoPlayerViewModel", "Player resumed")
+            }
+        } ?: Log.w("VideoPlayerViewModel", "No se puede reanudar: ExoPlayer es null")
     }
 
-    fun stopPlayer() {
+    suspend fun stopPlayer() = withContext(Dispatchers.Main) {
         exoPlayer?.let {
-            it.playWhenReady = false
-            it.stop()
-            Log.d("VideoPlayerViewModel", "Player stopped")
-        }
+            if (it.playbackState != Player.STATE_ENDED) {
+                it.playWhenReady = false
+                it.stop()
+                Log.d("VideoPlayerViewModel", "Player stopped")
+            }
+        } ?: Log.w("VideoPlayerViewModel", "No se puede detener: ExoPlayer es null")
     }
 
     override fun onCleared() {
-        exoPlayer?.let { player ->
-            player.stop()
-            player.clearMediaItems()
-            player.release()
-            Log.d("VideoPlayerViewModel", "ExoPlayer liberado en onCleared")
+        kotlinx.coroutines.runBlocking {
+            releasePlayer()
         }
-        exoPlayer = null
         super.onCleared()
     }
 }

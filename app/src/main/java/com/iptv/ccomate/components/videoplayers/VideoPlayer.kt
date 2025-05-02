@@ -22,6 +22,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
@@ -31,6 +32,7 @@ import androidx.media3.ui.PlayerView
 import androidx.tv.material3.Text
 import com.iptv.ccomate.model.VideoPlayerViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -44,10 +46,9 @@ fun VideoPlayer(
 ) {
     var isBuffering by remember { mutableStateOf(true) }
     var showOverlay by remember { mutableStateOf(false) }
+    var player by remember { mutableStateOf<ExoPlayer?>(null) }
     val lifecycleOwner = LocalLifecycleOwner.current
-
     val viewModel: VideoPlayerViewModel = viewModel()
-    var exoPlayer by remember { mutableStateOf<ExoPlayer?>(null) }
 
     Log.d("VideoPlayer", "Rendering VideoPlayer for URL: $videoUrl")
 
@@ -60,9 +61,9 @@ fun VideoPlayer(
         // Garantizar que la rueda de carga se muestre por al menos 300ms
         delay(300)
 
-        viewModel.setPlayer(context, videoUrl).onSuccess { player ->
-            Log.d("VideoPlayer", "ExoPlayer successfully set: $player")
-            exoPlayer = player
+        viewModel.setPlayer(context, videoUrl).onSuccess { exoPlayer ->
+            Log.d("VideoPlayer", "ExoPlayer successfully set: $exoPlayer")
+            player = exoPlayer
         }.onFailure { error ->
             Log.e("VideoPlayer", "Failed to set ExoPlayer", error)
             isBuffering = false
@@ -71,30 +72,24 @@ fun VideoPlayer(
         }
     }
 
-    // Log para verificar si exoPlayer cambió
-    LaunchedEffect(exoPlayer) {
-        if (exoPlayer != null) {
-            Log.d("VideoPlayer", "exoPlayer updated: $exoPlayer")
-        } else {
-            Log.d("VideoPlayer", "exoPlayer is null")
-        }
-    }
-
     // Manejar el ciclo de vida usando el ViewModel
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_PAUSE -> {
-                    viewModel.pausePlayer()
+                    lifecycleOwner.lifecycleScope.launch {
+                        viewModel.pausePlayer()
+                    }
                 }
                 Lifecycle.Event.ON_START -> {
-                    viewModel.resumePlayer()
+                    lifecycleOwner.lifecycleScope.launch {
+                        viewModel.resumePlayer()
+                    }
                 }
                 Lifecycle.Event.ON_STOP -> {
-                    viewModel.stopPlayer()
-                }
-                Lifecycle.Event.ON_DESTROY -> {
-                    Log.d("VideoPlayer", "ON_DESTROY - No se detiene el ExoPlayer, lo hace el ViewModel")
+                    lifecycleOwner.lifecycleScope.launch {
+                        viewModel.stopPlayer()
+                    }
                 }
                 else -> {}
             }
@@ -109,8 +104,8 @@ fun VideoPlayer(
     }
 
     // Listener para los estados del ExoPlayer
-    DisposableEffect(exoPlayer) {
-        val player = exoPlayer ?: return@DisposableEffect onDispose {}
+    DisposableEffect(player) {
+        val exoPlayer = player ?: return@DisposableEffect onDispose {}
 
         val listener = object : Player.Listener {
             override fun onPlaybackStateChanged(state: Int) {
@@ -146,10 +141,10 @@ fun VideoPlayer(
             }
         }
 
-        player.addListener(listener)
+        exoPlayer.addListener(listener)
 
         onDispose {
-            player.removeListener(listener)
+            exoPlayer.removeListener(listener)
             Log.d("VideoPlayer", "Player listener removed")
         }
     }
@@ -164,20 +159,20 @@ fun VideoPlayer(
 
     // UI del reproductor
     Box(modifier = modifier) {
-        // Mostrar el PlayerView solo si exoPlayer no es nulo
-        exoPlayer?.let { player ->
-            Log.d("VideoPlayer", "Rendering PlayerView for player: $player")
+        // Mostrar el PlayerView solo si player no es nulo
+        player?.let { exoPlayer ->
+            Log.d("VideoPlayer", "Rendering PlayerView for player: $exoPlayer")
             AndroidView(
                 factory = {
                     PlayerView(it).apply {
                         layoutParams = FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT)
-                        this.player = player
+                        this.player = exoPlayer
                         useController = false
                         keepScreenOn = true
                     }
                 },
                 update = { view ->
-                    view.player = player
+                    view.player = exoPlayer
                 },
                 modifier = Modifier.fillMaxSize()
             )

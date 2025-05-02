@@ -28,6 +28,7 @@ import androidx.media3.ui.PlayerView
 import androidx.tv.material3.Text
 import coil.compose.AsyncImage
 import com.iptv.ccomate.model.VideoPlayerViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -52,9 +53,9 @@ class PlayerActivityMedia3 : ComponentActivity() {
             return
         }
 
-        lifecycleScope.launch {
-            viewModel.setPlayer(this@PlayerActivityMedia3, url).onSuccess { player ->
-                setContent { PlayerScreen(player, name, logo) }
+        lifecycleScope.launch(Dispatchers.Main) {
+            viewModel.setPlayer(this@PlayerActivityMedia3, url).onSuccess {
+                setContent { PlayerScreen(viewModel, url, name, logo) }
             }.onFailure { e ->
                 Log.e("PlayerActivityMedia3", "Error al inicializar player: ${e.message}")
                 finish()
@@ -64,32 +65,44 @@ class PlayerActivityMedia3 : ComponentActivity() {
 
     override fun onPause() {
         super.onPause()
-        lifecycleScope.launch { viewModel.pausePlayer() }
+        lifecycleScope.launch(Dispatchers.Main) { viewModel.pausePlayer() }
     }
 
     override fun onResume() {
         super.onResume()
-        lifecycleScope.launch { viewModel.resumePlayer() }
+        lifecycleScope.launch(Dispatchers.Main) { viewModel.resumePlayer() }
     }
 
     override fun onStop() {
         super.onStop()
-        lifecycleScope.launch { viewModel.stopPlayer() }
+        lifecycleScope.launch(Dispatchers.Main) { viewModel.stopPlayer() }
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        lifecycleScope.launch { viewModel.releasePlayer() }
+        // No es necesario liberar aquí, ya que el ViewModel lo hace en onCleared
     }
 
     @Composable
     fun PlayerScreen(
-        player: ExoPlayer?,
+        viewModel: VideoPlayerViewModel,
+        videoUrl: String,
         channelName: String,
         channelLogo: String?
     ) {
-        var isBuffering by remember { mutableStateOf(true) } // Estado inicial: buffering
-        var showOverlay by remember { mutableStateOf(false) } // Overlay del canal
+        var isBuffering by remember { mutableStateOf(true) }
+        var showOverlay by remember { mutableStateOf(false) }
+        var player by remember { mutableStateOf<ExoPlayer?>(null) }
+
+        // Actualizar el player cuando cambie la URL
+        LaunchedEffect(videoUrl) {
+            viewModel.setPlayer(this@PlayerActivityMedia3, videoUrl).onSuccess { exoPlayer ->
+                Log.d("PlayerScreen", "ExoPlayer successfully set: $exoPlayer")
+                player = exoPlayer
+            }.onFailure { e ->
+                Log.e("PlayerScreen", "Error al actualizar player: ${e.message}")
+            }
+        }
 
         // Escuchar los eventos del ExoPlayer para actualizar los estados
         DisposableEffect(player) {
@@ -138,7 +151,7 @@ class PlayerActivityMedia3 : ComponentActivity() {
         // Ocultar el overlay después de 5 segundos cuando se muestra
         LaunchedEffect(showOverlay) {
             if (showOverlay) {
-                delay(5000) // Mantener el overlay visible durante 5 segundos
+                delay(5000)
                 showOverlay = false
             }
         }
@@ -156,10 +169,6 @@ class PlayerActivityMedia3 : ComponentActivity() {
                     },
                     modifier = Modifier.fillMaxSize()
                 )
-
-                LaunchedEffect(p) {
-                    Log.d("PlayerScreen", "Player updated: $p")
-                }
             }
 
             // Mostrar la rueda de carga mientras está buffering
