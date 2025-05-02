@@ -1,17 +1,26 @@
-package com.iptv.ccomate.components.videoplayers
+package com.iptv.ccomate.ui.screens
 
 import android.content.Context
 import android.util.Log
-import android.view.ViewGroup.LayoutParams.MATCH_PARENT
+import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -87,15 +96,22 @@ fun VideoPlayer(
                 Lifecycle.Event.ON_PAUSE -> {
                     viewModel.pausePlayer()
                 }
+
                 Lifecycle.Event.ON_START -> {
                     viewModel.resumePlayer()
                 }
+
                 Lifecycle.Event.ON_STOP -> {
                     viewModel.stopPlayer()
                 }
+
                 Lifecycle.Event.ON_DESTROY -> {
-                    Log.d("VideoPlayer", "ON_DESTROY - No se detiene el ExoPlayer, lo hace el ViewModel")
+                    Log.d(
+                        "VideoPlayer",
+                        "ON_DESTROY - No se detiene el ExoPlayer, lo hace el ViewModel"
+                    )
                 }
+
                 else -> {}
             }
         }
@@ -121,17 +137,20 @@ fun VideoPlayer(
                         isBuffering = true
                         showOverlay = false
                     }
+
                     Player.STATE_READY -> {
                         Log.d("VideoPlayer", "Player ready")
                         isBuffering = false
                         showOverlay = true
                         onPlaybackStarted?.invoke()
                     }
+
                     Player.STATE_ENDED -> {
                         Log.d("VideoPlayer", "Playback ended")
                         isBuffering = false
                         showOverlay = false
                     }
+
                     Player.STATE_IDLE -> {
                         Log.d("VideoPlayer", "Player idle")
                     }
@@ -170,7 +189,10 @@ fun VideoPlayer(
             AndroidView(
                 factory = {
                     PlayerView(it).apply {
-                        layoutParams = FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT)
+                        layoutParams = FrameLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.MATCH_PARENT
+                        )
                         this.player = player
                         useController = false
                         keepScreenOn = true
@@ -179,7 +201,7 @@ fun VideoPlayer(
                 update = { view ->
                     view.player = player
                 },
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.Companion.fillMaxSize()
             )
         }
 
@@ -190,13 +212,13 @@ fun VideoPlayer(
         ) {
             Log.d("VideoPlayer", "Showing buffering indicator")
             Box(
-                modifier = Modifier
+                modifier = Modifier.Companion
                     .fillMaxSize()
                     .background(Color(0x66000000)),
-                contentAlignment = Alignment.Center
+                contentAlignment = Alignment.Companion.Center
             ) {
                 CircularProgressIndicator(
-                    color = Color.White,
+                    color = Color.Companion.White,
                     strokeWidth = 3.dp
                 )
             }
@@ -209,19 +231,19 @@ fun VideoPlayer(
         ) {
             Log.d("VideoPlayer", "Showing channel overlay: $channelName")
             Box(
-                modifier = Modifier
+                modifier = Modifier.Companion
                     .fillMaxWidth()
                     .padding(12.dp)
-                    .background(Color.Black.copy(alpha = 0.6f)),
-                contentAlignment = Alignment.CenterStart
+                    .background(Color.Companion.Black.copy(alpha = 0.6f)),
+                contentAlignment = Alignment.Companion.CenterStart
             ) {
                 Text(
                     text = channelName ?: "",
                     fontSize = 18.sp,
-                    color = Color.White,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    color = Color.Companion.White,
+                    modifier = Modifier.Companion.padding(horizontal = 12.dp, vertical = 6.dp),
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Companion.Ellipsis
                 )
             }
         }

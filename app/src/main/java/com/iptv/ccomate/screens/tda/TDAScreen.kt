@@ -24,6 +24,8 @@ import com.iptv.ccomate.ui.video.VideoPanel
 import com.iptv.ccomate.data.M3UParser
 import com.iptv.ccomate.data.NetworkClient
 import com.iptv.ccomate.model.Channel
+import com.iptv.ccomate.ui.screens.ChannelList
+import com.iptv.ccomate.ui.screens.GroupList
 import com.iptv.ccomate.util.DeviceIdentifier
 import com.iptv.ccomate.util.TimeUtils
 import kotlinx.coroutines.launch

@@ -14,7 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.iptv.ccomate.components.videoplayers.VideoPlayer
+import com.iptv.ccomate.ui.screens.VideoPlayer
 
 @Composable
 fun VideoPanel(

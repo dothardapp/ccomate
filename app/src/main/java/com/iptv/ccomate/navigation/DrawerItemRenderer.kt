@@ -8,7 +8,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.*
-import com.iptv.ccomate.components.DrawerIconContent
+import com.iptv.ccomate.ui.screens.DrawerIconContent
 import com.iptv.ccomate.model.DrawerItem
 
 @Composable
