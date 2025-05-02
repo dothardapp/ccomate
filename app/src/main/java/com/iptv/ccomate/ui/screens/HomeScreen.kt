@@ -14,16 +14,20 @@ import androidx.compose.ui.graphics.Color
 @Composable
 fun HomeScreen() {
     Box(
-        modifier = Modifier.Companion
+        modifier = Modifier
             .fillMaxSize()
             .background(
-                brush = Brush.Companion.verticalGradient(
+                brush = Brush.verticalGradient(
                     colors = listOf(Color(0xFF1E1F22), MaterialTheme.colorScheme.background)
                 )
-            )
-            .focusable(true),
-        contentAlignment = Alignment.Companion.Center
-    )
-    {
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        androidx.tv.material3.Text(
+            text = "Pantalla de Inicio",
+            modifier = Modifier
+                .focusable(true)
+                .background(Color.DarkGray)
+        )
     }
 }

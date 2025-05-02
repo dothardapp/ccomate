@@ -59,7 +59,7 @@ fun ChannelList(
     var showHint by remember { mutableStateOf(false) }
 
     LazyColumn(
-        modifier = Modifier.Companion
+        modifier = Modifier
             .fillMaxSize()
             .padding(6.dp),
         state = listState
@@ -69,11 +69,11 @@ fun ChannelList(
             val isPlaying = selectedUrl == channel.url
 
             Box(
-                modifier = Modifier.Companion
+                modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 4.dp)
                     .clip(RoundedCornerShape(6.dp))
-                    .background(if (hasFocus) Color.Companion.DarkGray else Color(0xFF1C1C1C))
+                    .background(if (hasFocus) Color.DarkGray else Color(0xFF1C1C1C))
                     .focusRequester(focusRequesters[index])
                     .onFocusChanged {
                         hasFocus = it.isFocused
@@ -89,6 +89,7 @@ fun ChannelList(
                             intent.putExtra("url", channel.url)
                             intent.putExtra("name", channel.name)
                             intent.putExtra("logo", channel.logo ?: "")
+                            intent.putParcelableArrayListExtra("channels", ArrayList(channels))
                             context.startActivity(intent)
                         } else {
                             // Primer clic, reproducir
@@ -105,24 +106,24 @@ fun ChannelList(
             ) {
                 Column {
                     Row(
-                        modifier = Modifier.Companion.fillMaxWidth(),
-                        verticalAlignment = Alignment.Companion.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Row(verticalAlignment = Alignment.Companion.CenterVertically) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
                             AsyncImage(
                                 model = channel.logo
                                     ?: "https://media.istockphoto.com/id/1409329028/vector/no-picture-available-placeholder-thumbnail-icon-illustration-design.jpg",
                                 contentDescription = "Logo canal",
-                                modifier = Modifier.Companion
-                                    .background(Color.Companion.Black)
+                                modifier = Modifier
+                                    .background(Color.Black)
                                     .size(80.dp, 45.dp)
                             )
-                            Spacer(modifier = Modifier.Companion.width(12.dp))
+                            Spacer(modifier = Modifier.width(12.dp))
                             Text(
                                 text = channel.name,
                                 fontSize = 18.sp,
-                                color = if (hasFocus) Color.Companion.Yellow else Color.Companion.White
+                                color = if (hasFocus) Color.Yellow else Color.White
                             )
                         }
 
@@ -131,7 +132,7 @@ fun ChannelList(
                                 imageVector = Icons.Default.PlayArrow,
                                 contentDescription = "Reproduciendo",
                                 tint = Color(0xFF9ACD32),
-                                modifier = Modifier.Companion.size(28.dp)
+                                modifier = Modifier.size(28.dp)
                             )
                         }
                     }
@@ -139,9 +140,9 @@ fun ChannelList(
                     if (showHint && lastClickedUrl == channel.url) {
                         Text(
                             text = "Presioná de nuevo para ver en pantalla completa",
-                            color = Color.Companion.LightGray,
+                            color = Color.LightGray,
                             fontSize = 12.sp,
-                            modifier = Modifier.Companion.padding(top = 6.dp)
+                            modifier = Modifier.padding(top = 6.dp)
                         )
                     }
                 }

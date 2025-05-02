@@ -1,7 +1,10 @@
+@file:Suppress("DEPRECATION")
+
 package com.iptv.ccomate.activity
 
 import android.os.Bundle
 import android.util.Log
+import android.view.KeyEvent
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -11,22 +14,29 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -38,54 +48,232 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import androidx.tv.material3.Text
 import coil.compose.AsyncImage
+import com.iptv.ccomate.model.Channel
 import com.iptv.ccomate.viewmodel.VideoPlayerViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class PlayerActivityMedia3 : ComponentActivity() {
     private val viewModel: VideoPlayerViewModel by viewModels()
+    private var currentChannelIndex by mutableIntStateOf(0)
+    private var channelList by mutableStateOf(emptyList<Channel>())
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
-        val url = intent.getStringExtra("url") ?: run {
-            Log.w("PlayerActivityMedia3", "URL no proporcionada")
-            finish()
-            return
-        }
-        val name = intent.getStringExtra("name") ?: "Canal"
-        val logo = intent.getStringExtra("logo")
+        val initialUrl = intent.getStringExtra("url")
+        val initialName = intent.getStringExtra("name") ?: "Canal"
+        val initialLogo = intent.getStringExtra("logo")
+        val channels = intent.getParcelableArrayListExtra<Channel>("channels") ?: emptyList()
 
-        if (url.isEmpty() || !(url.startsWith("http://") || url.startsWith("https://"))) {
-            Log.w("PlayerActivityMedia3", "URL inválida: $url")
+        if (initialUrl.isNullOrEmpty() || !(initialUrl.startsWith("http://") || initialUrl.startsWith("https://"))) {
+            Log.w("PlayerActivityMedia3", "URL inválida: $initialUrl")
             finish()
             return
         }
 
+        currentChannelIndex = channels.indexOfFirst { it.url == initialUrl }.coerceAtLeast(0)
+        channelList = channels
+
+        // Configurar estados para el composable
+        var playerState by mutableStateOf<ExoPlayer?>(null)
+        var channelNameState by mutableStateOf(initialName)
+        var channelLogoState by mutableStateOf(initialLogo)
+        var errorState by mutableStateOf<String?>(null)
+
+        setContent {
+            if (errorState != null) {
+                ErrorScreen(message = errorState!!) {
+                    if (currentChannelIndex > 0) {
+                        currentChannelIndex--
+                        loadChannel(
+                            channelList.getOrNull(currentChannelIndex)?.url,
+                            channelList.getOrNull(currentChannelIndex)?.name,
+                            channelList.getOrNull(currentChannelIndex)?.logo,
+                            onSuccess = { player, name, logo ->
+                                playerState = player
+                                channelNameState = name
+                                channelLogoState = logo
+                                errorState = null
+                            },
+                            onFailure = { message ->
+                                errorState = message
+                            }
+                        )
+                    } else {
+                        finish()
+                    }
+                }
+            } else {
+                PlayerScreen(
+                    player = playerState,
+                    channelName = channelNameState,
+                    channelLogo = channelLogoState
+                )
+            }
+        }
+
+        // Cargar el canal inicial
+        loadChannel(
+            initialUrl,
+            initialName,
+            initialLogo,
+            onSuccess = { player, name, logo ->
+                playerState = player
+                channelNameState = name
+                channelLogoState = logo
+                errorState = null
+            },
+            onFailure = { message ->
+                errorState = message
+            }
+        )
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        if (event?.action == KeyEvent.ACTION_DOWN) {
+            when (keyCode) {
+                KeyEvent.KEYCODE_CHANNEL_UP -> {
+                    if (currentChannelIndex > 0) {
+                        currentChannelIndex--
+                        loadChannel(
+                            channelList.getOrNull(currentChannelIndex)?.url,
+                            channelList.getOrNull(currentChannelIndex)?.name,
+                            channelList.getOrNull(currentChannelIndex)?.logo,
+                            onSuccess = { player, name, logo ->
+                                setContent {
+                                    PlayerScreen(
+                                        player = player,
+                                        channelName = name,
+                                        channelLogo = logo
+                                    )
+                                }
+                            },
+                            onFailure = { message ->
+                                setContent {
+                                    ErrorScreen(message = message) {
+                                        if (currentChannelIndex > 0) {
+                                            currentChannelIndex--
+                                            loadChannel(
+                                                channelList.getOrNull(currentChannelIndex)?.url,
+                                                channelList.getOrNull(currentChannelIndex)?.name,
+                                                channelList.getOrNull(currentChannelIndex)?.logo,
+                                                onSuccess = { player, name, logo ->
+                                                    setContent {
+                                                        PlayerScreen(
+                                                            player = player,
+                                                            channelName = name,
+                                                            channelLogo = logo
+                                                        )
+                                                    }
+                                                },
+                                                onFailure = { errorMessage ->
+                                                    setContent {
+                                                        ErrorScreen(message = errorMessage) { finish() }
+                                                    }
+                                                }
+                                            )
+                                        } else {
+                                            finish()
+                                        }
+                                    }
+                                }
+                            }
+                        )
+                    }
+                    return true
+                }
+                KeyEvent.KEYCODE_CHANNEL_DOWN -> {
+                    if (currentChannelIndex < channelList.size - 1) {
+                        currentChannelIndex++
+                        loadChannel(
+                            channelList.getOrNull(currentChannelIndex)?.url,
+                            channelList.getOrNull(currentChannelIndex)?.name,
+                            channelList.getOrNull(currentChannelIndex)?.logo,
+                            onSuccess = { player, name, logo ->
+                                setContent {
+                                    PlayerScreen(
+                                        player = player,
+                                        channelName = name,
+                                        channelLogo = logo
+                                    )
+                                }
+                            },
+                            onFailure = { message ->
+                                setContent {
+                                    ErrorScreen(message = message) {
+                                        if (currentChannelIndex < channelList.size - 1) {
+                                            currentChannelIndex++
+                                            loadChannel(
+                                                channelList.getOrNull(currentChannelIndex)?.url,
+                                                channelList.getOrNull(currentChannelIndex)?.name,
+                                                channelList.getOrNull(currentChannelIndex)?.logo,
+                                                onSuccess = { player, name, logo ->
+                                                    setContent {
+                                                        PlayerScreen(
+                                                            player = player,
+                                                            channelName = name,
+                                                            channelLogo = logo
+                                                        )
+                                                    }
+                                                },
+                                                onFailure = { errorMessage ->
+                                                    setContent {
+                                                        ErrorScreen(message = errorMessage) { finish() }
+                                                    }
+                                                }
+                                            )
+                                        } else {
+                                            finish()
+                                        }
+                                    }
+                                }
+                            }
+                        )
+                    }
+                    return true
+                }
+            }
+        }
+        return super.onKeyDown(keyCode, event)
+    }
+
+    private fun loadChannel(
+        url: String?,
+        name: String?,
+        logo: String?,
+        onSuccess: (ExoPlayer, String, String?) -> Unit,
+        onFailure: (String) -> Unit
+    ) {
+        if (url.isNullOrEmpty()) {
+            Log.w("PlayerActivityMedia3", "URL para cargar canal es nula o vacía")
+            onFailure("URL para cargar canal es nula o vacía")
+            return
+        }
         lifecycleScope.launch {
             viewModel.setPlayer(this@PlayerActivityMedia3, url).onSuccess { player ->
-                setContent { PlayerScreen(player, name, logo) }
+                onSuccess(player, name ?: "Canal", logo)
             }.onFailure { e ->
-                Log.e("PlayerActivityMedia3", "Error al inicializar player: ${e.message}")
-                finish()
+                Log.e("PlayerActivityMedia3", "Error al cargar canal ($name): ${e.message}")
+                onFailure("Error al cargar el canal ${name ?: ""}: ${e.message}")
             }
         }
     }
 
     override fun onPause() {
         super.onPause()
-        lifecycleScope.launch { viewModel.pausePlayer() }
+        viewModel.pausePlayer()
     }
 
     override fun onResume() {
         super.onResume()
-        lifecycleScope.launch { viewModel.resumePlayer() }
+        viewModel.resumePlayer()
     }
 
     override fun onStop() {
         super.onStop()
-        lifecycleScope.launch { viewModel.stopPlayer() }
+        viewModel.stopPlayer()
     }
 
     override fun onDestroy() {
@@ -99,38 +287,23 @@ class PlayerActivityMedia3 : ComponentActivity() {
         channelName: String,
         channelLogo: String?
     ) {
-        var isBuffering by remember { mutableStateOf(true) } // Estado inicial: buffering
-        var showOverlay by remember { mutableStateOf(false) } // Overlay del canal
+        var isBuffering by remember { mutableStateOf(true) }
+        var showOverlay by remember { mutableStateOf(true) }
+        var playerError by remember { mutableStateOf<PlaybackException?>(null) }
+        var playerView by remember { mutableStateOf<PlayerView?>(null) }
 
-        // Escuchar los eventos del ExoPlayer para actualizar los estados
         DisposableEffect(player) {
             val listener = object : Player.Listener {
                 override fun onPlaybackStateChanged(state: Int) {
                     Log.d("PlayerScreen", "Playback state changed: $state")
                     when (state) {
-                        Player.STATE_BUFFERING -> {
-                            Log.d("PlayerScreen", "Buffering started")
-                            isBuffering = true
-                            showOverlay = false
-                        }
-
+                        Player.STATE_BUFFERING -> isBuffering = true
                         Player.STATE_READY -> {
-                            Log.d("PlayerScreen", "Player ready")
                             isBuffering = false
                             showOverlay = true
                         }
-
-                        Player.STATE_ENDED -> {
-                            Log.d("PlayerScreen", "Playback ended")
-                            isBuffering = false
-                            showOverlay = false
-                        }
-
-                        Player.STATE_IDLE -> {
-                            Log.d("PlayerScreen", "Player idle")
-                            isBuffering = true
-                            showOverlay = false
-                        }
+                        Player.STATE_ENDED -> isBuffering = false
+                        Player.STATE_IDLE -> isBuffering = true
                     }
                 }
 
@@ -138,6 +311,7 @@ class PlayerActivityMedia3 : ComponentActivity() {
                     Log.e("PlayerScreen", "Error de reproducción: ${error.message}", error)
                     isBuffering = false
                     showOverlay = false
+                    playerError = error
                 }
             }
 
@@ -149,34 +323,36 @@ class PlayerActivityMedia3 : ComponentActivity() {
             }
         }
 
-        // Ocultar el overlay después de 5 segundos cuando se muestra
         LaunchedEffect(showOverlay) {
             if (showOverlay) {
-                delay(5000) // Mantener el overlay visible durante 5 segundos
+                delay(5000)
                 showOverlay = false
             }
         }
 
-        Box(modifier = Modifier.Companion.fillMaxSize()) {
-            // Mostrar el reproductor solo si el player no es nulo
+        Box(modifier = Modifier.fillMaxSize()) {
             player?.let { p ->
                 AndroidView(
                     factory = { context ->
                         PlayerView(context).apply {
                             this.player = p
-                            useController = true
+                            useController = false
                             keepScreenOn = true
+                            playerView = this
                         }
                     },
-                    modifier = Modifier.Companion.fillMaxSize()
+                    update = { view ->
+                        if (view.player != p) {
+                            view.player = p
+                            Log.d("PlayerScreen", "PlayerView updated with new player: $p")
+                            p.prepare()
+                            p.playWhenReady = true
+                        }
+                    },
+                    modifier = Modifier.fillMaxSize()
                 )
-
-                LaunchedEffect(p) {
-                    Log.d("PlayerScreen", "Player updated: $p")
-                }
             }
 
-            // Mostrar la rueda de carga mientras está buffering
             AnimatedVisibility(
                 visible = isBuffering,
                 enter = fadeIn(),
@@ -184,40 +360,43 @@ class PlayerActivityMedia3 : ComponentActivity() {
             ) {
                 Log.d("PlayerScreen", "Showing buffering indicator")
                 Box(
-                    modifier = Modifier.Companion
+                    modifier = Modifier
                         .fillMaxSize()
                         .background(Color(0x66000000)),
-                    contentAlignment = Alignment.Companion.Center
+                    contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator(
-                        color = Color.Companion.White,
+                        color = Color.White,
                         strokeWidth = 3.dp
                     )
                 }
             }
 
-            // Overlay animado con nombre y logo del canal
             AnimatedVisibility(
                 visible = showOverlay,
                 enter = fadeIn(),
-                exit = fadeOut()
+                exit = fadeOut(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 56.dp)
             ) {
                 Log.d("PlayerScreen", "Showing channel overlay: $channelName")
                 Row(
-                    modifier = Modifier.Companion
+                    modifier = Modifier
                         .fillMaxWidth()
                         .padding(12.dp)
-                        .background(Color.Companion.Black.copy(alpha = 0.6f))
+                        .background(Color.Black.copy(alpha = 0.6f))
                         .padding(horizontal = 12.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.Companion.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    if (!channelLogo.isNullOrBlank()) {
+                    channelLogo?.let {
                         AsyncImage(
-                            model = channelLogo,
-                            contentDescription = "Logo del canal",
-                            modifier = Modifier.Companion
+                            model = it,
+                            contentDescription = "Logo del canal $channelName",
+                            modifier = Modifier
                                 .size(width = 80.dp, height = 45.dp)
-                                .background(Color.Companion.Black)
+                                .background(Color.Black)
                                 .padding(end = 12.dp)
                         )
                     }
@@ -225,10 +404,57 @@ class PlayerActivityMedia3 : ComponentActivity() {
                     Text(
                         text = "🎬 Reproduciendo: $channelName",
                         fontSize = 18.sp,
-                        color = Color.Companion.White,
+                        color = Color.White,
                         maxLines = 1,
-                        overflow = TextOverflow.Companion.Ellipsis
+                        overflow = TextOverflow.Ellipsis
                     )
+                }
+            }
+
+            if (playerError != null) {
+                AlertDialog(
+                    onDismissRequest = { playerError = null },
+                    title = { Text("Error de Reproducción") },
+                    text = { Text(playerError?.localizedMessage ?: "Ocurrió un error al reproducir el contenido.") },
+                    confirmButton = {
+                        TextButton(onClick = { playerError = null }) {
+                            Text("Aceptar")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { finish() }) {
+                            Text("Salir")
+                        }
+                    }
+                )
+            }
+        }
+    }
+
+    @Composable
+    fun ErrorScreen(message: String, onRetry: () -> Unit) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = "¡Oops! Ha ocurrido un error.",
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.size(16.dp))
+                Text(
+                    text = message,
+                    color = Color.Gray,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.size(24.dp))
+                Button(onClick = onRetry) {
+                    Text("Volver")
                 }
             }
         }
