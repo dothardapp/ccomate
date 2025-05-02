@@ -17,6 +17,7 @@ coilSvg = "2.6.0"
 
 #Librerias Android TV
 navigationCompose = "2.8.9"
+slf4jAndroid = "1.7.36"
 tvFoundation = "1.0.0-alpha12"
 tvMaterial = "1.1.0-alpha01"
 
@@ -64,6 +65,7 @@ ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktorCli
 
 #Soporte para iconos SVG
 coil-svg = { module = "io.coil-kt:coil-svg", version.ref = "coilSvg" }
+slf4j-android = { module = "org.slf4j:slf4j-android", version.ref = "slf4jAndroid" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

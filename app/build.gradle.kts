@@ -80,6 +80,8 @@ dependencies {
     //Librerias para el splash screen
     implementation (libs.androidx.animation)
 
+    implementation(libs.slf4j.android)
+
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     androidTestImplementation(platform(libs.androidx.compose.bom))

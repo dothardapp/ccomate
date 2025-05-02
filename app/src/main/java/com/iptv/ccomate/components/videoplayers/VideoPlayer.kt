@@ -46,44 +46,55 @@ fun VideoPlayer(
     var showOverlay by remember { mutableStateOf(false) }
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    // Obtener el ViewModel
     val viewModel: VideoPlayerViewModel = viewModel()
-
-    // Estado para el ExoPlayer
     var exoPlayer by remember { mutableStateOf<ExoPlayer?>(null) }
+
+    Log.d("VideoPlayer", "Rendering VideoPlayer for URL: $videoUrl")
 
     // Actualizar el ExoPlayer cuando cambie la URL
     LaunchedEffect(videoUrl) {
+        Log.d("VideoPlayer", "LaunchedEffect triggered for URL: $videoUrl")
+        isBuffering = true
+        showOverlay = false
+
+        // Garantizar que la rueda de carga se muestre por al menos 300ms
+        delay(300)
+
         viewModel.setPlayer(context, videoUrl).onSuccess { player ->
+            Log.d("VideoPlayer", "ExoPlayer successfully set: $player")
             exoPlayer = player
         }.onFailure { error ->
+            Log.e("VideoPlayer", "Failed to set ExoPlayer", error)
+            isBuffering = false
+            showOverlay = false
             onPlaybackError?.invoke(error)
         }
     }
 
-    // Manejar el ciclo de vida y eventos del ExoPlayer
-    DisposableEffect(lifecycleOwner, exoPlayer) {
-        val player = exoPlayer ?: return@DisposableEffect onDispose {}
+    // Log para verificar si exoPlayer cambió
+    LaunchedEffect(exoPlayer) {
+        if (exoPlayer != null) {
+            Log.d("VideoPlayer", "exoPlayer updated: $exoPlayer")
+        } else {
+            Log.d("VideoPlayer", "exoPlayer is null")
+        }
+    }
 
+    // Manejar el ciclo de vida usando el ViewModel
+    DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_PAUSE -> {
-                    player.playWhenReady = false
-                    player.pause()
-                    Log.d("VideoPlayerWithoutSSL02", "Pausado en ON_PAUSE")
+                    viewModel.pausePlayer()
                 }
                 Lifecycle.Event.ON_START -> {
-                    player.playWhenReady = true
-                    Log.d("VideoPlayerWithoutSSL02", "Reanudado en ON_START")
+                    viewModel.resumePlayer()
                 }
                 Lifecycle.Event.ON_STOP -> {
-                    player.playWhenReady = false
-                    player.pause()
-                    Log.d("VideoPlayerWithoutSSL02", "Pausado en ON_STOP")
+                    viewModel.stopPlayer()
                 }
                 Lifecycle.Event.ON_DESTROY -> {
-                    Log.d("VideoPlayerWithoutSSL02", "ON_DESTROY - No se detiene el ExoPlayer, lo hace el ViewModel")
-                    // No detenemos ni liberamos aquí, el ViewModel se encarga de eso
+                    Log.d("VideoPlayer", "ON_DESTROY - No se detiene el ExoPlayer, lo hace el ViewModel")
                 }
                 else -> {}
             }
@@ -91,29 +102,46 @@ fun VideoPlayer(
 
         lifecycleOwner.lifecycle.addObserver(observer)
 
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            Log.d("VideoPlayer", "DisposableEffect onDispose called")
+        }
+    }
+
+    // Listener para los estados del ExoPlayer
+    DisposableEffect(exoPlayer) {
+        val player = exoPlayer ?: return@DisposableEffect onDispose {}
+
         val listener = object : Player.Listener {
             override fun onPlaybackStateChanged(state: Int) {
+                Log.d("VideoPlayer", "Playback state changed: $state")
                 when (state) {
                     Player.STATE_BUFFERING -> {
+                        Log.d("VideoPlayer", "Buffering started")
                         isBuffering = true
                         showOverlay = false
                     }
                     Player.STATE_READY -> {
+                        Log.d("VideoPlayer", "Player ready")
                         isBuffering = false
                         showOverlay = true
                         onPlaybackStarted?.invoke()
                     }
-                    Player.STATE_ENDED, Player.STATE_IDLE -> {
+                    Player.STATE_ENDED -> {
+                        Log.d("VideoPlayer", "Playback ended")
                         isBuffering = false
                         showOverlay = false
+                    }
+                    Player.STATE_IDLE -> {
+                        Log.d("VideoPlayer", "Player idle")
                     }
                 }
             }
 
             override fun onPlayerError(error: PlaybackException) {
+                Log.e("VideoPlayer", "Error de reproducción: ${error.message}", error)
                 isBuffering = false
                 showOverlay = false
-                Log.e("VideoPlayerWithoutSSL02", "Error de reproducción: ${error.message}", error)
                 onPlaybackError?.invoke(error)
             }
         }
@@ -121,14 +149,12 @@ fun VideoPlayer(
         player.addListener(listener)
 
         onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
             player.removeListener(listener)
-            Log.d("VideoPlayerWithoutSSL02", "onDispose - No se detiene el ExoPlayer, lo hace el ViewModel")
-            // No llamamos a stop() ni clearMediaItems() aquí, el ViewModel se encarga de liberar el ExoPlayer
+            Log.d("VideoPlayer", "Player listener removed")
         }
     }
 
-    // Ocultar overlay luego de 3 segundos
+    // Ocultar overlay después de 3 segundos
     LaunchedEffect(showOverlay) {
         if (showOverlay) {
             delay(3000)
@@ -138,7 +164,9 @@ fun VideoPlayer(
 
     // UI del reproductor
     Box(modifier = modifier) {
+        // Mostrar el PlayerView solo si exoPlayer no es nulo
         exoPlayer?.let { player ->
+            Log.d("VideoPlayer", "Rendering PlayerView for player: $player")
             AndroidView(
                 factory = {
                     PlayerView(it).apply {
@@ -148,7 +176,9 @@ fun VideoPlayer(
                         keepScreenOn = true
                     }
                 },
-                update = { it.player = player },
+                update = { view ->
+                    view.player = player
+                },
                 modifier = Modifier.fillMaxSize()
             )
         }
@@ -158,6 +188,7 @@ fun VideoPlayer(
             enter = fadeIn(),
             exit = fadeOut()
         ) {
+            Log.d("VideoPlayer", "Showing buffering indicator")
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -176,6 +207,7 @@ fun VideoPlayer(
             enter = fadeIn(),
             exit = fadeOut()
         ) {
+            Log.d("VideoPlayer", "Showing channel overlay: $channelName")
             Box(
                 modifier = Modifier
                     .fillMaxWidth()

@@ -1,16 +1,17 @@
 package com.iptv.ccomate.ui
 
-import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -19,33 +20,24 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.net.toUri
-import androidx.media3.common.MediaItem
+import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
-import androidx.media3.common.util.UnstableApi
-import androidx.media3.datasource.DataSource
-import androidx.media3.datasource.DefaultHttpDataSource
-import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.exoplayer.hls.HlsMediaSource
-import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.ui.PlayerView
 import androidx.tv.material3.Text
 import coil.compose.AsyncImage
+import com.iptv.ccomate.model.VideoPlayerViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
-@androidx.annotation.OptIn(UnstableApi::class)
 class PlayerActivityMedia3 : ComponentActivity() {
-    private var player: ExoPlayer? = null
+    private val viewModel: VideoPlayerViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        // Mantener la pantalla activa
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
-        // Obtener datos del Intent
         val url = intent.getStringExtra("url") ?: run {
             Log.w("PlayerActivityMedia3", "URL no proporcionada")
             finish()
@@ -54,115 +46,40 @@ class PlayerActivityMedia3 : ComponentActivity() {
         val name = intent.getStringExtra("name") ?: "Canal"
         val logo = intent.getStringExtra("logo")
 
-        // Validar URL
         if (url.isEmpty() || !(url.startsWith("http://") || url.startsWith("https://"))) {
             Log.w("PlayerActivityMedia3", "URL inválida: $url")
             finish()
             return
         }
 
-        // Configurar LoadControl
-        val loadControl = DefaultLoadControl.Builder()
-            .setBufferDurationsMs(10000, 30000, 1000, 2000)
-            .build()
-
-        // Construir un User-Agent dinámico
-        fun buildDynamicUserAgent(): String {
-            val androidVersion = Build.VERSION.RELEASE
-            val deviceModel = Build.MODEL
-            val chromeVersion = "129.0.0.0" // Ajusta según la versión actual de Chrome
-            return "Mozilla/5.0 (Linux; Android $androidVersion; $deviceModel) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/$chromeVersion Mobile Safari/537.36 CCO IPTV"
-        }
-
-        // Configurar DataSource.Factory personalizado con encabezados
-        val dataSourceFactory = object : DataSource.Factory {
-            override fun createDataSource(): DataSource {
-                return DefaultHttpDataSource.Factory()
-                    .setUserAgent(buildDynamicUserAgent())
-                    .setConnectTimeoutMs(8000)
-                    .setReadTimeoutMs(8000)
-                    .setAllowCrossProtocolRedirects(true)
-                    .setDefaultRequestProperties(
-                        mapOf(
-                            "Referer" to "https://ccomate.iptv.com",
-                            "Origin" to "https://ccomate.iptv.com"
-                        )
-                    )
-                    .createDataSource()
+        lifecycleScope.launch {
+            viewModel.setPlayer(this@PlayerActivityMedia3, url).onSuccess { player ->
+                setContent { PlayerScreen(player, name, logo) }
+            }.onFailure { e ->
+                Log.e("PlayerActivityMedia3", "Error al inicializar player: ${e.message}")
+                finish()
             }
-        }
-
-        // Determinar el tipo de MediaSource
-        val mediaSourceFactory = when {
-            url.lowercase().contains(".m3u8") -> {
-                Log.d("PlayerActivityMedia3", "Usando HlsMediaSource para $url")
-                HlsMediaSource.Factory(dataSourceFactory)
-            }
-            url.lowercase().endsWith(".flv") -> {
-                Log.d("PlayerActivityMedia3", "Usando ProgressiveMediaSource para $url")
-                ProgressiveMediaSource.Factory(dataSourceFactory)
-            }
-            else -> {
-                Log.d("PlayerActivityMedia3", "Usando HlsMediaSource por defecto para $url")
-                HlsMediaSource.Factory(dataSourceFactory)
-            }
-        }
-
-        // Crear y configurar el reproductor
-        player = ExoPlayer.Builder(this)
-            .setLoadControl(loadControl)
-            .setMediaSourceFactory(mediaSourceFactory)
-            .build().apply {
-                try {
-                    setMediaItem(MediaItem.fromUri(url.toUri()))
-                    addListener(object : Player.Listener {
-                        override fun onPlayerError(error: PlaybackException) {
-                            Log.e("PlayerActivityMedia3", "Error de reproducción: ${error.message}", error)
-                            finish() // Cerrar la actividad si hay un error crítico
-                        }
-                    })
-                    prepare()
-                    playWhenReady = true
-                } catch (e: Exception) {
-                    Log.e("PlayerActivityMedia3", "Error al configurar media: ${e.message}", e)
-                    finish()
-                }
-            }
-
-        setContent {
-            PlayerScreen(
-                player = player,
-                channelName = name,
-                channelLogo = logo
-            )
         }
     }
 
     override fun onPause() {
         super.onPause()
-        player?.pause()
+        lifecycleScope.launch { viewModel.pausePlayer() }
     }
 
     override fun onResume() {
         super.onResume()
-        player?.playWhenReady = true
+        lifecycleScope.launch { viewModel.resumePlayer() }
     }
 
     override fun onStop() {
         super.onStop()
-        player?.run {
-            pause()
-            stop()
-        }
+        lifecycleScope.launch { viewModel.stopPlayer() }
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        player?.run {
-            stop()
-            release()
-            player = null
-        }
+        lifecycleScope.launch { viewModel.releasePlayer() }
     }
 
     @Composable
@@ -171,26 +88,99 @@ class PlayerActivityMedia3 : ComponentActivity() {
         channelName: String,
         channelLogo: String?
     ) {
-        var showOverlay by remember { mutableStateOf(true) }
+        var isBuffering by remember { mutableStateOf(true) } // Estado inicial: buffering
+        var showOverlay by remember { mutableStateOf(false) } // Overlay del canal
 
-        // Mostrar el overlay durante 3 segundos al inicio
-        LaunchedEffect(Unit) {
-            delay(3000)
-            showOverlay = false
+        // Escuchar los eventos del ExoPlayer para actualizar los estados
+        DisposableEffect(player) {
+            val listener = object : Player.Listener {
+                override fun onPlaybackStateChanged(state: Int) {
+                    Log.d("PlayerScreen", "Playback state changed: $state")
+                    when (state) {
+                        Player.STATE_BUFFERING -> {
+                            Log.d("PlayerScreen", "Buffering started")
+                            isBuffering = true
+                            showOverlay = false
+                        }
+                        Player.STATE_READY -> {
+                            Log.d("PlayerScreen", "Player ready")
+                            isBuffering = false
+                            showOverlay = true
+                        }
+                        Player.STATE_ENDED -> {
+                            Log.d("PlayerScreen", "Playback ended")
+                            isBuffering = false
+                            showOverlay = false
+                        }
+                        Player.STATE_IDLE -> {
+                            Log.d("PlayerScreen", "Player idle")
+                            isBuffering = true
+                            showOverlay = false
+                        }
+                    }
+                }
+
+                override fun onPlayerError(error: PlaybackException) {
+                    Log.e("PlayerScreen", "Error de reproducción: ${error.message}", error)
+                    isBuffering = false
+                    showOverlay = false
+                }
+            }
+
+            player?.addListener(listener)
+
+            onDispose {
+                player?.removeListener(listener)
+                Log.d("PlayerScreen", "Player listener removed")
+            }
+        }
+
+        // Ocultar el overlay después de 5 segundos cuando se muestra
+        LaunchedEffect(showOverlay) {
+            if (showOverlay) {
+                delay(5000) // Mantener el overlay visible durante 5 segundos
+                showOverlay = false
+            }
         }
 
         Box(modifier = Modifier.fillMaxSize()) {
-            // Mostrar el reproductor
-            AndroidView(
-                factory = { context ->
-                    PlayerView(context).apply {
-                        this.player = player
-                        useController = true
-                        keepScreenOn = true // Refuerzo para mantener la pantalla activa
-                    }
-                },
-                modifier = Modifier.fillMaxSize()
-            )
+            // Mostrar el reproductor solo si el player no es nulo
+            player?.let { p ->
+                AndroidView(
+                    factory = { context ->
+                        PlayerView(context).apply {
+                            this.player = p
+                            useController = true
+                            keepScreenOn = true
+                        }
+                    },
+                    modifier = Modifier.fillMaxSize()
+                )
+
+                LaunchedEffect(p) {
+                    Log.d("PlayerScreen", "Player updated: $p")
+                }
+            }
+
+            // Mostrar la rueda de carga mientras está buffering
+            AnimatedVisibility(
+                visible = isBuffering,
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
+                Log.d("PlayerScreen", "Showing buffering indicator")
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color(0x66000000)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        color = Color.White,
+                        strokeWidth = 3.dp
+                    )
+                }
+            }
 
             // Overlay animado con nombre y logo del canal
             AnimatedVisibility(
@@ -198,6 +188,7 @@ class PlayerActivityMedia3 : ComponentActivity() {
                 enter = fadeIn(),
                 exit = fadeOut()
             ) {
+                Log.d("PlayerScreen", "Showing channel overlay: $channelName")
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
