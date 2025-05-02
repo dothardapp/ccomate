@@ -1,4 +1,4 @@
-package com.iptv.ccomate.model
+package com.iptv.ccomate.viewmodel
 
 import android.content.Context
 import android.os.Build
@@ -40,46 +40,53 @@ class VideoPlayerViewModel : ViewModel() {
     }
 
     // Solo crea el DataSource.Factory una vez
-    private suspend fun getOrCreateDataSourceFactory(): DataSource.Factory = withContext(Dispatchers.IO) {
-        if (dataSourceFactory == null) {
-            dataSourceFactory = object : DataSource.Factory {
-                override fun createDataSource(): DataSource {
-                    return DefaultHttpDataSource.Factory()
-                        .setUserAgent(buildDynamicUserAgent())
-                        .setConnectTimeoutMs(8000)
-                        .setReadTimeoutMs(8000)
-                        .setAllowCrossProtocolRedirects(true)
-                        .setDefaultRequestProperties(
-                            mapOf(
-                                "Referer" to "https://ccomate.iptv.com",
-                                "Origin" to "https://ccomate.iptv.com"
+    private suspend fun getOrCreateDataSourceFactory(): DataSource.Factory =
+        withContext(Dispatchers.IO) {
+            if (dataSourceFactory == null) {
+                dataSourceFactory = object : DataSource.Factory {
+                    override fun createDataSource(): DataSource {
+                        return DefaultHttpDataSource.Factory()
+                            .setUserAgent(buildDynamicUserAgent())
+                            .setConnectTimeoutMs(8000)
+                            .setReadTimeoutMs(8000)
+                            .setAllowCrossProtocolRedirects(true)
+                            .setDefaultRequestProperties(
+                                mapOf(
+                                    "Referer" to "https://ccomate.iptv.com",
+                                    "Origin" to "https://ccomate.iptv.com"
+                                )
                             )
-                        )
-                        .createDataSource()
+                            .createDataSource()
+                    }
+                }
+            }
+            dataSourceFactory!!
+        }
+
+    // Reutiliza el DataSource.Factory ya creado
+    private suspend fun createMediaSourceFactory(videoUrl: String): MediaSource.Factory =
+        withContext(Dispatchers.IO) {
+            val factory = getOrCreateDataSourceFactory()
+            when {
+                videoUrl.lowercase().contains(".m3u8") -> {
+                    Log.d("VideoPlayerViewModel", "Usando HlsMediaSource para $videoUrl")
+                    HlsMediaSource.Factory(factory)
+                }
+
+                videoUrl.lowercase().endsWith(".flv") -> {
+                    Log.d("VideoPlayerViewModel", "Usando ProgressiveMediaSource para $videoUrl")
+                    ProgressiveMediaSource.Factory(factory)
+                }
+
+                else -> {
+                    Log.d(
+                        "VideoPlayerViewModel",
+                        "Usando HlsMediaSource por defecto para $videoUrl"
+                    )
+                    HlsMediaSource.Factory(factory)
                 }
             }
         }
-        dataSourceFactory!!
-    }
-
-    // Reutiliza el DataSource.Factory ya creado
-    private suspend fun createMediaSourceFactory(videoUrl: String): MediaSource.Factory = withContext(Dispatchers.IO) {
-        val factory = getOrCreateDataSourceFactory()
-        when {
-            videoUrl.lowercase().contains(".m3u8") -> {
-                Log.d("VideoPlayerViewModel", "Usando HlsMediaSource para $videoUrl")
-                HlsMediaSource.Factory(factory)
-            }
-            videoUrl.lowercase().endsWith(".flv") -> {
-                Log.d("VideoPlayerViewModel", "Usando ProgressiveMediaSource para $videoUrl")
-                ProgressiveMediaSource.Factory(factory)
-            }
-            else -> {
-                Log.d("VideoPlayerViewModel", "Usando HlsMediaSource por defecto para $videoUrl")
-                HlsMediaSource.Factory(factory)
-            }
-        }
-    }
 
     suspend fun setPlayer(context: Context, videoUrl: String): Result<ExoPlayer> {
         return try {
@@ -100,7 +107,11 @@ class VideoPlayerViewModel : ViewModel() {
                         player.playWhenReady = true
                         player.addListener(object : Player.Listener {
                             override fun onPlayerError(error: PlaybackException) {
-                                Log.e("VideoPlayerViewModel", "Error de reproducción: ${error.message}", error)
+                                Log.e(
+                                    "VideoPlayerViewModel",
+                                    "Error de reproducción: ${error.message}",
+                                    error
+                                )
                             }
                         })
                     }

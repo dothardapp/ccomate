@@ -1,4 +1,4 @@
-package com.iptv.ccomate.ui.screens
+package com.iptv.ccomate.ui.video
 
 import android.content.Context
 import android.util.Log
@@ -38,7 +38,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import androidx.tv.material3.Text
-import com.iptv.ccomate.model.VideoPlayerViewModel
+import com.iptv.ccomate.viewmodel.VideoPlayerViewModel
 import kotlinx.coroutines.delay
 
 @OptIn(UnstableApi::class)
