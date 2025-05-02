@@ -40,7 +40,7 @@ import androidx.tv.material3.Icon
 import androidx.tv.material3.Text
 import coil.compose.AsyncImage
 import com.iptv.ccomate.model.Channel
-import com.iptv.ccomate.ui.PlayerActivityMedia3
+import com.iptv.ccomate.activity.PlayerActivityMedia3
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 

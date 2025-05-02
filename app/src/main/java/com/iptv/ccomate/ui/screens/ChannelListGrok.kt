@@ -50,7 +50,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.iptv.ccomate.R
 import com.iptv.ccomate.model.Channel
-import com.iptv.ccomate.ui.PlayerActivityMedia3
+import com.iptv.ccomate.activity.PlayerActivityMedia3
 import com.iptv.ccomate.ui.theme.PlutoTvTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch

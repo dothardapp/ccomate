@@ -1,4 +1,4 @@
-package com.iptv.ccomate.ui
+package com.iptv.ccomate.activity
 
 import android.os.Bundle
 import android.util.Log
@@ -10,9 +10,20 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -102,16 +113,19 @@ class PlayerActivityMedia3 : ComponentActivity() {
                             isBuffering = true
                             showOverlay = false
                         }
+
                         Player.STATE_READY -> {
                             Log.d("PlayerScreen", "Player ready")
                             isBuffering = false
                             showOverlay = true
                         }
+
                         Player.STATE_ENDED -> {
                             Log.d("PlayerScreen", "Playback ended")
                             isBuffering = false
                             showOverlay = false
                         }
+
                         Player.STATE_IDLE -> {
                             Log.d("PlayerScreen", "Player idle")
                             isBuffering = true
@@ -143,7 +157,7 @@ class PlayerActivityMedia3 : ComponentActivity() {
             }
         }
 
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier.Companion.fillMaxSize()) {
             // Mostrar el reproductor solo si el player no es nulo
             player?.let { p ->
                 AndroidView(
@@ -154,7 +168,7 @@ class PlayerActivityMedia3 : ComponentActivity() {
                             keepScreenOn = true
                         }
                     },
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.Companion.fillMaxSize()
                 )
 
                 LaunchedEffect(p) {
@@ -170,13 +184,13 @@ class PlayerActivityMedia3 : ComponentActivity() {
             ) {
                 Log.d("PlayerScreen", "Showing buffering indicator")
                 Box(
-                    modifier = Modifier
+                    modifier = Modifier.Companion
                         .fillMaxSize()
                         .background(Color(0x66000000)),
-                    contentAlignment = Alignment.Center
+                    contentAlignment = Alignment.Companion.Center
                 ) {
                     CircularProgressIndicator(
-                        color = Color.White,
+                        color = Color.Companion.White,
                         strokeWidth = 3.dp
                     )
                 }
@@ -190,20 +204,20 @@ class PlayerActivityMedia3 : ComponentActivity() {
             ) {
                 Log.d("PlayerScreen", "Showing channel overlay: $channelName")
                 Row(
-                    modifier = Modifier
+                    modifier = Modifier.Companion
                         .fillMaxWidth()
                         .padding(12.dp)
-                        .background(Color.Black.copy(alpha = 0.6f))
+                        .background(Color.Companion.Black.copy(alpha = 0.6f))
                         .padding(horizontal = 12.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.Companion.CenterVertically
                 ) {
                     if (!channelLogo.isNullOrBlank()) {
                         AsyncImage(
                             model = channelLogo,
                             contentDescription = "Logo del canal",
-                            modifier = Modifier
+                            modifier = Modifier.Companion
                                 .size(width = 80.dp, height = 45.dp)
-                                .background(Color.Black)
+                                .background(Color.Companion.Black)
                                 .padding(end = 12.dp)
                         )
                     }
@@ -211,9 +225,9 @@ class PlayerActivityMedia3 : ComponentActivity() {
                     Text(
                         text = "🎬 Reproduciendo: $channelName",
                         fontSize = 18.sp,
-                        color = Color.White,
+                        color = Color.Companion.White,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        overflow = TextOverflow.Companion.Ellipsis
                     )
                 }
             }
