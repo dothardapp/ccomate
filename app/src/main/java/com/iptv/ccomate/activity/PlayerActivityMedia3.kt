@@ -1,5 +1,3 @@
-@file:Suppress("DEPRECATION")
-
 package com.iptv.ccomate.activity
 
 import android.os.Bundle
@@ -32,6 +30,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,13 +49,16 @@ import androidx.tv.material3.Text
 import coil.compose.AsyncImage
 import com.iptv.ccomate.model.Channel
 import com.iptv.ccomate.viewmodel.VideoPlayerViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+@Suppress("DEPRECATION")
 class PlayerActivityMedia3 : ComponentActivity() {
     private val viewModel: VideoPlayerViewModel by viewModels()
     private var currentChannelIndex by mutableIntStateOf(0)
     private var channelList by mutableStateOf(emptyList<Channel>())
+    private var pendingChannelIndex by mutableIntStateOf(-1) // Controlado por onKeyDown
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -109,7 +111,27 @@ class PlayerActivityMedia3 : ComponentActivity() {
                 PlayerScreen(
                     player = playerState,
                     channelName = channelNameState,
-                    channelLogo = channelLogoState
+                    channelLogo = channelLogoState,
+                    channels = channelList,
+                    pendingChannelIndexState = pendingChannelIndex,
+                    onChannelChange = { newIndex ->
+                        currentChannelIndex = newIndex
+                        pendingChannelIndex = -1 // Resetear después del cambio
+                        loadChannel(
+                            channelList.getOrNull(newIndex)?.url,
+                            channelList.getOrNull(newIndex)?.name,
+                            channelList.getOrNull(newIndex)?.logo,
+                            onSuccess = { player, name, logo ->
+                                playerState = player
+                                channelNameState = name
+                                channelLogoState = logo
+                                errorState = null
+                            },
+                            onFailure = { message ->
+                                errorState = message
+                            }
+                        )
+                    }
                 )
             }
         }
@@ -136,103 +158,21 @@ class PlayerActivityMedia3 : ComponentActivity() {
             when (keyCode) {
                 KeyEvent.KEYCODE_CHANNEL_UP -> {
                     if (currentChannelIndex > 0) {
-                        currentChannelIndex--
-                        loadChannel(
-                            channelList.getOrNull(currentChannelIndex)?.url,
-                            channelList.getOrNull(currentChannelIndex)?.name,
-                            channelList.getOrNull(currentChannelIndex)?.logo,
-                            onSuccess = { player, name, logo ->
-                                setContent {
-                                    PlayerScreen(
-                                        player = player,
-                                        channelName = name,
-                                        channelLogo = logo
-                                    )
-                                }
-                            },
-                            onFailure = { message ->
-                                setContent {
-                                    ErrorScreen(message = message) {
-                                        if (currentChannelIndex > 0) {
-                                            currentChannelIndex--
-                                            loadChannel(
-                                                channelList.getOrNull(currentChannelIndex)?.url,
-                                                channelList.getOrNull(currentChannelIndex)?.name,
-                                                channelList.getOrNull(currentChannelIndex)?.logo,
-                                                onSuccess = { player, name, logo ->
-                                                    setContent {
-                                                        PlayerScreen(
-                                                            player = player,
-                                                            channelName = name,
-                                                            channelLogo = logo
-                                                        )
-                                                    }
-                                                },
-                                                onFailure = { errorMessage ->
-                                                    setContent {
-                                                        ErrorScreen(message = errorMessage) { finish() }
-                                                    }
-                                                }
-                                            )
-                                        } else {
-                                            finish()
-                                        }
-                                    }
-                                }
-                            }
-                        )
+                        pendingChannelIndex = (pendingChannelIndex - 1).coerceAtLeast(0)
+                        Log.d("PlayerActivityMedia3", "Pending channel index: $pendingChannelIndex")
+                        return true
                     }
-                    return true
                 }
                 KeyEvent.KEYCODE_CHANNEL_DOWN -> {
                     if (currentChannelIndex < channelList.size - 1) {
-                        currentChannelIndex++
-                        loadChannel(
-                            channelList.getOrNull(currentChannelIndex)?.url,
-                            channelList.getOrNull(currentChannelIndex)?.name,
-                            channelList.getOrNull(currentChannelIndex)?.logo,
-                            onSuccess = { player, name, logo ->
-                                setContent {
-                                    PlayerScreen(
-                                        player = player,
-                                        channelName = name,
-                                        channelLogo = logo
-                                    )
-                                }
-                            },
-                            onFailure = { message ->
-                                setContent {
-                                    ErrorScreen(message = message) {
-                                        if (currentChannelIndex < channelList.size - 1) {
-                                            currentChannelIndex++
-                                            loadChannel(
-                                                channelList.getOrNull(currentChannelIndex)?.url,
-                                                channelList.getOrNull(currentChannelIndex)?.name,
-                                                channelList.getOrNull(currentChannelIndex)?.logo,
-                                                onSuccess = { player, name, logo ->
-                                                    setContent {
-                                                        PlayerScreen(
-                                                            player = player,
-                                                            channelName = name,
-                                                            channelLogo = logo
-                                                        )
-                                                    }
-                                                },
-                                                onFailure = { errorMessage ->
-                                                    setContent {
-                                                        ErrorScreen(message = errorMessage) { finish() }
-                                                    }
-                                                }
-                                            )
-                                        } else {
-                                            finish()
-                                        }
-                                    }
-                                }
-                            }
-                        )
+                        pendingChannelIndex = if (pendingChannelIndex == -1) {
+                            currentChannelIndex + 1
+                        } else {
+                            (pendingChannelIndex + 1).coerceAtMost(channelList.size - 1)
+                        }
+                        Log.d("PlayerActivityMedia3", "Pending channel index: $pendingChannelIndex")
+                        return true
                     }
-                    return true
                 }
             }
         }
@@ -285,12 +225,43 @@ class PlayerActivityMedia3 : ComponentActivity() {
     fun PlayerScreen(
         player: ExoPlayer?,
         channelName: String,
-        channelLogo: String?
+        channelLogo: String?,
+        channels: List<Channel>,
+        pendingChannelIndexState: Int,
+        onChannelChange: (Int) -> Unit
     ) {
+        val coroutineScope = rememberCoroutineScope()
         var isBuffering by remember { mutableStateOf(true) }
         var showOverlay by remember { mutableStateOf(true) }
         var playerError by remember { mutableStateOf<PlaybackException?>(null) }
         var playerView by remember { mutableStateOf<PlayerView?>(null) }
+        var debounceJob by remember { mutableStateOf<Job?>(null) }
+
+        // Usar pendingChannelIndexState para el overlay
+        val displayChannelName = if (pendingChannelIndexState in channels.indices) {
+            channels[pendingChannelIndexState].name
+        } else {
+            channelName
+        }
+        val displayChannelLogo = if (pendingChannelIndexState in channels.indices) {
+            channels[pendingChannelIndexState].logo
+        } else {
+            channelLogo
+        }
+
+        // Manejar el debounce para el cambio de canal
+        LaunchedEffect(pendingChannelIndexState) {
+            if (pendingChannelIndexState in channels.indices) {
+                showOverlay = true
+                debounceJob?.cancel()
+                debounceJob = coroutineScope.launch {
+                    delay(1500) // Esperar 1.5 segundos
+                    if (pendingChannelIndexState in channels.indices) {
+                        onChannelChange(pendingChannelIndexState)
+                    }
+                }
+            }
+        }
 
         DisposableEffect(player) {
             val listener = object : Player.Listener {
@@ -319,12 +290,13 @@ class PlayerActivityMedia3 : ComponentActivity() {
 
             onDispose {
                 player?.removeListener(listener)
-                Log.d("PlayerScreen", "Player listener removed")
+                debounceJob?.cancel()
+                Log.d("PlayerScreen", "Player listener and debounce job removed")
             }
         }
 
-        LaunchedEffect(showOverlay) {
-            if (showOverlay) {
+        LaunchedEffect(showOverlay, pendingChannelIndexState) {
+            if (showOverlay && pendingChannelIndexState == -1) {
                 delay(5000)
                 showOverlay = false
             }
@@ -381,7 +353,7 @@ class PlayerActivityMedia3 : ComponentActivity() {
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 56.dp)
             ) {
-                Log.d("PlayerScreen", "Showing channel overlay: $channelName")
+                Log.d("PlayerScreen", "Showing channel overlay: $displayChannelName")
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -390,10 +362,10 @@ class PlayerActivityMedia3 : ComponentActivity() {
                         .padding(horizontal = 12.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    channelLogo?.let {
+                    displayChannelLogo?.let {
                         AsyncImage(
                             model = it,
-                            contentDescription = "Logo del canal $channelName",
+                            contentDescription = "Logo del canal $displayChannelName",
                             modifier = Modifier
                                 .size(width = 80.dp, height = 45.dp)
                                 .background(Color.Black)
@@ -402,7 +374,11 @@ class PlayerActivityMedia3 : ComponentActivity() {
                     }
 
                     Text(
-                        text = "🎬 Reproduciendo: $channelName",
+                        text = if (pendingChannelIndexState in channels.indices) {
+                            "🔜 Seleccionando canal: $displayChannelName"
+                        } else {
+                            "🎬 Reproduciendo canal: $displayChannelName"
+                        },
                         fontSize = 18.sp,
                         color = Color.White,
                         maxLines = 1,
