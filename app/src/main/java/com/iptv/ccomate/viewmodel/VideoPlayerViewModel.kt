@@ -72,17 +72,12 @@ class VideoPlayerViewModel : ViewModel() {
                     Log.d("VideoPlayerViewModel", "Usando HlsMediaSource para $videoUrl")
                     HlsMediaSource.Factory(factory)
                 }
-
                 videoUrl.lowercase().endsWith(".flv") -> {
                     Log.d("VideoPlayerViewModel", "Usando ProgressiveMediaSource para $videoUrl")
                     ProgressiveMediaSource.Factory(factory)
                 }
-
                 else -> {
-                    Log.d(
-                        "VideoPlayerViewModel",
-                        "Usando HlsMediaSource por defecto para $videoUrl"
-                    )
+                    Log.d("VideoPlayerViewModel", "Usando HlsMediaSource por defecto para $videoUrl")
                     HlsMediaSource.Factory(factory)
                 }
             }
@@ -92,9 +87,14 @@ class VideoPlayerViewModel : ViewModel() {
         return try {
             if (videoUrl.isNotEmpty() && (videoUrl.startsWith("http://") || videoUrl.startsWith("https://"))) {
                 val currentPlayer = exoPlayer
+                val mediaSourceFactory = createMediaSourceFactory(videoUrl)
+                val mediaSourceType = when {
+                    videoUrl.lowercase().contains(".m3u8") -> "HLS"
+                    videoUrl.lowercase().endsWith(".flv") -> "Progressive"
+                    else -> "HLS (default)"
+                }
                 if (currentPlayer == null || currentPlayer.currentMediaItem?.mediaId != videoUrl) {
                     releasePlayer()
-                    val mediaSourceFactory = createMediaSourceFactory(videoUrl)
                     val player = withContext(Dispatchers.IO) {
                         ExoPlayer.Builder(context)
                             .setLoadControl(loadControl)
@@ -107,23 +107,19 @@ class VideoPlayerViewModel : ViewModel() {
                         player.playWhenReady = true
                         player.addListener(object : Player.Listener {
                             override fun onPlayerError(error: PlaybackException) {
-                                Log.e(
-                                    "VideoPlayerViewModel",
-                                    "Error de reproducción: ${error.message}",
-                                    error
-                                )
+                                Log.e("VideoPlayerViewModel", "Error de reproducción: ${error.message}", error)
                             }
                         })
                     }
                     exoPlayer = player
-                    Log.d("VideoPlayerViewModel", "ExoPlayer created successfully: $player")
+                    Log.d("VideoPlayerViewModel", "ExoPlayer created successfully: $player, MediaSource: $mediaSourceType")
                 } else {
                     withContext(Dispatchers.Main) {
                         currentPlayer.setMediaItem(MediaItem.fromUri(videoUrl))
                         currentPlayer.prepare()
                         currentPlayer.playWhenReady = true
                     }
-                    Log.d("VideoPlayerViewModel", "Reutilizando ExoPlayer con nueva URL: $videoUrl")
+                    Log.d("VideoPlayerViewModel", "Reutilizando ExoPlayer con nueva URL: $videoUrl, MediaSource: $mediaSourceType")
                 }
                 Result.success(exoPlayer!!)
             } else {
@@ -137,14 +133,18 @@ class VideoPlayerViewModel : ViewModel() {
     }
 
     suspend fun releasePlayer() = withContext(Dispatchers.Main) {
-        exoPlayer?.let { player ->
-            player.stop()
-            player.clearMediaItems()
-            player.release()
-            Log.d("VideoPlayerViewModel", "ExoPlayer liberado")
-            delay(100)
+        try {
+            exoPlayer?.let { player ->
+                player.stop()
+                player.clearMediaItems()
+                player.release()
+                Log.d("VideoPlayerViewModel", "ExoPlayer liberado")
+                delay(100)
+            }
+            exoPlayer = null
+        } catch (e: Exception) {
+            Log.e("VideoPlayerViewModel", "Error al liberar ExoPlayer: ${e.message}", e)
         }
-        exoPlayer = null
     }
 
     fun pausePlayer() {

@@ -58,11 +58,20 @@ class PlayerActivityMedia3 : ComponentActivity() {
     private val viewModel: VideoPlayerViewModel by viewModels()
     private var currentChannelIndex by mutableIntStateOf(0)
     private var channelList by mutableStateOf(emptyList<Channel>())
-    private var pendingChannelIndex by mutableIntStateOf(-1) // Controlado por onKeyDown
+    private var pendingChannelIndex by mutableIntStateOf(-1) // Para debounce del cambio de canal
+    private var displayChannelIndex by mutableIntStateOf(-1) // Para overlay inmediato
+
+    companion object {
+        private const val KEY_CURRENT_CHANNEL_INDEX = "current_channel_index"
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
+        // Restaurar currentChannelIndex desde savedInstanceState si existe
+        currentChannelIndex = savedInstanceState?.getInt(KEY_CURRENT_CHANNEL_INDEX, 0) ?: 0
+        displayChannelIndex = currentChannelIndex // Inicializar displayChannelIndex
 
         val initialUrl = intent.getStringExtra("url")
         val initialName = intent.getStringExtra("name") ?: "Canal"
@@ -75,37 +84,41 @@ class PlayerActivityMedia3 : ComponentActivity() {
             return
         }
 
-        currentChannelIndex = channels.indexOfFirst { it.url == initialUrl }.coerceAtLeast(0)
         channelList = channels
+        // Solo actualizar currentChannelIndex si es el primer inicio
+        if (savedInstanceState == null) {
+            currentChannelIndex = channels.indexOfFirst { it.url == initialUrl }.coerceAtLeast(0)
+            displayChannelIndex = currentChannelIndex
+        }
 
         // Configurar estados para el composable
         var playerState by mutableStateOf<ExoPlayer?>(null)
         var channelNameState by mutableStateOf(initialName)
         var channelLogoState by mutableStateOf(initialLogo)
         var errorState by mutableStateOf<String?>(null)
+        var isBuffering by mutableStateOf(true) // Forzar buffering al inicio
 
         setContent {
             if (errorState != null) {
                 ErrorScreen(message = errorState!!) {
-                    if (currentChannelIndex > 0) {
-                        currentChannelIndex--
-                        loadChannel(
-                            channelList.getOrNull(currentChannelIndex)?.url,
-                            channelList.getOrNull(currentChannelIndex)?.name,
-                            channelList.getOrNull(currentChannelIndex)?.logo,
-                            onSuccess = { player, name, logo ->
-                                playerState = player
-                                channelNameState = name
-                                channelLogoState = logo
-                                errorState = null
-                            },
-                            onFailure = { message ->
-                                errorState = message
-                            }
-                        )
-                    } else {
-                        finish()
-                    }
+                    // Reintentar con el mismo canal
+                    isBuffering = true // Mostrar rueda al reintentar
+                    loadChannel(
+                        channelList.getOrNull(currentChannelIndex)?.url,
+                        channelList.getOrNull(currentChannelIndex)?.name,
+                        channelList.getOrNull(currentChannelIndex)?.logo,
+                        onSuccess = { player, name, logo ->
+                            playerState = player
+                            channelNameState = name
+                            channelLogoState = logo
+                            errorState = null
+                            isBuffering = false
+                        },
+                        onFailure = { message ->
+                            errorState = message
+                            isBuffering = false
+                        }
+                    )
                 }
             } else {
                 PlayerScreen(
@@ -113,10 +126,14 @@ class PlayerActivityMedia3 : ComponentActivity() {
                     channelName = channelNameState,
                     channelLogo = channelLogoState,
                     channels = channelList,
+                    displayChannelIndexState = displayChannelIndex,
                     pendingChannelIndexState = pendingChannelIndex,
                     onChannelChange = { newIndex ->
                         currentChannelIndex = newIndex
+                        displayChannelIndex = newIndex
                         pendingChannelIndex = -1 // Resetear después del cambio
+                        Log.d("PlayerActivityMedia3", "Channel changed to index: $newIndex")
+                        isBuffering = true // Mostrar rueda al cambiar canal
                         loadChannel(
                             channelList.getOrNull(newIndex)?.url,
                             channelList.getOrNull(newIndex)?.name,
@@ -126,9 +143,11 @@ class PlayerActivityMedia3 : ComponentActivity() {
                                 channelNameState = name
                                 channelLogoState = logo
                                 errorState = null
+                                isBuffering = false
                             },
                             onFailure = { message ->
                                 errorState = message
+                                isBuffering = false
                             }
                         )
                     }
@@ -137,40 +156,46 @@ class PlayerActivityMedia3 : ComponentActivity() {
         }
 
         // Cargar el canal inicial
+        isBuffering = true // Mostrar rueda al inicio
         loadChannel(
-            initialUrl,
-            initialName,
-            initialLogo,
+            channelList.getOrNull(currentChannelIndex)?.url ?: initialUrl,
+            channelList.getOrNull(currentChannelIndex)?.name ?: initialName,
+            channelList.getOrNull(currentChannelIndex)?.logo ?: initialLogo,
             onSuccess = { player, name, logo ->
                 playerState = player
                 channelNameState = name
                 channelLogoState = logo
                 errorState = null
+                isBuffering = false
             },
             onFailure = { message ->
                 errorState = message
+                isBuffering = false
             }
         )
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putInt(KEY_CURRENT_CHANNEL_INDEX, currentChannelIndex)
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         if (event?.action == KeyEvent.ACTION_DOWN) {
             when (keyCode) {
                 KeyEvent.KEYCODE_CHANNEL_UP -> {
-                    if (currentChannelIndex > 0) {
-                        pendingChannelIndex = (pendingChannelIndex - 1).coerceAtLeast(0)
-                        Log.d("PlayerActivityMedia3", "Pending channel index: $pendingChannelIndex")
+                    if (displayChannelIndex > 0) {
+                        displayChannelIndex-- // Actualizar overlay inmediatamente
+                        pendingChannelIndex = displayChannelIndex // Actualizar para debounce
+                        Log.d("PlayerActivityMedia3", "Pending channel index: $pendingChannelIndex, Display: $displayChannelIndex")
                         return true
                     }
                 }
                 KeyEvent.KEYCODE_CHANNEL_DOWN -> {
-                    if (currentChannelIndex < channelList.size - 1) {
-                        pendingChannelIndex = if (pendingChannelIndex == -1) {
-                            currentChannelIndex + 1
-                        } else {
-                            (pendingChannelIndex + 1).coerceAtMost(channelList.size - 1)
-                        }
-                        Log.d("PlayerActivityMedia3", "Pending channel index: $pendingChannelIndex")
+                    if (displayChannelIndex < channelList.size - 1) {
+                        displayChannelIndex++ // Actualizar overlay inmediatamente
+                        pendingChannelIndex = displayChannelIndex // Actualizar para debounce
+                        Log.d("PlayerActivityMedia3", "Pending channel index: $pendingChannelIndex, Display: $displayChannelIndex")
                         return true
                     }
                 }
@@ -227,24 +252,25 @@ class PlayerActivityMedia3 : ComponentActivity() {
         channelName: String,
         channelLogo: String?,
         channels: List<Channel>,
+        displayChannelIndexState: Int,
         pendingChannelIndexState: Int,
         onChannelChange: (Int) -> Unit
     ) {
         val coroutineScope = rememberCoroutineScope()
-        var isBuffering by remember { mutableStateOf(true) }
-        var showOverlay by remember { mutableStateOf(true) }
+        var isBuffering by remember { mutableStateOf(true) } // Inicializar en true
+        var showOverlay by remember { mutableStateOf(true) } // Mostrar overlay al inicio
         var playerError by remember { mutableStateOf<PlaybackException?>(null) }
         var playerView by remember { mutableStateOf<PlayerView?>(null) }
         var debounceJob by remember { mutableStateOf<Job?>(null) }
 
-        // Usar pendingChannelIndexState para el overlay
-        val displayChannelName = if (pendingChannelIndexState in channels.indices) {
-            channels[pendingChannelIndexState].name
+        // Usar displayChannelIndexState para el overlay
+        val displayChannelName = if (displayChannelIndexState in channels.indices) {
+            channels[displayChannelIndexState].name
         } else {
             channelName
         }
-        val displayChannelLogo = if (pendingChannelIndexState in channels.indices) {
-            channels[pendingChannelIndexState].logo
+        val displayChannelLogo = if (displayChannelIndexState in channels.indices) {
+            channels[displayChannelIndexState].logo
         } else {
             channelLogo
         }
@@ -253,13 +279,24 @@ class PlayerActivityMedia3 : ComponentActivity() {
         LaunchedEffect(pendingChannelIndexState) {
             if (pendingChannelIndexState in channels.indices) {
                 showOverlay = true
+                Log.d("PlayerScreen", "Overlay activated for pending index: $pendingChannelIndexState")
                 debounceJob?.cancel()
                 debounceJob = coroutineScope.launch {
                     delay(1500) // Esperar 1.5 segundos
                     if (pendingChannelIndexState in channels.indices) {
                         onChannelChange(pendingChannelIndexState)
+                        showOverlay = true // Mostrar overlay de reproducción
                     }
                 }
+            }
+        }
+
+        // Ocultar el overlay después de 5 segundos si no hay cambio pendiente
+        LaunchedEffect(showOverlay, pendingChannelIndexState) {
+            if (showOverlay && pendingChannelIndexState == -1) {
+                delay(5000)
+                showOverlay = false
+                Log.d("PlayerScreen", "Overlay hidden after 5 seconds")
             }
         }
 
@@ -268,13 +305,23 @@ class PlayerActivityMedia3 : ComponentActivity() {
                 override fun onPlaybackStateChanged(state: Int) {
                     Log.d("PlayerScreen", "Playback state changed: $state")
                     when (state) {
-                        Player.STATE_BUFFERING -> isBuffering = true
+                        Player.STATE_BUFFERING -> {
+                            isBuffering = true
+                            Log.d("PlayerScreen", "Buffering state: isBuffering = true")
+                        }
                         Player.STATE_READY -> {
                             isBuffering = false
                             showOverlay = true
+                            Log.d("PlayerScreen", "Ready state: isBuffering = false, showOverlay = true")
                         }
-                        Player.STATE_ENDED -> isBuffering = false
-                        Player.STATE_IDLE -> isBuffering = true
+                        Player.STATE_ENDED -> {
+                            isBuffering = false
+                            Log.d("PlayerScreen", "Ended state: isBuffering = false")
+                        }
+                        Player.STATE_IDLE -> {
+                            isBuffering = true
+                            Log.d("PlayerScreen", "Idle state: isBuffering = true")
+                        }
                     }
                 }
 
@@ -292,13 +339,6 @@ class PlayerActivityMedia3 : ComponentActivity() {
                 player?.removeListener(listener)
                 debounceJob?.cancel()
                 Log.d("PlayerScreen", "Player listener and debounce job removed")
-            }
-        }
-
-        LaunchedEffect(showOverlay, pendingChannelIndexState) {
-            if (showOverlay && pendingChannelIndexState == -1) {
-                delay(5000)
-                showOverlay = false
             }
         }
 
@@ -430,7 +470,7 @@ class PlayerActivityMedia3 : ComponentActivity() {
                 )
                 Spacer(modifier = Modifier.size(24.dp))
                 Button(onClick = onRetry) {
-                    Text("Volver")
+                    Text("Reintentar")
                 }
             }
         }
