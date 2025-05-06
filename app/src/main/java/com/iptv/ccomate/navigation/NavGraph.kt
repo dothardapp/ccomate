@@ -15,6 +15,5 @@ fun AppNavGraph(navController: NavHostController) {
         composable("home") { HomeScreen() }
         composable("tda") { TDAScreen() }
         composable("plutotv") { PlutoTvScreen() }
-        composable("grok") { PlutoTvScreenGrok() }
     }
 }

@@ -10,5 +10,4 @@ val drawerItems = listOf(
     DrawerItem("HOME", DrawerIcon.Vector(Icons.Default.Home), "home"),
     DrawerItem("TDA", DrawerIcon.Resource(R.drawable.tda_tv_digital_abierta), "tda"),
     DrawerItem("PLUTO", DrawerIcon.Resource(R.drawable.baseline_live_tv_24), "plutotv"),
-    DrawerItem("GROK", DrawerIcon.Resource(R.drawable.baseline_streetview_24), "grok"),
 )

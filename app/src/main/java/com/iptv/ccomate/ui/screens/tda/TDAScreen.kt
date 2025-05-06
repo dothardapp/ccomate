@@ -1,35 +1,27 @@
 package com.iptv.ccomate.ui.screens.tda
 
 import android.util.Log
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
@@ -68,8 +60,6 @@ fun TDAScreen() {
     val isTimeIncorrect = remember { !TimeUtils.isSystemTimeValid() }
     val currentTimeMessage = remember { TimeUtils.getSystemTimeMessage() }
 
-
-
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _: LifecycleOwner, event: Lifecycle.Event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -93,7 +83,7 @@ fun TDAScreen() {
                 val channels = M3UParser.parse(m3uContent)
                 groups = channels.mapNotNull { it.group }.distinct()
                 allChannels = channels
-                statusMessage = "Listo. Se cargaron ${channels.size} canales TDA."
+                statusMessage = "✅ Listo. Se cargaron ${channels.size} canales TDA."
 
                 if (selectedChannelUrl == null) {
                     val first = channels.firstOrNull()
@@ -101,12 +91,10 @@ fun TDAScreen() {
                     selectedChannelName = first?.name
                     lastClickedChannelUrl = first?.url
                 }
-
                 playerRestartKey++
 
             } catch (e: Exception) {
-                statusMessage =
-                    "❌ Error al cargar canales TDA: ${e.localizedMessage ?: "desconocido"}"
+                statusMessage = "❌ Error al cargar canales TDA: ${e.localizedMessage ?: "desconocido"}"
                 groups = listOf("Error al cargar")
                 Log.e("TDAScreen", "Error al cargar M3U", e)
             }
@@ -119,139 +107,166 @@ fun TDAScreen() {
     val selectedChannelLogo = selectedChannel?.logo
 
     Column(
-        modifier = Modifier.Companion
+        modifier = Modifier
             .fillMaxSize()
-            .padding(3.dp)
+            .background(Brush.verticalGradient(listOf(Color(0xFF0A1D3A), Color(0xFF1C2526))))
+            .padding(10.dp)
     ) {
         Row(
-            modifier = Modifier.Companion
-                .weight(1f)
+            modifier = Modifier
+                .weight(1.2f)
                 .fillMaxWidth()
-                .background(Color.Companion.DarkGray)
         ) {
-            Box(modifier = Modifier.Companion.weight(1f).padding(6.dp)) {
-                Box(
-                    modifier = Modifier.Companion
-                        .fillMaxSize()
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(Color.Companion.Black)
-                ) {
-                    if (isTimeIncorrect) {
-                        Box(
-                            modifier = Modifier.Companion
-                                .fillMaxWidth()
-                                .background(Color(0xFFB71C1C))
-                                .padding(8.dp)
-                                .align(Alignment.Companion.TopCenter)
-                        ) {
-                            Column(horizontalAlignment = Alignment.Companion.CenterHorizontally) {
-                                Text(
-                                    text = "⚠️ El reloj del dispositivo está mal configurado.",
-                                    color = Color.Companion.White,
-                                    fontSize = 14.sp
-                                )
-                                Text(
-                                    text = currentTimeMessage,
-                                    color = Color.Companion.LightGray,
-                                    fontSize = 12.sp
-                                )
-                            }
-                        }
-                    }
+            // Contenedor del reproductor con advertencia de hora superpuesta
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(8.dp)
+                    .shadow(2.dp, RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color.Black)
+                    .border(0.5.dp, Color(0xFF4A90E2AA), RoundedCornerShape(12.dp))
+            ) {
+                key(playerRestartKey) {
+                    VideoPanel(
+                        context = context,
+                        videoUrl = selectedChannelUrl,
+                        channelName = selectedChannel?.name,
+                        onPlaybackStarted = {
+                            statusMessage = "🎬 Reproduciendo canal: ${selectedChannel?.name ?: "Canal"}"
+                            playbackError = null
+                            isPlaying = true
+                        },
+                        onPlaybackError = { error ->
+                            playbackError = error
+                            isPlaying = false
+                            statusMessage = "❌ Error al reproducir: ${error.localizedMessage ?: "desconocido"}"
+                            Log.e("VideoPanelTDAScreen", "Error de reproducción", error)
+                        },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
 
-                    key(playerRestartKey) {
-                        VideoPanel(
-                            context = context,
-                            videoUrl = selectedChannelUrl,
-                            channelName = selectedChannel?.name,
-                            onPlaybackStarted = {
-                                statusMessage =
-                                    "🎬 Reproduciendo canal: ${selectedChannel?.name ?: "Canal"}"
-                                playbackError = null
-                                isPlaying = true
-                            },
-                            onPlaybackError = { error ->
-                                playbackError = error
-                                isPlaying = false
-                                statusMessage =
-                                    "❌ Error al reproducir: ${error.localizedMessage ?: "desconocido"}"
-                                Log.e("VideoPanelTDAScreen", "Error de reproducción", error)
-                            },
-                            modifier = Modifier.Companion.fillMaxSize()
+                // Advertencia de hora como capa superior
+                this@Row.AnimatedVisibility(
+                    visible = isTimeIncorrect,
+                    enter = fadeIn() + scaleIn(animationSpec = tween(300)),
+                    exit = fadeOut() + scaleOut(animationSpec = tween(300)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.TopCenter)
+                        .background(Color(0xFFFF6F00))
+                        .border(1.dp, Color.White, RoundedCornerShape(6.dp))
+                        .padding(12.dp)
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "⚠️ Reloj del dispositivo mal configurado",
+                            color = Color.White,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center
+                        )
+                        Text(
+                            text = currentTimeMessage,
+                            color = Color(0xFFCFD8DC),
+                            fontSize = 15.sp,
+                            textAlign = TextAlign.Center
                         )
                     }
                 }
             }
 
-            if (!selectedChannelLogo.isNullOrBlank()) {
-                Box(
-                    modifier = Modifier.Companion
-                        .weight(1.6f)
-                        .padding(6.dp)
-                        .clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
-                        .background(Color(0xFF1C1C1C))
-                        .padding(horizontal = 16.dp, vertical = 12.dp)
+            // Panel de información
+            Box(
+                modifier = Modifier
+                    .weight(1.6f)
+                    .padding(8.dp)
+            ) {
+                this@Row.AnimatedVisibility(
+                    visible = !selectedChannelLogo.isNullOrBlank(),
+                    enter = fadeIn() + scaleIn(animationSpec = tween(300)),
+                    exit = fadeOut() + scaleOut(animationSpec = tween(300)),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .shadow(2.dp, RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(0xFF263238CC))
+                        .border(0.5.dp, Color(0xFF4A90E2AA), RoundedCornerShape(12.dp))
+                        .padding(16.dp)
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.Companion.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         AsyncImage(
                             model = selectedChannelLogo,
-                            contentDescription = "Logo canal",
-                            modifier = Modifier.Companion
-                                .size(width = 100.dp, height = 56.dp)
-                                .background(Color.Companion.Black)
+                            contentDescription = "Logo del canal",
+                            modifier = Modifier
+                                .size(width = 130.dp, height = 72.dp)
+                                .background(Color.Black)
+                                .clip(RoundedCornerShape(6.dp))
                         )
-
-                        Column {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = statusMessage,
+                            color = if (playbackError == null) Color.White else Color(0xFFFF5252),
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center
+                        )
+                        if (playbackError != null) {
+                            Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = statusMessage,
-                                color = Color.Companion.White,
-                                fontSize = 14.sp
+                                text = "Error: ${playbackError?.localizedMessage ?: "desconocido"}",
+                                color = Color(0xFFFF5252),
+                                fontSize = 15.sp,
+                                textAlign = TextAlign.Center
                             )
-                            if (playbackError != null) {
-                                Text(
-                                    text = "Error de reproducción: ${playbackError?.localizedMessage ?: "desconocido"}",
-                                    color = Color.Companion.Red,
-                                    fontSize = 12.sp
-                                )
-                            }
                         }
                     }
                 }
             }
         }
 
-        Spacer(modifier = Modifier.Companion.height(3.dp))
-        HorizontalDivider(thickness = 1.dp, color = Color.Companion.White)
-        Spacer(modifier = Modifier.Companion.height(3.dp))
+        Spacer(modifier = Modifier.height(8.dp))
+        HorizontalDivider(thickness = 0.5.dp, color = Color(0xFF4A90E2AA))
+        Spacer(modifier = Modifier.height(8.dp))
 
         Row(
-            modifier = Modifier.Companion
-                .weight(1.8f)
+            modifier = Modifier
+                .weight(1.6f)
                 .fillMaxSize()
-                .background(Color(0xFF101010))
-                .padding(18.dp)
+                .padding(8.dp)
         ) {
             Box(
-                modifier = Modifier.Companion
+                modifier = Modifier
                     .weight(1f)
-                    .background(Color.Companion.Black)
+                    .shadow(2.dp, RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xFF2A3B4A))
+                    .border(0.5.dp, Color(0xFF4A90E2AA), RoundedCornerShape(12.dp))
             ) {
                 GroupList(
                     groups = groups,
                     selectedIndex = selectedGroupIndex,
-                    onSelect = { selectedGroupIndex = it }
+                    onSelect = { selectedGroupIndex = it },
                 )
             }
 
-            Spacer(modifier = Modifier.Companion.width(15.dp))
+            Spacer(modifier = Modifier.width(12.dp))
 
             Box(
-                modifier = Modifier.Companion
+                modifier = Modifier
                     .weight(2f)
-                    .background(Color.Companion.Black)
+                    .shadow(2.dp, RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xFF2A3B4A))
+                    .border(0.5.dp, Color(0xFF4A90E2AA), RoundedCornerShape(12.dp))
             ) {
                 ChannelList(
                     channels = filteredChannels,
@@ -263,7 +278,7 @@ fun TDAScreen() {
                         selectedChannelName = it.name
                         statusMessage = "🎬 Cargando canal: ${it.name}..."
                         playbackError = null
-                    }
+                    },
                 )
             }
         }
