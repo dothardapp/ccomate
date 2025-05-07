@@ -3,7 +3,6 @@ package com.iptv.ccomate.navigation
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,7 +30,15 @@ fun CcoNavigationDrawer(
                     .fillMaxHeight()
                     .background(
                         brush = Brush.verticalGradient(
-                            colors = listOf(Color(0xFF1E1F22), MaterialTheme.colorScheme.background)
+                            colors = listOf(
+                                Color(0xFFF5F5F5), // Gris claro (casi blanco)
+                                Color(0xFFD3D3D3), // Gris claro
+                                Color(0xFFB0B0B0), // Gris claro medio
+                                Color(0xFF808080), // Gris medio
+                                Color(0xFF696969), // Gris oscuro
+                                Color(0xFF4A4A4A),  // Gris muy oscuro
+                                Color(0xFF2F4F4F)   // Gris oscuro (casi negro)
+                            )
                         )
                     )
                     .selectableGroup(),

@@ -105,7 +105,7 @@ fun PlutoTvScreen() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(Color(0xFF0A1D3A), Color(0xFF1C2526))))
+            .background(Brush.verticalGradient(listOf(Color(0xFFD3D3D3), Color(0xFF808080), Color(0xFF4A4A4A))))
             .padding(10.dp)
     ) {
         Row(
@@ -119,8 +119,8 @@ fun PlutoTvScreen() {
                     .padding(8.dp)
                     .shadow(2.dp, RoundedCornerShape(12.dp))
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Color.Black)
-                    .border(0.5.dp, Color(0xFF4A90E2AA), RoundedCornerShape(12.dp))
+                    .background(Brush.verticalGradient(listOf(Color(0xFF696969), Color(0xFF2F4F4F))))
+                    .border(0.5.dp, Color(0xFFB0B0B0), RoundedCornerShape(12.dp))
             ) {
                 key(playerRestartKey) {
                     VideoPanel(
@@ -149,8 +149,8 @@ fun PlutoTvScreen() {
                     modifier = Modifier
                         .fillMaxWidth()
                         .align(Alignment.TopCenter)
-                        .background(Color(0xFFFF6F00))
-                        .border(1.dp, Color.White, RoundedCornerShape(6.dp))
+                        .background(Color(0xE6FF6F00))
+                        .border(1.dp, Color(0xFFF5F5F5), RoundedCornerShape(6.dp))
                         .padding(12.dp)
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -184,8 +184,8 @@ fun PlutoTvScreen() {
                         .fillMaxSize()
                         .shadow(2.dp, RoundedCornerShape(12.dp))
                         .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0xFF263238CC))
-                        .border(0.5.dp, Color(0xFF4A90E2AA), RoundedCornerShape(12.dp))
+                        .background(Color(0xCC696969))
+                        .border(0.5.dp, Color(0xFFB0B0B0), RoundedCornerShape(12.dp))
                         .padding(16.dp)
                 ) {
                     Column(
@@ -224,7 +224,7 @@ fun PlutoTvScreen() {
         }
 
         Spacer(modifier = Modifier.height(8.dp))
-        HorizontalDivider(thickness = 0.5.dp, color = Color(0xFF4A90E2AA))
+        HorizontalDivider(thickness = 0.5.dp, color = Color(0xFFB0B0B0))
         Spacer(modifier = Modifier.height(8.dp))
 
         Row(
@@ -238,8 +238,8 @@ fun PlutoTvScreen() {
                     .weight(1f)
                     .shadow(2.dp, RoundedCornerShape(12.dp))
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0xFF2A3B4A))
-                    .border(0.5.dp, Color(0xFF4A90E2AA), RoundedCornerShape(12.dp))
+                    .background(Brush.verticalGradient(listOf(Color(0xFF696969), Color(0xFF4A4A4A))))
+                    .border(0.5.dp, Color(0xFFB0B0B0), RoundedCornerShape(12.dp))
             ) {
                 GroupList(
                     groups = groups,
@@ -255,8 +255,8 @@ fun PlutoTvScreen() {
                     .weight(2f)
                     .shadow(2.dp, RoundedCornerShape(12.dp))
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0xFF2A3B4A))
-                    .border(0.5.dp, Color(0xFF4A90E2AA), RoundedCornerShape(12.dp))
+                    .background(Brush.verticalGradient(listOf(Color(0xFF696969), Color(0xFF4A4A4A))))
+                    .border(0.5.dp, Color(0xFFB0B0B0), RoundedCornerShape(12.dp))
             ) {
                 ChannelList(
                     channels = filteredChannels,
