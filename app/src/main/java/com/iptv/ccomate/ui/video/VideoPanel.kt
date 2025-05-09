@@ -14,7 +14,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.iptv.ccomate.ui.video.VideoPlayer
 
 @Composable
 fun VideoPanel(
@@ -23,7 +22,7 @@ fun VideoPanel(
     channelName: String?,
     onPlaybackStarted: () -> Unit,
     onPlaybackError: (Throwable) -> Unit,
-    modifier: Modifier = Modifier.Companion
+    modifier: Modifier = Modifier
 ) {
     Box(
         modifier = modifier
