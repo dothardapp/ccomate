@@ -1,3 +1,5 @@
+@file:Suppress("NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
+
 package com.iptv.ccomate.util
 
 import okhttp3.*
@@ -9,7 +11,7 @@ object SubscriptionManager {
     private const val CHECK_SUBSCRIPTION_URL = "http://10.224.24.233:8000/api/check-subscription"
     private val client = OkHttpClient()
 
-    fun registerDevice(deviceInfo: DeviceInfo, callback: (Boolean, String?) -> Unit) {
+    fun registerDevice(deviceInfo: DeviceInfo, clientIp: String?, callback: (Boolean, String?) -> Unit) {
         val requestBody = FormBody.Builder()
             .add("installationId", deviceInfo.installationId)
             .add("localIp", deviceInfo.localIp ?: "unknown")
@@ -18,6 +20,7 @@ object SubscriptionManager {
                 deviceInfo.dni?.let { add("dni", it) }
                 deviceInfo.name?.let { add("name", it) }
                 deviceInfo.phone?.let { add("phone", it) }
+                clientIp?.let { add("gatewayIp", it) }
             }
             .build()
 
@@ -45,7 +48,7 @@ object SubscriptionManager {
         })
     }
 
-    fun checkSubscription(installationId: String, callback: (Boolean, String?) -> Unit) {
+    fun checkSubscription(installationId: String, callback: (isSubscribed: Boolean, clientIp: String?, error: String?) -> Unit) {
         val url = "$CHECK_SUBSCRIPTION_URL?installationId=$installationId"
         val request = Request.Builder()
             .url(url)
@@ -54,7 +57,7 @@ object SubscriptionManager {
 
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
-                callback(false, "Network error: ${e.message}")
+                callback(false, null, "Network error: ${e.message}")
             }
 
             override fun onResponse(call: Call, response: Response) {
@@ -62,14 +65,18 @@ object SubscriptionManager {
                 try {
                     val json = JSONObject(body ?: "{}")
                     val success = json.getBoolean("success")
+                    val clientIp = json.optString("clientIp", null)
+
                     if (!success) {
-                        callback(false, json.optString("message", "Unknown error"))
+                        val message = json.optString("message", "Unknown error")
+                        callback(false, clientIp, message)
                         return
                     }
+
                     val isSubscribed = json.getBoolean("subscribed")
-                    callback(isSubscribed, null)
+                    callback(isSubscribed, clientIp, null)
                 } catch (e: Exception) {
-                    callback(false, "Parsing error: ${e.message}")
+                    callback(false, null, "Parsing error: ${e.message}")
                 }
             }
         })

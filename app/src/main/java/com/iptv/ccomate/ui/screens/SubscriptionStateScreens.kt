@@ -1,4 +1,3 @@
-// app/src/main/java/com/iptv/ccomate/ui/SubscriptionStateScreens.kt
 package com.iptv.ccomate.ui.screens
 
 import androidx.compose.foundation.layout.*
@@ -10,9 +9,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.Button
+import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 
+@OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
 fun LoadingScreen() {
     Box(
@@ -24,6 +25,7 @@ fun LoadingScreen() {
     }
 }
 
+@OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
 fun ErrorScreen(message: String, onRetry: () -> Unit) {
     Column(

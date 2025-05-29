@@ -19,7 +19,6 @@ import com.iptv.ccomate.ui.screens.UserInfoScreen
 import com.iptv.ccomate.viewmodel.SubscriptionState
 import com.iptv.ccomate.viewmodel.SubscriptionViewModel
 
-
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

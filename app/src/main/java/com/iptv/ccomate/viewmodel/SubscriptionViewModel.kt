@@ -23,13 +23,15 @@ class SubscriptionViewModel : ViewModel() {
     val state: StateFlow<SubscriptionState> = _state
 
     private lateinit var deviceInfo: DeviceInfo
+    private var clientIp: String? = null
 
     fun checkSubscription(context: Context) {
         viewModelScope.launch {
             deviceInfo = DeviceIdentifier.getDeviceInfo(context)
             println("Installation ID: ${deviceInfo.installationId}")
 
-            SubscriptionManager.checkSubscription(deviceInfo.installationId) { isSubscribed, subError ->
+            SubscriptionManager.checkSubscription(deviceInfo.installationId) { isSubscribed, ip, subError ->
+                clientIp = ip // Almacenar la IP del cliente
                 if (subError == null) {
                     if (isSubscribed) {
                         _state.value = SubscriptionState.Subscribed(deviceInfo.installationId)
@@ -54,9 +56,9 @@ class SubscriptionViewModel : ViewModel() {
                 phone = phone
             )
 
-            SubscriptionManager.registerDevice(updatedDeviceInfo) { regSuccess, regError ->
+            SubscriptionManager.registerDevice(updatedDeviceInfo, clientIp) { regSuccess, regError ->
                 if (regSuccess) {
-                    SubscriptionManager.checkSubscription(updatedDeviceInfo.installationId) { newIsSubscribed, newSubError ->
+                    SubscriptionManager.checkSubscription(updatedDeviceInfo.installationId) { newIsSubscribed, _, newSubError ->
                         if (newSubError != null) {
                             _state.value = SubscriptionState.Error(newSubError)
                         } else if (newIsSubscribed) {

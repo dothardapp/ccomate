@@ -1,4 +1,3 @@
-// app/src/main/java/com/iptv/ccomate/ui/screens/UserInfoScreen.kt
 package com.iptv.ccomate.ui.screens
 
 import androidx.compose.foundation.layout.*
@@ -35,6 +34,25 @@ fun UserInfoScreen(
     // Validar Nombre (no vacío)
     val isNameValid = name.isNotBlank()
 
+    // Actualizar mensajes de error dinámicamente
+    LaunchedEffect(dni) {
+        dniError = when {
+            dni.isEmpty() -> "Ingresa 8 dígitos"
+            dni.length != 8 -> "El DNI debe tener 8 dígitos"
+            !dni.all { it.isDigit() } -> "Solo se permiten números"
+            else -> null
+        }
+    }
+
+    LaunchedEffect(phone) {
+        phoneError = when {
+            phone.isEmpty() -> "Ingresa 10 dígitos"
+            phone.length != 10 -> "El teléfono debe tener 10 dígitos"
+            !phone.all { it.isDigit() } -> "Solo se permiten números"
+            else -> null
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -55,7 +73,6 @@ fun UserInfoScreen(
                 // Permitir solo números y máximo 8 dígitos
                 if (input.all { it.isDigit() } && input.length <= 8) {
                     dni = input
-                    dniError = if (input.length != 8) "El DNI debe tener 8 dígitos" else null
                 }
             },
             label = { Text("DNI") },
@@ -94,7 +111,6 @@ fun UserInfoScreen(
                 // Permitir solo números y máximo 10 dígitos
                 if (input.all { it.isDigit() } && input.length <= 10) {
                     phone = input
-                    phoneError = if (input.length != 10) "El teléfono debe tener 10 dígitos" else null
                 }
             },
             label = { Text("Teléfono Celular") },
