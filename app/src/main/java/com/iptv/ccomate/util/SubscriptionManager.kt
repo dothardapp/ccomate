@@ -1,12 +1,12 @@
 package com.iptv.ccomate.util
 
-
 import okhttp3.*
+import org.json.JSONObject
 import java.io.IOException
 
 object SubscriptionManager {
-    private const val SERVER_URL = "https://your-server.com/api/register-device"
-    private const val CHECK_SUBSCRIPTION_URL = "https://your-server.com/api/check-subscription"
+    private const val SERVER_URL = "http://10.224.24.233:8000/api/register-device"
+    private const val CHECK_SUBSCRIPTION_URL = "http://10.224.24.233:8000/api/check-subscription"
     private val client = OkHttpClient()
 
     fun registerDevice(deviceInfo: DeviceInfo, callback: (Boolean, String?) -> Unit) {
@@ -14,6 +14,11 @@ object SubscriptionManager {
             .add("installationId", deviceInfo.installationId)
             .add("localIp", deviceInfo.localIp ?: "unknown")
             .add("deviceModel", deviceInfo.deviceModel)
+            .apply {
+                deviceInfo.dni?.let { add("dni", it) }
+                deviceInfo.name?.let { add("name", it) }
+                deviceInfo.phone?.let { add("phone", it) }
+            }
             .build()
 
         val request = Request.Builder()
@@ -23,14 +28,18 @@ object SubscriptionManager {
 
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
-                callback(false, e.message)
+                callback(false, "Network error: ${e.message}")
             }
 
             override fun onResponse(call: Call, response: Response) {
-                if (response.isSuccessful) {
-                    callback(true, null)
-                } else {
-                    callback(false, response.message)
+                val body = response.body?.string()
+                try {
+                    val json = JSONObject(body ?: "{}")
+                    val success = json.getBoolean("success")
+                    val message = json.optString("message", "Unknown error")
+                    callback(success, if (success) null else message)
+                } catch (e: Exception) {
+                    callback(false, "Parsing error: ${e.message}")
                 }
             }
         })
@@ -45,17 +54,22 @@ object SubscriptionManager {
 
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
-                callback(false, e.message)
+                callback(false, "Network error: ${e.message}")
             }
 
             override fun onResponse(call: Call, response: Response) {
-                if (response.isSuccessful) {
-                    val body = response.body?.string()
-                    // Suponiendo que el servidor devuelve un JSON como {"subscribed": true}
-                    val isSubscribed = body?.contains("\"subscribed\":true") == true
+                val body = response.body?.string()
+                try {
+                    val json = JSONObject(body ?: "{}")
+                    val success = json.getBoolean("success")
+                    if (!success) {
+                        callback(false, json.optString("message", "Unknown error"))
+                        return
+                    }
+                    val isSubscribed = json.getBoolean("subscribed")
                     callback(isSubscribed, null)
-                } else {
-                    callback(false, response.message)
+                } catch (e: Exception) {
+                    callback(false, "Parsing error: ${e.message}")
                 }
             }
         })

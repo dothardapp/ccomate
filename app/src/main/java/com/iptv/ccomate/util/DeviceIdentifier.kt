@@ -10,7 +10,10 @@ import java.util.UUID
 data class DeviceInfo(
     val installationId: String,
     val localIp: String?,
-    val deviceModel: String
+    val deviceModel: String,
+    val dni: String? = null,
+    val name: String? = null,
+    val phone: String? = null
 )
 
 object DeviceIdentifier {
@@ -30,7 +33,6 @@ object DeviceIdentifier {
         var installationId = prefs.getString(KEY_INSTALLATION_ID, null)
 
         if (installationId == null) {
-            // Generar un nuevo UUID si no existe
             installationId = UUID.randomUUID().toString()
             prefs.edit { putString(KEY_INSTALLATION_ID, installationId) }
         }

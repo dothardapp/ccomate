@@ -33,11 +33,13 @@
     <!-- Configuración para 10.224.24.232 (tráfico en texto claro) -->
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">10.224.24.232</domain>
+        <domain includeSubdomains="true">10.224.24.233</domain>
     </domain-config>
 
     <!-- Nueva configuración para raw.githubusercontent.com -->
     <domain-config>
         <domain includeSubdomains="true">raw.githubusercontent.com</domain>
+        <domain includeSubdomains="true">stream1.el10tv.com</domain>
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>
