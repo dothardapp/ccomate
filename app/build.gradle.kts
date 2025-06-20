@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    id("kotlin-parcelize")
 }
 
 android {
@@ -14,7 +15,6 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
-
     }
 
     buildTypes {
@@ -39,7 +39,6 @@ android {
 }
 
 dependencies {
-
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(platform(libs.androidx.compose.bom))
@@ -50,39 +49,40 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.foundation)
 
-    //Libreria Material 3
+    // Libreria Material 3
     implementation(libs.androidx.material3)
 
-    //Librerias para TV
+    // Librerias para TV
     implementation(libs.androidx.tv.foundation)
     implementation(libs.androidx.tv.material)
 
-    //Libreria COIL para cargar imagenes desde internet
+    // Libreria COIL para cargar imagenes desde internet
     implementation(libs.coil.compose)
     implementation(libs.coil.svg)
 
-
-    //Libreria media3 ExoPlayer
-    implementation (libs.androidx.media3.exoplayer)
-    implementation (libs.androidx.media3.ui)
+    // Libreria media3 ExoPlayer
+    implementation(libs.androidx.media3.exoplayer)
+    implementation(libs.androidx.media3.ui)
     implementation(libs.androidx.media3.exoplayer.hls)
+    implementation(libs.androidx.media3.datasource.okhttp)
 
-    //Esto permite hacer requests HTTP con Ktor, que es liviano y se lleva bien con Compose.
+    // Esto permite hacer requests HTTP con Ktor
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.cio)
 
-    //Contro del ciclo de vida de las actividades
+    // Control del ciclo de vida de las actividades
     implementation(libs.androidx.lifecycle.runtime.compose)
 
-    //Para consultas a NTP
+    // Para consultas a NTP
     implementation(libs.commons.net)
 
-    //Librerias para el splash screen
-    implementation (libs.androidx.animation)
+    // Librerias para el splash screen
+    implementation(libs.androidx.animation)
 
-    //Libreria VLC Player
-    implementation(libs.libvlc.all)
+    // OkHttp para manejar certificados
+    implementation(libs.okhttp)
 
+    implementation(libs.slf4j.android)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     androidTestImplementation(platform(libs.androidx.compose.bom))

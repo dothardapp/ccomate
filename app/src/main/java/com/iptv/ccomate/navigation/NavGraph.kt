@@ -4,10 +4,10 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.NavHostController
-import com.iptv.ccomate.screens.HomeScreen
-import com.iptv.ccomate.screens.pluto.PlutoTvScreen
-import com.iptv.ccomate.screens.pluto.PlutoTvScreenGrok
-import com.iptv.ccomate.screens.tda.TDAScreen
+import com.iptv.ccomate.ui.screens.HomeScreen
+import com.iptv.ccomate.ui.screens.pluto.PlutoTvScreen
+import com.iptv.ccomate.ui.screens.pluto.PlutoTvScreenGrok
+import com.iptv.ccomate.ui.screens.tda.TDAScreen
 
 @Composable
 fun AppNavGraph(navController: NavHostController) {
@@ -15,6 +15,5 @@ fun AppNavGraph(navController: NavHostController) {
         composable("home") { HomeScreen() }
         composable("tda") { TDAScreen() }
         composable("plutotv") { PlutoTvScreen() }
-        composable("grok") { PlutoTvScreenGrok() }
     }
 }

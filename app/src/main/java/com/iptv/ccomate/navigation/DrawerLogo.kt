@@ -22,23 +22,23 @@ fun DrawerLogo(drawerState: DrawerState) {
     {
         if (drawerState.currentValue == DrawerValue.Closed) {
             Image(
-                painter = painterResource(id = R.drawable.cco_logo_02_white),
+                painter = painterResource(id = R.drawable.baseline_satellite_alt_24),
                 contentDescription = "Logo CCO",
                 modifier = Modifier.size(16.dp)
             )
             Image(
-                painter = painterResource(id = R.drawable.cco_logo_01),
+                painter = painterResource(id = R.drawable.cconetbar),
                 contentDescription = "Logo CCO",
                 modifier = Modifier.size(35.dp)
             )
         } else {
             Image(
-                painter = painterResource(id = R.drawable.cco_logo_02_white),
+                painter = painterResource(id = R.drawable.baseline_satellite_alt_24),
                 contentDescription = "Logo CCO",
                 modifier = Modifier.size(25.dp)
             )
             Image(
-                painter = painterResource(id = R.drawable.cco_logo_01),
+                painter = painterResource(id = R.drawable.cconetbar),
                 contentDescription = "Logo CCO",
                 modifier = Modifier.size(70.dp)
             )

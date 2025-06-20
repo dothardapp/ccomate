@@ -24,7 +24,7 @@
 
         <!-- Actividad principal para lanzamiento en dispositivos móviles y Android TV -->
         <activity
-            android:name=".MainActivity"
+            android:name=".activity.MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -33,15 +33,9 @@
             </intent-filter>
         </activity>
 
-        <!-- Actividad para reproducción de video (versión sin SSL) -->
-        <activity
-            android:name=".ui.PlayerActivityMedia3WithoutSSL"
-            android:exported="false"
-            android:theme="@style/Theme.CCOMate" />
-
         <!-- Actividad para reproducción de video (versión con SSL) -->
         <activity
-            android:name=".ui.PlayerActivityMedia3"
+            android:name=".activity.PlayerActivityMedia3"
             android:exported="false"
             android:theme="@style/Theme.CCOMate" />
 
