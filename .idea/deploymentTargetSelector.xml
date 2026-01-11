@@ -4,10 +4,10 @@
     <selectionStates>
       <SelectionState runConfigName="app">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2025-05-26T02:01:29.653511700Z">
+        <DropdownSelection timestamp="2025-06-20T07:00:21.492871200Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="PhysicalDevice" identifier="serial=11047ccbcec4" />
+              <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\josel\.android\avd\Android_TV_720p_8.0.avd" />
             </handle>
           </Target>
         </DropdownSelection>
