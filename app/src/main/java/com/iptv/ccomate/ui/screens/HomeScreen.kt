@@ -14,16 +14,18 @@ import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.iptv.ccomate.ui.theme.AppDimensions
 import com.iptv.ccomate.ui.theme.AppGradients
+import com.iptv.ccomate.util.AppConfig
 
 @Composable
 fun HomeScreen() {
-    // Configuración de Coil para evitar la caché
+    // Configuración de Coil con Caché Habilitada
     val context = LocalContext.current
     val imageRequest = remember {
         ImageRequest.Builder(context)
-            .data("http://10.224.24.232:8081/iptvbanner.png")
-            .diskCachePolicy(CachePolicy.DISABLED) // Deshabilita la caché en disco
-            .memoryCachePolicy(CachePolicy.DISABLED) // Deshabilita la caché en memoria
+            .data(AppConfig.BANNER_URL)
+            .diskCachePolicy(CachePolicy.ENABLED) // Habilitado para mejorar rendimiento
+            .memoryCachePolicy(CachePolicy.ENABLED) // Habilitado para evitar parpadeos
+            .crossfade(true) // Transición suave
             .build()
     }
 

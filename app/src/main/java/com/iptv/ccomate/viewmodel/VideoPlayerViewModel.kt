@@ -18,6 +18,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.hls.HlsMediaSource
 import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
+import com.iptv.ccomate.util.AppConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -72,8 +73,8 @@ class VideoPlayerViewModel : ViewModel() {
                         .setUserAgent(buildDynamicUserAgent())
                         .setDefaultRequestProperties(
                             mapOf(
-                                "Referer" to "https://ccomate.iptv.com",
-                                "Origin" to "https://ccomate.iptv.com"
+                                "Referer" to AppConfig.VIDEO_REFERER,
+                                "Origin" to AppConfig.VIDEO_ORIGIN
                             )
                         )
                 } catch (e: Exception) {
@@ -83,8 +84,8 @@ class VideoPlayerViewModel : ViewModel() {
                         .setUserAgent(buildDynamicUserAgent())
                         .setDefaultRequestProperties(
                             mapOf(
-                                "Referer" to "https://ccomate.iptv.com",
-                                "Origin" to "https://ccomate.iptv.com"
+                                "Referer" to AppConfig.VIDEO_REFERER,
+                                "Origin" to AppConfig.VIDEO_ORIGIN
                             )
                         )
                 }

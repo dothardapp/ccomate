@@ -1,6 +1,7 @@
 package com.iptv.ccomate.ui.screens.pluto
 
 import android.util.Log
+import android.view.KeyEvent
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -11,6 +12,7 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
@@ -21,6 +23,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -38,6 +43,7 @@ import com.iptv.ccomate.model.Channel
 import com.iptv.ccomate.ui.screens.ChannelList
 import com.iptv.ccomate.ui.screens.GroupList
 import com.iptv.ccomate.ui.video.VideoPanel
+import com.iptv.ccomate.util.AppConfig
 import com.iptv.ccomate.util.TimeUtils
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.launch
@@ -82,9 +88,7 @@ fun PlutoTvScreen() {
                         try {
                                 statusMessage = "Conectando con el servidor..."
                                 val m3uContent =
-                                        NetworkClient.fetchM3U(
-                                                "http://10.224.24.232:8081/tuner-1-playlist.m3u"
-                                        )
+                                        NetworkClient.fetchM3U(AppConfig.PLUTO_PLAYLIST_URL)
                                 statusMessage = "Procesando canales..."
                                 val channels = M3UParser.parse(m3uContent)
                                 groups = channels.mapNotNull { it.group }.distinct()
@@ -124,7 +128,7 @@ fun PlutoTvScreen() {
                 coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
                         try {
                                 val epgContent =
-                                        NetworkClient.fetchM3U("http://10.224.24.232:8081/epg.xml")
+                                        NetworkClient.fetchM3U(AppConfig.EPG_URL)
                                 val parsedEpg = com.iptv.ccomate.data.EPGParser.parse(epgContent)
                                 epgData = parsedEpg
                                 Log.d("PlutoTvScreen", "EPG Loaded: ${parsedEpg.size} channels")
@@ -162,7 +166,9 @@ fun PlutoTvScreen() {
                                 program: com.iptv.ccomate.model.EPGProgram? ->
                                 Box(
                                         modifier =
-                                                Modifier.fillMaxSize().clickable {
+                                                Modifier.fillMaxSize()
+                                                        .focusable() // Foco para el mando
+                                                        .clickable {
                                                         if (fullscreenState.value) {
                                                                 restoreFocus = true
                                                                 fullscreenState.value = false
@@ -258,7 +264,38 @@ fun PlutoTvScreen() {
                         restoreFocus = true
                         fullscreenState.value = false
                 }
-                Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black)
+                        .onKeyEvent { event ->
+                            if (event.type == KeyEventType.KeyDown) {
+                                val currentIndex = filteredChannels.indexOfFirst { it.url == selectedChannelUrl }
+                                if (currentIndex != -1) {
+                                    when (event.nativeKeyEvent.keyCode) {
+                                        KeyEvent.KEYCODE_DPAD_UP -> {
+                                            val prevIndex = if (currentIndex <= 0) filteredChannels.size - 1 else currentIndex - 1
+                                            val nextChannel = filteredChannels[prevIndex]
+                                            selectedChannelUrl = nextChannel.url
+                                            selectedChannelName = nextChannel.name
+                                            lastClickedChannelUrl = nextChannel.url
+                                            true
+                                        }
+                                        KeyEvent.KEYCODE_DPAD_DOWN -> {
+                                            val nextIndex = (currentIndex + 1) % filteredChannels.size
+                                            val nextChannel = filteredChannels[nextIndex]
+                                            selectedChannelUrl = nextChannel.url
+                                            selectedChannelName = nextChannel.name
+                                            lastClickedChannelUrl = nextChannel.url
+                                            true
+                                        }
+                                        else -> false
+                                    }
+                                } else false
+                            } else false
+                        }
+                        .focusable()
+                ) {
                         videoContent(
                                 selectedChannelUrl,
                                 selectedChannel?.name,

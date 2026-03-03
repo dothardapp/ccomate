@@ -7,8 +7,6 @@ import org.json.JSONObject
 import java.io.IOException
 
 object SubscriptionManager {
-    private const val SERVER_URL = "http://10.224.24.233:8000/api/register-device"
-    private const val CHECK_SUBSCRIPTION_URL = "http://10.224.24.233:8000/api/check-subscription"
     private val client = OkHttpClient()
 
     fun registerDevice(deviceInfo: DeviceInfo, clientIp: String?, callback: (Boolean, String?) -> Unit) {
@@ -25,7 +23,7 @@ object SubscriptionManager {
             .build()
 
         val request = Request.Builder()
-            .url(SERVER_URL)
+            .url(AppConfig.REGISTER_DEVICE_URL)
             .post(requestBody)
             .build()
 
@@ -49,7 +47,7 @@ object SubscriptionManager {
     }
 
     fun checkSubscription(installationId: String, callback: (isSubscribed: Boolean, clientIp: String?, error: String?) -> Unit) {
-        val url = "$CHECK_SUBSCRIPTION_URL?installationId=$installationId"
+        val url = "${AppConfig.CHECK_SUBSCRIPTION_URL}?installationId=$installationId"
         val request = Request.Builder()
             .url(url)
             .get()

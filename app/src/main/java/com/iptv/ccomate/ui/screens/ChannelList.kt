@@ -1,6 +1,7 @@
 package com.iptv.ccomate.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
@@ -20,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,6 +40,7 @@ import androidx.tv.material3.Icon
 import androidx.tv.material3.Text
 import coil.compose.AsyncImage
 import com.iptv.ccomate.model.Channel
+import com.iptv.ccomate.util.AppConfig
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -54,28 +57,54 @@ fun ChannelList(
 ) {
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
-    val focusRequesters = remember(channels) { List(channels.size) { FocusRequester() } }
-    var showHint by remember { mutableStateOf(false) }
+    
+    // Mapa persistente de FocusRequesters para evitar pérdida en scroll
+    val focusRequesters = remember(channels) { mutableMapOf<Int, FocusRequester>() }
+
+    // Lógica Global de Restauración de Foco
+    LaunchedEffect(restoreFocus, channels) {
+        if (restoreFocus && selectedUrl != null) {
+            val index = channels.indexOfFirst { it.url == selectedUrl }
+            if (index != -1) {
+                // 1. Forzar scroll para asegurar que el item existe en la composición
+                listState.scrollToItem(index)
+                // 2. Esperar un frame pequeño para que el sistema reconozca el nuevo estado
+                delay(100)
+                // 3. Pedir foco
+                focusRequesters[index]?.requestFocus()
+            }
+            onFocusRestored()
+        }
+    }
 
     LazyColumn(modifier = Modifier.fillMaxSize().padding(6.dp), state = listState) {
         itemsIndexed(channels) { index, channel ->
             var hasFocus by remember { mutableStateOf(false) }
             val isPlaying = selectedUrl == channel.url
-
-            if (restoreFocus && isPlaying) {
-                androidx.compose.runtime.LaunchedEffect(Unit) {
-                    focusRequesters[index].requestFocus()
-                    onFocusRestored()
-                }
-            }
+            var showHint by remember { mutableStateOf(false) }
+            
+            // Vincular el FocusRequester del mapa
+            val itemFocusRequester = remember { focusRequesters.getOrPut(index) { FocusRequester() } }
 
             Box(
                     modifier =
                             Modifier.fillMaxWidth()
                                     .padding(vertical = 4.dp)
                                     .clip(RoundedCornerShape(6.dp))
-                                    .background(if (hasFocus) Color.DarkGray else Color(0xFF1C1C1C))
-                                    .focusRequester(focusRequesters[index])
+                                    .background(
+                                        when {
+                                            isPlaying && hasFocus -> Color(0xFF4CAF50) // Verde vibrante para canal activo enfocado
+                                            isPlaying -> Color(0xFF2E7D32) // Verde oscuro para canal activo no enfocado
+                                            hasFocus -> Color.DarkGray // Gris para foco en canal inactivo
+                                            else -> Color(0xFF1C1C1C)
+                                        }
+                                    )
+                                    .border(
+                                        width = if (hasFocus) 2.dp else 0.dp,
+                                        color = if (hasFocus) Color.White else Color.Transparent,
+                                        shape = RoundedCornerShape(6.dp)
+                                    )
+                                    .focusRequester(itemFocusRequester)
                                     .onFocusChanged {
                                         hasFocus = it.isFocused
                                         if (hasFocus) {
@@ -86,11 +115,9 @@ fun ChannelList(
                                     }
                                     .focusable()
                                     .clickable {
-                                        if (lastClickedUrl == channel.url) {
-                                            // Segundo clic, ir a fullscreen
+                                        if (isPlaying) {
                                             onFullscreenRequest()
                                         } else {
-                                            // Primer clic, reproducir
                                             onSelect(channel)
                                             onUpdateLastClicked(channel.url)
                                             showHint = true
@@ -110,8 +137,7 @@ fun ChannelList(
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             AsyncImage(
-                                    model = channel.logo
-                                                    ?: "https://media.istockphoto.com/id/1409329028/vector/no-picture-available-placeholder-thumbnail-icon-illustration-design.jpg",
+                                    model = channel.logo ?: AppConfig.DEFAULT_CHANNEL_LOGO,
                                     contentDescription = "Logo canal",
                                     modifier = Modifier.background(Color.Black).size(80.dp, 45.dp)
                             )
@@ -133,7 +159,7 @@ fun ChannelList(
                         }
                     }
 
-                    if (showHint && lastClickedUrl == channel.url) {
+                    if (showHint && isPlaying) {
                         Text(
                                 text = "Presioná de nuevo para ver en pantalla completa",
                                 color = Color.LightGray,

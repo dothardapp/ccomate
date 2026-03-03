@@ -28,6 +28,7 @@ import com.iptv.ccomate.model.Channel
 import com.iptv.ccomate.ui.screens.ChannelListGrok
 import com.iptv.ccomate.ui.screens.GroupList02
 import com.iptv.ccomate.ui.theme.PlutoTvTheme
+import com.iptv.ccomate.util.AppConfig
 import kotlinx.coroutines.launch
 
 @Composable
@@ -64,7 +65,7 @@ fun PlutoTvScreenGrok() {
         coroutineScope.launch {
             try {
                 statusMessage = "Conectando con el servidor..."
-                val m3uContent = NetworkClient.fetchM3U("http://10.224.24.232:8081/playlist.m3u")
+                val m3uContent = NetworkClient.fetchM3U(AppConfig.PLUTO_PLAYLIST_GROK_URL)
                 statusMessage = "Procesando canales..."
                 val channels = M3UParser.parse(m3uContent)
                 groups = channels.mapNotNull { it.group }.distinct()
