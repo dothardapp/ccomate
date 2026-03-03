@@ -33,11 +33,7 @@
             </intent-filter>
         </activity>
 
-        <!-- Actividad para reproducción de video (versión con SSL) -->
-        <activity
-            android:name=".activity.PlayerActivityMedia3"
-            android:exported="false"
-            android:theme="@style/Theme.CCOMate" />
+
 
     </application>
 

@@ -11,9 +11,9 @@ import com.iptv.ccomate.ui.screens.tda.TDAScreen
 
 @Composable
 fun AppNavGraph(navController: NavHostController) {
-    NavHost(navController = navController, startDestination = "home") {
-        composable("home") { HomeScreen() }
-        composable("tda") { TDAScreen() }
-        composable("plutotv") { PlutoTvScreen() }
+    NavHost(navController = navController, startDestination = Route.Home.path) {
+        composable(Route.Home.path) { HomeScreen() }
+        composable(Route.TDA.path) { TDAScreen() }
+        composable(Route.PlutoTV.path) { PlutoTvScreen() }
     }
 }

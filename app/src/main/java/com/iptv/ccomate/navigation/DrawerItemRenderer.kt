@@ -5,11 +5,12 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
 import androidx.tv.material3.*
 import com.iptv.ccomate.ui.screens.DrawerIconContent
 import com.iptv.ccomate.model.DrawerItem
+import com.iptv.ccomate.ui.theme.AppColors
+import com.iptv.ccomate.ui.theme.AppDimensions
+import com.iptv.ccomate.ui.theme.AppTypography
 
 @Composable
 fun NavigationDrawerScope.DrawerItemRenderer(
@@ -30,14 +31,15 @@ fun NavigationDrawerScope.DrawerItemRenderer(
                 },
                 colors = NavigationDrawerItemDefaults.colors(
                     selectedContainerColor = Color.Transparent, // Sin fondo para seleccionado
-                    selectedContentColor = Color.White, // Color del contenido
+                    selectedContentColor = AppColors.selected, // Color del contenido (centralizado)
                 )
             ) {
                 Text(
                     text = item.label,
-                    color = Color.White.copy(alpha = 0.7f), // Color uniforme para todos los ítems
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Normal,
+                    style = if (selectedIndex == index)
+                        AppTypography.drawerLabelSelected
+                    else
+                        AppTypography.drawerLabel,
                     modifier = Modifier.fillMaxWidth()
                 )
             }

@@ -10,9 +10,11 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -24,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -39,17 +42,21 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import androidx.tv.material3.Text
 import com.iptv.ccomate.viewmodel.VideoPlayerViewModel
+import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.delay
 
-@OptIn(UnstableApi::class)
+@OptIn(UnstableApi::class) private const val ENABLE_EPG_OVERLAY = true
+
 @Composable
 fun VideoPlayer(
-    context: Context,
-    videoUrl: String,
-    modifier: Modifier = Modifier,
-    channelName: String? = null,
-    onPlaybackStarted: (() -> Unit)? = null,
-    onPlaybackError: ((Throwable) -> Unit)? = null
+        context: Context,
+        videoUrl: String,
+        modifier: Modifier = Modifier,
+        channelName: String? = null,
+        onPlaybackStarted: (() -> Unit)? = null,
+        onPlaybackError: ((Throwable) -> Unit)? = null,
+        currentProgram: com.iptv.ccomate.model.EPGProgram? = null,
+        isFullscreen: Boolean = false
 ) {
     var isBuffering by remember { mutableStateOf(true) }
     var showOverlay by remember { mutableStateOf(false) }
@@ -69,15 +76,18 @@ fun VideoPlayer(
         // Garantizar que la rueda de carga se muestre por al menos 300ms
         delay(300)
 
-        viewModel.setPlayer(context, videoUrl).onSuccess { player ->
-            Log.d("VideoPlayer", "ExoPlayer successfully set: $player")
-            exoPlayer = player
-        }.onFailure { error ->
-            Log.e("VideoPlayer", "Failed to set ExoPlayer", error)
-            isBuffering = false
-            showOverlay = false
-            onPlaybackError?.invoke(error)
-        }
+        viewModel
+                .setPlayer(context, videoUrl)
+                .onSuccess { player ->
+                    Log.d("VideoPlayer", "ExoPlayer successfully set: $player")
+                    exoPlayer = player
+                }
+                .onFailure { error ->
+                    Log.e("VideoPlayer", "Failed to set ExoPlayer", error)
+                    isBuffering = false
+                    showOverlay = false
+                    onPlaybackError?.invoke(error)
+                }
     }
 
     // Log para verificar si exoPlayer cambió
@@ -96,22 +106,18 @@ fun VideoPlayer(
                 Lifecycle.Event.ON_PAUSE -> {
                     viewModel.pausePlayer()
                 }
-
                 Lifecycle.Event.ON_START -> {
                     viewModel.resumePlayer()
                 }
-
                 Lifecycle.Event.ON_STOP -> {
                     viewModel.stopPlayer()
                 }
-
                 Lifecycle.Event.ON_DESTROY -> {
                     Log.d(
-                        "VideoPlayer",
-                        "ON_DESTROY - No se detiene el ExoPlayer, lo hace el ViewModel"
+                            "VideoPlayer",
+                            "ON_DESTROY - No se detiene el ExoPlayer, lo hace el ViewModel"
                     )
                 }
-
                 else -> {}
             }
         }
@@ -128,42 +134,40 @@ fun VideoPlayer(
     DisposableEffect(exoPlayer) {
         val player = exoPlayer ?: return@DisposableEffect onDispose {}
 
-        val listener = object : Player.Listener {
-            override fun onPlaybackStateChanged(state: Int) {
-                Log.d("VideoPlayer", "Playback state changed: $state")
-                when (state) {
-                    Player.STATE_BUFFERING -> {
-                        Log.d("VideoPlayer", "Buffering started")
-                        isBuffering = true
-                        showOverlay = false
+        val listener =
+                object : Player.Listener {
+                    override fun onPlaybackStateChanged(state: Int) {
+                        Log.d("VideoPlayer", "Playback state changed: $state")
+                        when (state) {
+                            Player.STATE_BUFFERING -> {
+                                Log.d("VideoPlayer", "Buffering started")
+                                isBuffering = true
+                                showOverlay = false
+                            }
+                            Player.STATE_READY -> {
+                                Log.d("VideoPlayer", "Player ready")
+                                isBuffering = false
+                                showOverlay = true
+                                onPlaybackStarted?.invoke()
+                            }
+                            Player.STATE_ENDED -> {
+                                Log.d("VideoPlayer", "Playback ended")
+                                isBuffering = false
+                                showOverlay = false
+                            }
+                            Player.STATE_IDLE -> {
+                                Log.d("VideoPlayer", "Player idle")
+                            }
+                        }
                     }
 
-                    Player.STATE_READY -> {
-                        Log.d("VideoPlayer", "Player ready")
+                    override fun onPlayerError(error: PlaybackException) {
+                        Log.e("VideoPlayer", "Error de reproducción: ${error.message}", error)
                         isBuffering = false
-                        showOverlay = true
-                        onPlaybackStarted?.invoke()
-                    }
-
-                    Player.STATE_ENDED -> {
-                        Log.d("VideoPlayer", "Playback ended")
-                        isBuffering = false
                         showOverlay = false
-                    }
-
-                    Player.STATE_IDLE -> {
-                        Log.d("VideoPlayer", "Player idle")
+                        onPlaybackError?.invoke(error)
                     }
                 }
-            }
-
-            override fun onPlayerError(error: PlaybackException) {
-                Log.e("VideoPlayer", "Error de reproducción: ${error.message}", error)
-                isBuffering = false
-                showOverlay = false
-                onPlaybackError?.invoke(error)
-            }
-        }
 
         player.addListener(listener)
 
@@ -181,70 +185,98 @@ fun VideoPlayer(
         }
     }
 
+    // Mostrar overlay al entrar en fullscreen
+    LaunchedEffect(isFullscreen) {
+        if (isFullscreen) {
+            showOverlay = true
+        }
+    }
+
     // UI del reproductor
     Box(modifier = modifier) {
         // Mostrar el PlayerView solo si exoPlayer no es nulo
         exoPlayer?.let { player ->
             Log.d("VideoPlayer", "Rendering PlayerView for player: $player")
             AndroidView(
-                factory = {
-                    PlayerView(it).apply {
-                        layoutParams = FrameLayout.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                            ViewGroup.LayoutParams.MATCH_PARENT
-                        )
-                        this.player = player
-                        useController = false
-                        keepScreenOn = true
-                    }
-                },
-                update = { view ->
-                    view.player = player
-                },
-                modifier = Modifier.Companion.fillMaxSize()
+                    factory = {
+                        PlayerView(it).apply {
+                            layoutParams =
+                                    FrameLayout.LayoutParams(
+                                            ViewGroup.LayoutParams.MATCH_PARENT,
+                                            ViewGroup.LayoutParams.MATCH_PARENT
+                                    )
+                            this.player = player
+                            useController = false
+                            keepScreenOn = true
+                        }
+                    },
+                    update = { view -> view.player = player },
+                    modifier = Modifier.Companion.fillMaxSize()
             )
         }
 
-        AnimatedVisibility(
-            visible = isBuffering,
-            enter = fadeIn(),
-            exit = fadeOut()
-        ) {
+        AnimatedVisibility(visible = isBuffering, enter = fadeIn(), exit = fadeOut()) {
             Log.d("VideoPlayer", "Showing buffering indicator")
             Box(
-                modifier = Modifier.Companion
-                    .fillMaxSize()
-                    .background(Color(0x66000000)),
-                contentAlignment = Alignment.Companion.Center
-            ) {
-                CircularProgressIndicator(
-                    color = Color.Companion.White,
-                    strokeWidth = 3.dp
-                )
-            }
+                    modifier = Modifier.Companion.fillMaxSize().background(Color(0x66000000)),
+                    contentAlignment = Alignment.Companion.Center
+            ) { CircularProgressIndicator(color = Color.Companion.White, strokeWidth = 3.dp) }
         }
 
         AnimatedVisibility(
-            visible = showOverlay && !channelName.isNullOrBlank(),
-            enter = fadeIn(),
-            exit = fadeOut()
+                visible = showOverlay && !channelName.isNullOrBlank(),
+                enter = fadeIn(),
+                exit = fadeOut()
         ) {
             Log.d("VideoPlayer", "Showing channel overlay: $channelName")
             Box(
-                modifier = Modifier.Companion
-                    .fillMaxWidth()
-                    .padding(12.dp)
-                    .background(Color.Companion.Black.copy(alpha = 0.6f)),
-                contentAlignment = Alignment.Companion.CenterStart
+                    modifier =
+                            Modifier.Companion.fillMaxWidth()
+                                    .padding(24.dp)
+                                    .background(
+                                            Color.Companion.Black.copy(alpha = 0.7f),
+                                            RoundedCornerShape(8.dp)
+                                    ),
+                    contentAlignment = Alignment.Companion.CenterStart
             ) {
-                Text(
-                    text = channelName ?: "",
-                    fontSize = 18.sp,
-                    color = Color.Companion.White,
-                    modifier = Modifier.Companion.padding(horizontal = 12.dp, vertical = 6.dp),
-                    maxLines = 1,
-                    overflow = TextOverflow.Companion.Ellipsis
-                )
+                Column(modifier = Modifier.Companion.padding(16.dp)) {
+                    // Title (Channel or Program)
+                    Text(
+                            text =
+                                    if (ENABLE_EPG_OVERLAY)
+                                            currentProgram?.title ?: channelName ?: ""
+                                    else channelName ?: "",
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Companion.White,
+                            maxLines = 1,
+                            overflow = TextOverflow.Companion.Ellipsis
+                    )
+
+                    if (ENABLE_EPG_OVERLAY && currentProgram != null) {
+                        val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+                        val start = currentProgram.startTime.format(timeFormatter)
+                        val end = currentProgram.endTime.format(timeFormatter)
+
+                        Text(
+                                text = "$start - $end",
+                                fontSize = 16.sp,
+                                color = Color.Companion.LightGray,
+                                modifier = Modifier.Companion.padding(top = 4.dp)
+                        )
+
+                        if (!currentProgram.description.isNullOrBlank()) {
+                            Text(
+                                    text = currentProgram.description,
+                                    fontSize = 14.sp,
+                                    color = Color.Companion.White.copy(alpha = 0.8f),
+                                    maxLines = 3,
+                                    overflow = TextOverflow.Companion.Ellipsis,
+                                    modifier = Modifier.Companion.padding(top = 8.dp)
+                            )
+                        }
+                    }
+                }
             }
         }
     }

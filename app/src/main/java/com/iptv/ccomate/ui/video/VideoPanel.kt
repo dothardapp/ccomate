@@ -14,52 +14,65 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 @Composable
 fun VideoPanel(
-    context: Context,
-    videoUrl: String?,
-    channelName: String?,
-    onPlaybackStarted: () -> Unit,
-    onPlaybackError: (Throwable) -> Unit,
-    modifier: Modifier = Modifier
+        context: Context,
+        videoUrl: String?,
+        channelName: String?,
+        onPlaybackStarted: () -> Unit,
+        onPlaybackError: (Throwable) -> Unit,
+        modifier: Modifier = Modifier,
+        currentProgram: com.iptv.ccomate.model.EPGProgram? = null,
+        isFullscreen: Boolean = false
 ) {
-    Box(
-        modifier = modifier
-            .background(Color(0xAB030301))
-    ) {
+    Box(modifier = modifier.background(Color(0xAB030301))) {
         // Mostrar la rueda de carga si videoUrl es null (canales aún cargando)
-        AnimatedVisibility(
-            visible = videoUrl == null,
-            enter = fadeIn(),
-            exit = fadeOut()
-        ) {
+        AnimatedVisibility(visible = videoUrl == null, enter = fadeIn(), exit = fadeOut()) {
             Box(
-                modifier = Modifier.Companion
-                    .fillMaxSize()
-                    .background(Color(0x66000000)),
-                contentAlignment = Alignment.Companion.Center
-            ) {
-                CircularProgressIndicator(
-                    color = Color.Companion.White,
-                    strokeWidth = 3.dp
-                )
-            }
+                    modifier = Modifier.Companion.fillMaxSize().background(Color(0x66000000)),
+                    contentAlignment = Alignment.Companion.Center
+            ) { CircularProgressIndicator(color = Color.Companion.White, strokeWidth = 3.dp) }
         }
 
         // Renderizar VideoPlayer si videoUrl no es null
         videoUrl?.let {
             VideoPlayer(
-                context = context,
-                videoUrl = it,
-                channelName = channelName,
-                modifier = Modifier.Companion
-                    .background(Color.Companion.Transparent)
-                    .fillMaxSize()
-                    .padding(1.dp),
-                onPlaybackStarted = onPlaybackStarted,
-                onPlaybackError = onPlaybackError
+                    context = context,
+                    videoUrl = it,
+                    channelName = channelName,
+                    modifier =
+                            Modifier.Companion.background(Color.Companion.Transparent)
+                                    .fillMaxSize()
+                                    .padding(1.dp),
+                    onPlaybackStarted = onPlaybackStarted,
+                    onPlaybackError = onPlaybackError,
+                    currentProgram = currentProgram,
+                    isFullscreen = isFullscreen
             )
+        }
+        if (ENABLE_EPG_PANEL && currentProgram != null) {
+            Box(
+                    modifier =
+                            Modifier.align(Alignment.TopCenter)
+                                    .padding(8.dp)
+                                    .background(
+                                            Color.Black.copy(alpha = 0.6f),
+                                            androidx.compose.foundation.shape.RoundedCornerShape(
+                                                    4.dp
+                                            )
+                                    )
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+            ) {
+                androidx.tv.material3.Text(
+                        text = "Ahora: ${currentProgram.title}",
+                        color = Color.White,
+                        fontSize = 12.sp
+                )
+            }
         }
     }
 }
+
+private const val ENABLE_EPG_PANEL = false

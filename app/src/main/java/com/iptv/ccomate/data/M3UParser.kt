@@ -9,6 +9,7 @@ object M3UParser {
         var currentName = ""
         var currentLogo: String? = null
         var currentGroup: String? = null
+        var currentTvgId: String? = null
 
         for (i in lines.indices) {
             val line = lines[i]
@@ -22,8 +23,20 @@ object M3UParser {
 
                 val groupMatch = Regex("group-title=\"(.*?)\"").find(line)
                 currentGroup = groupMatch?.groupValues?.get(1)
+
+                // Prioritize channel-id, fallback to tvg-id
+                val channelIdMatch = Regex("channel-id=\"(.*?)\"").find(line)
+                var extractedId = channelIdMatch?.groupValues?.get(1)
+
+                if (extractedId == null) {
+                    val tvgIdMatch = Regex("tvg-id=\"(.*?)\"").find(line)
+                    extractedId = tvgIdMatch?.groupValues?.get(1)
+                }
+                currentTvgId = extractedId
             } else if (line.startsWith("http")) {
-                channels.add(Channel(currentName, line.trim(), currentLogo, currentGroup))
+                channels.add(
+                        Channel(currentName, line.trim(), currentLogo, currentGroup, currentTvgId)
+                )
             }
         }
 

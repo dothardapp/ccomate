@@ -7,14 +7,13 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
+import com.iptv.ccomate.ui.theme.AppDimensions
+import com.iptv.ccomate.ui.theme.AppGradients
 
 @Composable
 fun HomeScreen() {
@@ -31,21 +30,7 @@ fun HomeScreen() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFFF5F5F5), // Gris claro (casi blanco)
-                        Color(0xFFD3D3D3), // Gris claro
-                        Color(0xFFB0B0B0), // Gris claro medio
-                        Color(0xFF808080), // Gris medio
-                        Color(0xFF696969), // Gris oscuro
-                        Color(0xFF4A4A4A),  // Gris muy oscuro
-                        Color(0xFF2F4F4F)   // Gris oscuro (casi negro)
-                    ),
-                    startY = 0f,               // (opcional) dónde empieza
-                    endY = Float.POSITIVE_INFINITY // (opcional) dónde termina
-                )
-            ),
+            .background(brush = AppGradients.verticalGrayGradient),
         contentAlignment = Alignment.Center
     ) {
         AnimatedVisibility(
@@ -54,7 +39,7 @@ fun HomeScreen() {
                     scaleIn(initialScale = 0.7f, animationSpec = tween(2000)) +
                     slideInVertically(animationSpec = tween(2000)) { it },
             modifier = Modifier
-                .padding(42.dp)
+                .padding(AppDimensions.containerPaddingLarge * 1.75f) // ~42.dp
                 .fillMaxSize()
         ) {
             AsyncImage(
