@@ -38,7 +38,7 @@ fun ErrorScreen(message: String, onRetry: () -> Unit) {
         Text(
             text = message,
             style = MaterialTheme.typography.headlineMedium,
-            color = Color.Red,
+            color = Color(0xFFFF5252), // TV-safe: evitar rojo puro
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(16.dp))

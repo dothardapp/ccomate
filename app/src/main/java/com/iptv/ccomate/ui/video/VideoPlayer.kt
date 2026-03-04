@@ -220,7 +220,7 @@ fun VideoPlayer(
             Box(
                     modifier = Modifier.Companion.fillMaxSize().background(Color(0x66000000)),
                     contentAlignment = Alignment.Companion.Center
-            ) { CircularProgressIndicator(color = Color.Companion.White, strokeWidth = 3.dp) }
+            ) { CircularProgressIndicator(color = Color(0xFFF5F5F5), strokeWidth = 3.dp) }
         }
 
         AnimatedVisibility(
@@ -234,7 +234,7 @@ fun VideoPlayer(
                             Modifier.Companion.fillMaxWidth()
                                     .padding(24.dp)
                                     .background(
-                                            Color.Companion.Black.copy(alpha = 0.7f),
+                                            Color(0xFF121212).copy(alpha = 0.7f),
                                             RoundedCornerShape(8.dp)
                                     ),
                     contentAlignment = Alignment.Companion.CenterStart
@@ -248,7 +248,7 @@ fun VideoPlayer(
                                     else channelName ?: "",
                             fontSize = 22.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color.Companion.White,
+                            color = Color(0xFFF5F5F5),
                             maxLines = 1,
                             overflow = TextOverflow.Companion.Ellipsis
                     )
@@ -261,7 +261,7 @@ fun VideoPlayer(
                         Text(
                                 text = "$start - $end",
                                 fontSize = 16.sp,
-                                color = Color.Companion.LightGray,
+                                color = Color(0xFFBDBDBD),
                                 modifier = Modifier.Companion.padding(top = 4.dp)
                         )
 
@@ -269,7 +269,7 @@ fun VideoPlayer(
                             Text(
                                     text = currentProgram.description,
                                     fontSize = 14.sp,
-                                    color = Color.Companion.White.copy(alpha = 0.8f),
+                                    color = Color(0xFFF5F5F5).copy(alpha = 0.8f),
                                     maxLines = 3,
                                     overflow = TextOverflow.Companion.Ellipsis,
                                     modifier = Modifier.Companion.padding(top = 8.dp)

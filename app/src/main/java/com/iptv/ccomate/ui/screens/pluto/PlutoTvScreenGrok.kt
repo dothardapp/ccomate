@@ -127,7 +127,7 @@ fun PlutoTvScreenGrok() {
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .background(Color.Black.copy(alpha = 0.6f)),
+                                .background(Color(0xFF121212).copy(alpha = 0.6f)),
                             contentAlignment = Alignment.Center
                         ) {
                             CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
@@ -184,7 +184,7 @@ fun PlutoTvScreenGrok() {
                                 modifier = Modifier
                                     .size(width = 120.dp, height = 68.dp)
                                     .clip(RoundedCornerShape(8.dp))
-                                    .background(Color.Black)
+                                    .background(Color(0xFF121212)) // TV-safe
                                     .border(
                                         BorderStroke(1.dp, Color(0xFF4A4A4A)),
                                         RoundedCornerShape(8.dp)
@@ -216,7 +216,7 @@ fun PlutoTvScreenGrok() {
                                     Text(
                                         text = "Error: ${playbackError?.localizedMessage ?: "desconocido"}",
                                         color = MaterialTheme.colorScheme.error.copy(alpha = 0.8f),
-                                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp)
+                                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp) // Mínimo 14sp para TV
                                     )
                                 }
                             }

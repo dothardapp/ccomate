@@ -200,7 +200,7 @@ fun TDAScreen() {
                                                                 Text(
                                                                         text =
                                                                                 "⚠️ Reloj del dispositivo mal configurado",
-                                                                        color = Color.White,
+                                                                        color = Color(0xFFF5F5F5),
                                                                         fontSize = 18.sp,
                                                                         fontWeight =
                                                                                 FontWeight.Bold,
@@ -227,7 +227,7 @@ fun TDAScreen() {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.Black)
+                        .background(Color(0xFF121212)) // TV-safe: evitar negro puro
                         .onKeyEvent { event ->
                             if (event.type == KeyEventType.KeyDown) {
                                 val currentIndex = filteredChannels.indexOfFirst { it.url == selectedChannelUrl }
@@ -273,7 +273,7 @@ fun TDAScreen() {
                                                         )
                                                 )
                                         )
-                                        .padding(10.dp)
+                                        .padding(horizontal = 48.dp, vertical = 27.dp) // Overscan zona segura 5%
                 ) {
                         Row(modifier = Modifier.weight(1.2f).fillMaxWidth()) {
                                 // Video Container
@@ -343,7 +343,7 @@ fun TDAScreen() {
                                                                                                 72.dp
                                                                                 )
                                                                                 .background(
-                                                                                        Color.Black
+                                                                                        Color(0xFF121212) // TV-safe
                                                                                 )
                                                                                 .clip(
                                                                                         RoundedCornerShape(
@@ -356,7 +356,7 @@ fun TDAScreen() {
                                                                 text = statusMessage,
                                                                 color =
                                                                         if (playbackError == null)
-                                                                                Color.White
+                                                                                Color(0xFFF5F5F5) // TV-safe
                                                                         else Color(0xFFFF5252),
                                                                 fontSize = 18.sp,
                                                                 fontWeight = FontWeight.Bold,

@@ -41,7 +41,7 @@ fun HomeScreen() {
                     scaleIn(initialScale = 0.7f, animationSpec = tween(2000)) +
                     slideInVertically(animationSpec = tween(2000)) { it },
             modifier = Modifier
-                .padding(AppDimensions.containerPaddingLarge * 1.75f) // ~42.dp
+                .padding(horizontal = AppDimensions.overscanHorizontal, vertical = AppDimensions.overscanVertical) // Overscan zona segura 5%
                 .fillMaxSize()
         ) {
             AsyncImage(

@@ -22,7 +22,7 @@ fun StatusPanel(statusMessage: String) {
             text = statusMessage,
             fontSize = 20.sp,
             textAlign = TextAlign.Companion.Center,
-            color = Color.Companion.White
+            color = Color(0xFFF5F5F5) // TV-safe: evitar blanco puro
         )
     }
 }

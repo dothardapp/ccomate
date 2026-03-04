@@ -322,7 +322,7 @@ private fun PlutoNormalLayout(
         modifier = Modifier
             .fillMaxSize()
             .background(PlutoColors.ScreenGradient)
-            .padding(10.dp)
+            .padding(horizontal = 48.dp, vertical = 27.dp) // Overscan zona segura 5%
     ) {
         // ── Fila superior: Video + Info ──
         Row(modifier = Modifier.weight(1.2f).fillMaxWidth()) {

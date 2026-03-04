@@ -33,7 +33,7 @@ fun VideoPanel(
             Box(
                     modifier = Modifier.Companion.fillMaxSize().background(Color(0x66000000)),
                     contentAlignment = Alignment.Companion.Center
-            ) { CircularProgressIndicator(color = Color.Companion.White, strokeWidth = 3.dp) }
+            ) { CircularProgressIndicator(color = Color(0xFFF5F5F5), strokeWidth = 3.dp) }
         }
 
         // Renderizar VideoPlayer si videoUrl no es null
@@ -58,7 +58,7 @@ fun VideoPanel(
                             Modifier.align(Alignment.TopCenter)
                                     .padding(8.dp)
                                     .background(
-                                            Color.Black.copy(alpha = 0.6f),
+                                            Color(0xFF121212).copy(alpha = 0.6f),
                                             androidx.compose.foundation.shape.RoundedCornerShape(
                                                     4.dp
                                             )
@@ -67,8 +67,8 @@ fun VideoPanel(
             ) {
                 androidx.tv.material3.Text(
                         text = "Ahora: ${currentProgram.title}",
-                        color = Color.White,
-                        fontSize = 12.sp
+                        color = Color(0xFFF5F5F5),
+                        fontSize = 14.sp // Mínimo 14sp para TV
                 )
             }
         }
