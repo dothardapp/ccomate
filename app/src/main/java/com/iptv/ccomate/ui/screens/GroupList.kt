@@ -29,6 +29,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Text
 import kotlinx.coroutines.launch
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.scale
+import androidx.compose.foundation.border
 
 @Composable
 fun GroupList(
@@ -40,20 +45,36 @@ fun GroupList(
     val coroutineScope = rememberCoroutineScope()
     val focusRequesters = remember(groups) { List(groups.size) { FocusRequester() } }
 
+    // Factor de escala para foco
+    val scaleFactor = 1.1f
+
     LazyColumn(
-        modifier = Modifier.Companion.fillMaxSize().padding(15.dp),
-        state = listState
+        modifier = Modifier.Companion.fillMaxSize().clipToBounds().padding(15.dp),
+        state = listState,
+        horizontalAlignment = Alignment.Companion.CenterHorizontally
     ) {
         itemsIndexed(groups) { index, group ->
             var hasFocus by remember { mutableStateOf(false) }
             val isSelected = index == selectedIndex
 
+            // Escala animada para foco TV (1.1x)
+            val focusScale by animateFloatAsState(
+                targetValue = if (hasFocus) scaleFactor else 1f,
+                animationSpec = tween(durationMillis = 200)
+            )
+
             Box(
                 modifier = Modifier.Companion
-                    .fillMaxWidth()
+                    .fillMaxWidth(1f / scaleFactor) // ~90.9%: al escalar 1.1x llena 100%
                     .padding(vertical = 4.dp)
+                    .scale(focusScale)
                     .clip(RoundedCornerShape(6.dp))
                     .background(if (hasFocus) Color.Companion.DarkGray else Color(0xFF1C1C1C))
+                    .border(
+                        width = if (hasFocus) 2.dp else 0.dp,
+                        color = if (hasFocus) Color(0xFFF5F5F5) else Color.Transparent,
+                        shape = RoundedCornerShape(6.dp)
+                    )
                     .focusRequester(focusRequesters[index])
                     .onFocusChanged {
                         hasFocus = it.isFocused
@@ -77,9 +98,9 @@ fun GroupList(
                         text = group,
                         fontSize = 16.sp,
                         color = when {
-                            hasFocus -> Color.Companion.Yellow
+                            hasFocus -> Color(0xFFFFEB3B) // Amarillo TV-safe
                             isSelected -> Color(0xFF9ACD32)
-                            else -> Color.Companion.White
+                            else -> Color(0xFFF5F5F5) // TV-safe: evitar blanco puro
                         }
                     )
                 }

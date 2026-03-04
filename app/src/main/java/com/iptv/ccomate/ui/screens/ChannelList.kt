@@ -43,6 +43,10 @@ import com.iptv.ccomate.model.Channel
 import com.iptv.ccomate.util.AppConfig
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.scale
 
 @Composable
 fun ChannelList(
@@ -77,31 +81,45 @@ fun ChannelList(
         }
     }
 
-    LazyColumn(modifier = Modifier.fillMaxSize().padding(6.dp), state = listState) {
+    // Factor de escala para foco
+    val scaleFactor = 1.1f
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().clipToBounds().padding(6.dp),
+        state = listState,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
         itemsIndexed(channels) { index, channel ->
             var hasFocus by remember { mutableStateOf(false) }
             val isPlaying = selectedUrl == channel.url
             var showHint by remember { mutableStateOf(false) }
+
+            // Escala animada para foco TV (1.1x)
+            val focusScale by animateFloatAsState(
+                targetValue = if (hasFocus) scaleFactor else 1f,
+                animationSpec = tween(durationMillis = 200)
+            )
             
             // Vincular el FocusRequester del mapa
             val itemFocusRequester = remember { focusRequesters.getOrPut(index) { FocusRequester() } }
 
             Box(
                     modifier =
-                            Modifier.fillMaxWidth()
+                            Modifier.fillMaxWidth(1f / scaleFactor) // ~90.9%: al escalar 1.1x llena 100%
                                     .padding(vertical = 4.dp)
+                                    .scale(focusScale)
                                     .clip(RoundedCornerShape(6.dp))
                                     .background(
                                         when {
-                                            isPlaying && hasFocus -> Color(0xFF4CAF50) // Verde vibrante para canal activo enfocado
-                                            isPlaying -> Color(0xFF2E7D32) // Verde oscuro para canal activo no enfocado
-                                            hasFocus -> Color.DarkGray // Gris para foco en canal inactivo
+                                            isPlaying && hasFocus -> Color(0xFF4CAF50)
+                                            isPlaying -> Color(0xFF2E7D32)
+                                            hasFocus -> Color.DarkGray
                                             else -> Color(0xFF1C1C1C)
                                         }
                                     )
                                     .border(
                                         width = if (hasFocus) 2.dp else 0.dp,
-                                        color = if (hasFocus) Color.White else Color.Transparent,
+                                        color = if (hasFocus) Color(0xFFF5F5F5) else Color.Transparent,
                                         shape = RoundedCornerShape(6.dp)
                                     )
                                     .focusRequester(itemFocusRequester)
@@ -139,13 +157,13 @@ fun ChannelList(
                             AsyncImage(
                                     model = channel.logo ?: AppConfig.DEFAULT_CHANNEL_LOGO,
                                     contentDescription = "Logo canal",
-                                    modifier = Modifier.background(Color.Black).size(80.dp, 45.dp)
+                                    modifier = Modifier.background(Color(0xFF121212)).size(80.dp, 45.dp)
                             )
                             Spacer(modifier = Modifier.width(12.dp))
                             Text(
                                     text = channel.name,
                                     fontSize = 18.sp,
-                                    color = if (hasFocus) Color.Yellow else Color.White
+                                    color = if (hasFocus) Color(0xFFFFEB3B) else Color(0xFFF5F5F5)
                             )
                         }
 
@@ -162,8 +180,8 @@ fun ChannelList(
                     if (showHint && isPlaying) {
                         Text(
                                 text = "Presioná de nuevo para ver en pantalla completa",
-                                color = Color.LightGray,
-                                fontSize = 12.sp,
+                                color = Color(0xFFBDBDBD),
+                                fontSize = 14.sp, // Mínimo 14sp para TV
                                 modifier = Modifier.padding(top = 6.dp)
                         )
                     }

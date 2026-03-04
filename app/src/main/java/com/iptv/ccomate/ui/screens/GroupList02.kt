@@ -65,7 +65,7 @@ fun GroupList02(
                 val isSelected = index == selectedIndex
                 var hasFocus by remember { mutableStateOf(false) }
                 val scale by animateFloatAsState(
-                    targetValue = if (hasFocus) 1.05f else 1.0f,
+                    targetValue = if (hasFocus) 1.1f else 1.0f,
                     animationSpec = tween(durationMillis = 200)
                 )
 

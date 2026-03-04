@@ -85,7 +85,7 @@ fun ChannelListGrok(
                                 var hasFocus by remember { mutableStateOf(false) }
                                 val scale by
                                         animateFloatAsState(
-                                                targetValue = if (hasFocus) 1.05f else 1.0f,
+                                                targetValue = if (hasFocus) 1.1f else 1.0f,
                                                 animationSpec = tween(durationMillis = 200)
                                         )
 
@@ -186,8 +186,7 @@ fun ChannelListGrok(
                                                                                                 )
                                                                                 )
                                                                                 .background(
-                                                                                        Color.Companion
-                                                                                                .Black
+                                                                                        Color(0xFF121212) // TV-safe
                                                                                 ),
                                                                 placeholder =
                                                                         painterResource(
@@ -270,7 +269,7 @@ fun ChannelListGrok(
                                                                                 .onSurface.copy(
                                                                                 alpha = 0.7f
                                                                         ),
-                                                                fontSize = 12.sp,
+                                                                fontSize = 14.sp, // Mínimo 14sp para TV
                                                                 modifier =
                                                                         Modifier.Companion.align(
                                                                                 Alignment.Companion
