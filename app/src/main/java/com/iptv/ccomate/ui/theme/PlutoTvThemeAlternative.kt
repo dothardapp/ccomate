@@ -22,11 +22,11 @@ private val PlutoTvStaticColors = darkColorScheme(
     background = Color(0xFF0D0D1A), // Fondo azul oscuro
     surface = Color(0xFF1A1A2E), // Superficie gris-azul
     error = Color(0xFFE63946), // Rojo para errores
-    onPrimary = Color.Companion.White,
-    onSecondary = Color.Companion.White,
+    onPrimary = Color(0xFFF5F5F5),
+    onSecondary = Color(0xFFF5F5F5),
     onBackground = Color(0xFFE6E6FA), // Blanco suave para texto
     onSurface = Color(0xFFE6E6FA),
-    onError = Color.Companion.White
+    onError = Color(0xFFF5F5F5)
 )
 
 // Tipografía personalizada con más estilos
@@ -52,9 +52,9 @@ private val PlutoTvTypography = Typography(
         lineHeight = 20.sp
     ),
     labelSmall = TextStyle(
-        fontSize = 12.sp,
+        fontSize = 14.sp, // Mínimo 14sp para TV
         fontWeight = FontWeight.Companion.Medium,
-        lineHeight = 16.sp
+        lineHeight = 18.sp
     )
 )
 

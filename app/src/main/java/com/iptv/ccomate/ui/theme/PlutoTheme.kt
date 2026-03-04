@@ -17,11 +17,11 @@ val PlutoTvColors = darkColorScheme(
     background = Color(0xFF0A0F12), // Fondo oscuro
     surface = Color(0xFF1A1A1A), // Superficie gris oscuro
     error = Color(0xFFB71C1C), // Rojo para errores
-    onPrimary = Color.Companion.White,
-    onSecondary = Color.Companion.White,
-    onBackground = Color.Companion.White,
-    onSurface = Color.Companion.White,
-    onError = Color.Companion.White
+    onPrimary = Color(0xFFF5F5F5),
+    onSecondary = Color(0xFFF5F5F5),
+    onBackground = Color(0xFFF5F5F5),
+    onSurface = Color(0xFFF5F5F5),
+    onError = Color(0xFFF5F5F5)
 )
 
 @Composable
@@ -50,9 +50,9 @@ fun PlutoTvTheme(content: @Composable () -> Unit) {
                 lineHeight = 20.sp
             ),
             labelSmall = TextStyle(
-                fontSize = 12.sp,
+                fontSize = 14.sp, // Mínimo 14sp para TV
                 fontWeight = FontWeight.Companion.Medium,
-                lineHeight = 16.sp
+                lineHeight = 18.sp
             )
         ),
         content = content

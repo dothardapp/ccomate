@@ -29,7 +29,7 @@ object PlutoColors {
     val DividerColor = Color(0xFFB0B0B0)
 
     // ── Textos ──
-    val TextPrimary = Color.White
+    val TextPrimary = Color(0xFFF5F5F5) // TV-safe: evitar blanco puro
     val TextSecondary = Color(0xFFCFD8DC)
     val TextSubtle = Color(0xFFB0B0B0)
     val TextError = Color(0xFFFF5252)
@@ -39,5 +39,5 @@ object PlutoColors {
     val WarningBannerBorder = Color(0xFFF5F5F5)
 
     // ── Fullscreen ──
-    val FullscreenBackground = Color.Black
+    val FullscreenBackground = Color(0xFF121212) // TV-safe: evitar negro puro
 }

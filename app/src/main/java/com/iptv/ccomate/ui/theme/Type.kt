@@ -28,8 +28,8 @@ val Typography = Typography(
     labelSmall = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Medium,
-        fontSize = 11.sp,
-        lineHeight = 16.sp,
+        fontSize = 14.sp, // Mínimo 14sp para TV
+        lineHeight = 18.sp,
         letterSpacing = 0.5.sp
     )
     */

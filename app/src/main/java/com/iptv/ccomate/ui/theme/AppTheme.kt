@@ -22,18 +22,18 @@ object AppColors {
     val gray5 = Color(0xFF4A4A4A)      // Gris muy oscuro
     val darkGray = Color(0xFF2F4F4F)   // Gris oscuro (casi negro)
 
-    // Fondos
-    val background = Color.Black
+    // Fondos (TV-safe: evitar negro puro #000000)
+    val background = Color(0xFF121212)
     val backgroundSecondary = darkGray
 
-    // Textos
-    val textPrimary = Color.White
-    val textSecondary = Color.White.copy(alpha = 0.7f)
-    val textTertiary = Color.White.copy(alpha = 0.5f)
+    // Textos (TV-safe: evitar blanco puro #FFFFFF)
+    val textPrimary = Color(0xFFF5F5F5)
+    val textSecondary = Color(0xFFF5F5F5).copy(alpha = 0.7f)
+    val textTertiary = Color(0xFFF5F5F5).copy(alpha = 0.5f)
 
     // Estado
-    val selected = Color.White
-    val unselected = Color.White.copy(alpha = 0.7f)
+    val selected = Color(0xFFF5F5F5)
+    val unselected = Color(0xFFF5F5F5).copy(alpha = 0.7f)
 }
 
 /**
@@ -84,7 +84,7 @@ object AppTypography {
     )
 
     val small = TextStyle(
-        fontSize = 12.sp,
+        fontSize = 14.sp, // Mínimo 14sp para TV (regla tipografía)
         fontWeight = FontWeight.Normal,
         color = AppColors.textSecondary
     )
@@ -112,6 +112,10 @@ object AppDimensions {
     val containerPaddingSmall: Dp = 8.dp
     val containerPaddingMedium: Dp = 16.dp
     val containerPaddingLarge: Dp = 24.dp
+
+    // Overscan (zona segura 5% para Android TV)
+    val overscanHorizontal: Dp = 48.dp
+    val overscanVertical: Dp = 27.dp
 
     // Drawer específico
     val drawerItemSpacing: Dp = 10.dp
