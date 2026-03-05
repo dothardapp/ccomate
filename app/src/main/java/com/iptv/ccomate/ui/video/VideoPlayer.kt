@@ -9,10 +9,16 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
@@ -20,13 +26,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -48,6 +60,9 @@ import kotlinx.coroutines.launch
 
 @OptIn(UnstableApi::class) private const val ENABLE_EPG_OVERLAY = true
 
+private const val BUFFERING_TIMEOUT_MS = 15000L
+private const val MAX_RETRY_ATTEMPTS = 3
+
 @Composable
 fun VideoPlayer(
         context: Context,
@@ -61,7 +76,12 @@ fun VideoPlayer(
 ) {
     var isBuffering by remember { mutableStateOf(true) }
     var showOverlay by remember { mutableStateOf(false) }
+    var hasError by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
+    var retryCount by remember { mutableIntStateOf(0) }
     val lifecycleOwner = LocalLifecycleOwner.current
+    val coroutineScope = rememberCoroutineScope()
+    val retryFocusRequester = remember { FocusRequester() }
 
     val viewModel: VideoPlayerViewModel = viewModel()
     var exoPlayer by remember { mutableStateOf<ExoPlayer?>(null) }
@@ -69,10 +89,12 @@ fun VideoPlayer(
     Log.d("VideoPlayer", "Rendering VideoPlayer for URL: $videoUrl")
 
     // Actualizar el ExoPlayer cuando cambie la URL
-    LaunchedEffect(videoUrl) {
-        Log.d("VideoPlayer", "LaunchedEffect triggered for URL: $videoUrl")
+    LaunchedEffect(videoUrl, retryCount) {
+        Log.d("VideoPlayer", "LaunchedEffect triggered for URL: $videoUrl (retry: $retryCount)")
         isBuffering = true
         showOverlay = false
+        hasError = false
+        errorMessage = ""
 
         // Garantizar que la rueda de carga se muestre por al menos 300ms
         delay(300)
@@ -87,8 +109,35 @@ fun VideoPlayer(
                     Log.e("VideoPlayer", "Failed to set ExoPlayer", error)
                     isBuffering = false
                     showOverlay = false
+                    hasError = true
+                    errorMessage = error.localizedMessage ?: "Error desconocido al iniciar reproducción"
                     onPlaybackError?.invoke(error)
                 }
+    }
+
+    // Timeout: si el buffering dura más de BUFFERING_TIMEOUT_MS, mostrar error
+    LaunchedEffect(isBuffering, videoUrl, retryCount) {
+        if (isBuffering) {
+            delay(BUFFERING_TIMEOUT_MS)
+            // Si todavía está en buffering después del timeout
+            if (isBuffering && !hasError) {
+                Log.w("VideoPlayer", "Buffering timeout alcanzado para: $videoUrl")
+                // Detener el player para evitar spam de codec en main thread
+                try {
+                    exoPlayer?.stop()
+                    exoPlayer?.clearMediaItems()
+                    Log.d("VideoPlayer", "Player detenido tras timeout")
+                } catch (e: Exception) {
+                    Log.w("VideoPlayer", "Error al detener player tras timeout", e)
+                }
+                isBuffering = false
+                hasError = true
+                errorMessage = "El canal no responde. Posible problema de red o señal."
+                onPlaybackError?.invoke(
+                    Exception("Timeout de carga: el stream no respondió en ${BUFFERING_TIMEOUT_MS / 1000}s")
+                )
+            }
+        }
     }
 
     // Log para verificar si exoPlayer cambió
@@ -155,10 +204,13 @@ fun VideoPlayer(
                                 Log.d("VideoPlayer", "Buffering started")
                                 isBuffering = true
                                 showOverlay = false
+                                // No borrar hasError aquí: si ya hubo error, mantenerlo
                             }
                             Player.STATE_READY -> {
                                 Log.d("VideoPlayer", "Player ready")
                                 isBuffering = false
+                                hasError = false
+                                errorMessage = ""
                                 showOverlay = true
                                 onPlaybackStarted?.invoke()
                             }
@@ -177,6 +229,25 @@ fun VideoPlayer(
                         Log.e("VideoPlayer", "Error de reproducción: ${error.message}", error)
                         isBuffering = false
                         showOverlay = false
+                        hasError = true
+                        errorMessage = when (error.errorCode) {
+                            PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED ->
+                                "Error de conexión de red"
+                            PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT ->
+                                "Tiempo de conexión agotado"
+                            PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS ->
+                                "El servidor respondió con un error (HTTP)"
+                            PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND ->
+                                "Stream no encontrado"
+                            PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW ->
+                                "Transmisión en vivo no disponible"
+                            PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED ->
+                                "Error al procesar el stream"
+                            PlaybackException.ERROR_CODE_PARSING_MANIFEST_MALFORMED ->
+                                "Error al leer la lista de reproducción"
+                            else ->
+                                error.localizedMessage ?: "Error de reproducción desconocido"
+                        }
                         onPlaybackError?.invoke(error)
                     }
                 }
@@ -206,52 +277,132 @@ fun VideoPlayer(
 
     // UI del reproductor
     Box(modifier = modifier) {
-        // Mostrar el PlayerView solo si exoPlayer no es nulo
-        exoPlayer?.let { player ->
-            Log.d("VideoPlayer", "Rendering PlayerView for player: $player")
-            AndroidView(
-                    factory = {
-                        PlayerView(it).apply {
-                            layoutParams =
-                                    FrameLayout.LayoutParams(
-                                            ViewGroup.LayoutParams.MATCH_PARENT,
-                                            ViewGroup.LayoutParams.MATCH_PARENT
-                                    )
-                            this.player = player
-                            useController = false
-                            keepScreenOn = true
-                        }
-                    },
-                    update = { view -> view.player = player },
-                    modifier = Modifier.Companion.fillMaxSize()
-            )
+        // Mostrar el PlayerView solo si exoPlayer no es nulo y no hay error
+        if (!hasError) {
+            exoPlayer?.let { player ->
+                Log.d("VideoPlayer", "Rendering PlayerView for player: $player")
+                AndroidView(
+                        factory = {
+                            PlayerView(it).apply {
+                                layoutParams =
+                                        FrameLayout.LayoutParams(
+                                                ViewGroup.LayoutParams.MATCH_PARENT,
+                                                ViewGroup.LayoutParams.MATCH_PARENT
+                                        )
+                                this.player = player
+                                useController = false
+                                keepScreenOn = true
+                            }
+                        },
+                        update = { view -> view.player = player },
+                        modifier = Modifier.fillMaxSize()
+                )
+            }
         }
 
-        AnimatedVisibility(visible = isBuffering, enter = fadeIn(), exit = fadeOut()) {
+        // Indicador de buffering
+        AnimatedVisibility(visible = isBuffering && !hasError, enter = fadeIn(), exit = fadeOut()) {
             Log.d("VideoPlayer", "Showing buffering indicator")
             Box(
-                    modifier = Modifier.Companion.fillMaxSize().background(Color(0x66000000)),
-                    contentAlignment = Alignment.Companion.Center
+                    modifier = Modifier.fillMaxSize().background(Color(0x66000000)),
+                    contentAlignment = Alignment.Center
             ) { CircularProgressIndicator(color = Color(0xFFF5F5F5), strokeWidth = 3.dp) }
         }
 
+        // Pantalla de error con botón reintentar
+        AnimatedVisibility(visible = hasError, enter = fadeIn(), exit = fadeOut()) {
+            Box(
+                    modifier = Modifier.fillMaxSize().background(Color(0xE6121212)),
+                    contentAlignment = Alignment.Center
+            ) {
+                Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                        modifier = Modifier.padding(12.dp)
+                ) {
+                    Text(
+                            text = errorMessage,
+                            color = Color(0xFFF5F5F5),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            textAlign = TextAlign.Center,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                    )
+                    if (!channelName.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                                text = channelName,
+                                color = Color(0xFFBDBDBD),
+                                fontSize = 12.sp,
+                                textAlign = TextAlign.Center,
+                                maxLines = 1
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(10.dp))
+                    var isRetryFocused by remember { mutableStateOf(false) }
+                    Box(
+                            modifier = Modifier
+                                    .focusRequester(retryFocusRequester)
+                                    .onFocusChanged { isRetryFocused = it.isFocused }
+                                    .focusable()
+                                    .clickable {
+                                        Log.d("VideoPlayer", "Retry button clicked for: $videoUrl")
+                                        hasError = false
+                                        isBuffering = true
+                                        retryCount++
+                                    }
+                                    .background(
+                                            if (isRetryFocused) Color(0xFF42A5F5) else Color(0xFF2196F3),
+                                            RoundedCornerShape(6.dp)
+                                    )
+                                    .border(
+                                            width = if (isRetryFocused) 2.dp else 1.dp,
+                                            color = if (isRetryFocused) Color.White else Color(0xFF64B5F6),
+                                            shape = RoundedCornerShape(6.dp)
+                                    )
+                                    .padding(horizontal = 20.dp, vertical = 10.dp),
+                            contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                                text = "Reintentar",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                        )
+                    }
+                }
+            }
+
+            // Focus the retry button when error is shown
+            LaunchedEffect(hasError) {
+                if (hasError) {
+                    delay(200)
+                    try {
+                        retryFocusRequester.requestFocus()
+                    } catch (_: Exception) {}
+                }
+            }
+        }
+
+        // Overlay del canal / programa
         AnimatedVisibility(
-                visible = showOverlay && !channelName.isNullOrBlank(),
+                visible = showOverlay && !channelName.isNullOrBlank() && !hasError,
                 enter = fadeIn(),
                 exit = fadeOut()
         ) {
             Log.d("VideoPlayer", "Showing channel overlay: $channelName")
             Box(
                     modifier =
-                            Modifier.Companion.fillMaxWidth()
+                            Modifier.fillMaxWidth()
                                     .padding(24.dp)
                                     .background(
                                             Color(0xFF121212).copy(alpha = 0.7f),
                                             RoundedCornerShape(8.dp)
                                     ),
-                    contentAlignment = Alignment.Companion.CenterStart
+                    contentAlignment = Alignment.CenterStart
             ) {
-                Column(modifier = Modifier.Companion.padding(16.dp)) {
+                Column(modifier = Modifier.padding(16.dp)) {
                     // Title (Channel or Program)
                     Text(
                             text =
@@ -262,7 +413,7 @@ fun VideoPlayer(
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFFF5F5F5),
                             maxLines = 1,
-                            overflow = TextOverflow.Companion.Ellipsis
+                            overflow = TextOverflow.Ellipsis
                     )
 
                     if (ENABLE_EPG_OVERLAY && currentProgram != null) {
@@ -274,7 +425,7 @@ fun VideoPlayer(
                                 text = "$start - $end",
                                 fontSize = 16.sp,
                                 color = Color(0xFFBDBDBD),
-                                modifier = Modifier.Companion.padding(top = 4.dp)
+                                modifier = Modifier.padding(top = 4.dp)
                         )
 
                         if (!currentProgram.description.isNullOrBlank()) {
@@ -283,8 +434,8 @@ fun VideoPlayer(
                                     fontSize = 14.sp,
                                     color = Color(0xFFF5F5F5).copy(alpha = 0.8f),
                                     maxLines = 3,
-                                    overflow = TextOverflow.Companion.Ellipsis,
-                                    modifier = Modifier.Companion.padding(top = 8.dp)
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.padding(top = 8.dp)
                             )
                         }
                     }

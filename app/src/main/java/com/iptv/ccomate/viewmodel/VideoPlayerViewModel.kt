@@ -35,7 +35,7 @@ class VideoPlayerViewModel : ViewModel() {
 
     // LoadControl is created per-player to avoid sharing across playback threads
     private fun createLoadControl() = DefaultLoadControl.Builder()
-        .setBufferDurationsMs(5000, 15000, 500, 1000)
+        .setBufferDurationsMs(10000, 30000, 1000, 2000)
         .build()
 
     private fun buildDynamicUserAgent(): String {
