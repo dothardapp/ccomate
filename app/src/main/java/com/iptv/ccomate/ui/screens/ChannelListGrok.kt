@@ -186,7 +186,9 @@ fun ChannelListGrok(
                                                                                                 )
                                                                                 )
                                                                                 .background(
-                                                                                        Color(0xFF121212) // TV-safe
+                                                                                        Color(
+                                                                                                0xFF121212
+                                                                                        ) // TV-safe
                                                                                 ),
                                                                 placeholder =
                                                                         painterResource(
@@ -269,7 +271,9 @@ fun ChannelListGrok(
                                                                                 .onSurface.copy(
                                                                                 alpha = 0.7f
                                                                         ),
-                                                                fontSize = 14.sp, // Mínimo 14sp para TV
+                                                                fontSize =
+                                                                        14.sp, // Mínimo 14sp para
+                                                                // TV
                                                                 modifier =
                                                                         Modifier.Companion.align(
                                                                                 Alignment.Companion

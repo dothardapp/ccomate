@@ -39,14 +39,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.iptv.ccomate.ui.theme.PlutoTvTheme
-import kotlinx.coroutines.launch
 
 @Composable
 fun GroupList02(
-    groups: List<String>,
-    selectedIndex: Int,
-    onSelect: (Int) -> Unit,
-    modifier: Modifier = Modifier
+        groups: List<String>,
+        selectedIndex: Int,
+        onSelect: (Int) -> Unit,
+        modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
@@ -54,67 +53,68 @@ fun GroupList02(
 
     PlutoTvTheme {
         LazyColumn(
-            modifier = modifier
-                .fillMaxSize()
-                .padding(8.dp)
-                .background(MaterialTheme.colorScheme.surface),
-            state = listState,
-            contentPadding = PaddingValues(vertical = 8.dp)
+                modifier =
+                        modifier.fillMaxSize()
+                                .padding(8.dp)
+                                .background(MaterialTheme.colorScheme.surface),
+                state = listState,
+                contentPadding = PaddingValues(vertical = 8.dp)
         ) {
             itemsIndexed(groups) { index, group ->
                 val isSelected = index == selectedIndex
                 var hasFocus by remember { mutableStateOf(false) }
-                val scale by animateFloatAsState(
-                    targetValue = if (hasFocus) 1.1f else 1.0f,
-                    animationSpec = tween(durationMillis = 200)
-                )
+                val scale by
+                        animateFloatAsState(
+                                targetValue = if (hasFocus) 1.1f else 1.0f,
+                                animationSpec = tween(durationMillis = 200)
+                        )
 
                 Card(
-                    modifier = Modifier.Companion
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .scale(scale)
-                        .focusRequester(focusRequesters[index])
-                        .onFocusChanged {
-                            hasFocus = it.isFocused
-                            if (hasFocus) {
-                                coroutineScope.launch { listState.animateScrollToItem(index) }
-                            }
-                        }
-                        .focusable()
-                        .clickable { onSelect(index) },
-                    colors = CardDefaults.cardColors(
-                        containerColor = if (hasFocus) Color(0xFF3A3A3A) else MaterialTheme.colorScheme.surface
-                    ),
-                    elevation = CardDefaults.cardElevation(
-                        defaultElevation = if (hasFocus) 6.dp else 2.dp
-                    )
+                        modifier =
+                                Modifier.Companion.fillMaxWidth()
+                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .scale(scale)
+                                        .focusRequester(focusRequesters[index])
+                                        .onFocusChanged { hasFocus = it.isFocused }
+                                        .focusable()
+                                        .clickable { onSelect(index) },
+                        colors =
+                                CardDefaults.cardColors(
+                                        containerColor =
+                                                if (hasFocus) Color(0xFF3A3A3A)
+                                                else MaterialTheme.colorScheme.surface
+                                ),
+                        elevation =
+                                CardDefaults.cardElevation(
+                                        defaultElevation = if (hasFocus) 6.dp else 2.dp
+                                )
                 ) {
                     Row(
-                        modifier = Modifier.Companion
-                            .fillMaxWidth()
-                            .padding(12.dp),
-                        verticalAlignment = Alignment.Companion.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            modifier = Modifier.Companion.fillMaxWidth().padding(12.dp),
+                            verticalAlignment = Alignment.Companion.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         if (isSelected) {
                             Box(
-                                modifier = Modifier.Companion
-                                    .size(12.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.secondary)
+                                    modifier =
+                                            Modifier.Companion.size(12.dp)
+                                                    .clip(CircleShape)
+                                                    .background(MaterialTheme.colorScheme.secondary)
                             )
                         }
                         Text(
-                            text = group,
-                            style = MaterialTheme.typography.titleMedium,
-                            color = when {
-                                hasFocus -> MaterialTheme.colorScheme.primary
-                                isSelected -> MaterialTheme.colorScheme.secondary
-                                else -> MaterialTheme.colorScheme.onSurface
-                            },
-                            fontWeight = if (hasFocus || isSelected) FontWeight.Companion.Bold else FontWeight.Companion.Normal
+                                text = group,
+                                style = MaterialTheme.typography.titleMedium,
+                                color =
+                                        when {
+                                            hasFocus -> MaterialTheme.colorScheme.primary
+                                            isSelected -> MaterialTheme.colorScheme.secondary
+                                            else -> MaterialTheme.colorScheme.onSurface
+                                        },
+                                fontWeight =
+                                        if (hasFocus || isSelected) FontWeight.Companion.Bold
+                                        else FontWeight.Companion.Normal
                         )
                     }
                 }

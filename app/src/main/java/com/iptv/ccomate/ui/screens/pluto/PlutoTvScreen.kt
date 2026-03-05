@@ -85,11 +85,12 @@ fun PlutoTvScreen() {
     LaunchedEffect(Unit) {
         try {
             statusMessage = "Conectando con el servidor..."
-            val m3uContent = withContext(Dispatchers.IO) {
-                NetworkClient.fetchM3U(AppConfig.PLUTO_PLAYLIST_URL)
-            }
+            val channels =
+                    withContext(Dispatchers.IO) {
+                        val m3uContent = NetworkClient.fetchM3U(AppConfig.PLUTO_PLAYLIST_URL)
+                        M3UParser.parse(m3uContent)
+                    }
             statusMessage = "Procesando canales..."
-            val channels = M3UParser.parse(m3uContent)
             groups = channels.mapNotNull { it.group }.distinct()
             allChannels = channels
             statusMessage = "Listo. Se cargaron ${channels.size} canales."
@@ -110,10 +111,11 @@ fun PlutoTvScreen() {
     // ── Carga de EPG ──
     LaunchedEffect(Unit) {
         try {
-            val epgContent = withContext(Dispatchers.IO) {
-                NetworkClient.fetchM3U(AppConfig.EPG_URL)
-            }
-            val parsedEpg = EPGParser.parse(epgContent)
+            val parsedEpg =
+                    withContext(Dispatchers.IO) {
+                        val epgContent = NetworkClient.fetchM3U(AppConfig.EPG_URL)
+                        EPGParser.parse(epgContent)
+                    }
             epgData = parsedEpg
             Log.d("PlutoTvScreen", "EPG Loaded: ${parsedEpg.size} channels")
         } catch (e: Exception) {
@@ -123,86 +125,87 @@ fun PlutoTvScreen() {
 
     // ── Actualizar programa actual ──
     LaunchedEffect(selectedChannel, epgData) {
-        currentProgram = selectedChannel?.tvgId
-            ?.let { tvgId -> epgData[tvgId] }
-            ?.find { program ->
-                val now = java.time.ZonedDateTime.now()
-                now.isAfter(program.startTime) && now.isBefore(program.endTime)
-            }
+        currentProgram =
+                selectedChannel?.tvgId?.let { tvgId -> epgData[tvgId] }?.find { program ->
+                    val now = java.time.ZonedDateTime.now()
+                    now.isAfter(program.startTime) && now.isBefore(program.endTime)
+                }
     }
 
     // ── Contenido de video reutilizable ──
-    val videoContent = remember(playerRestartKey) {
-        movableContentOf { url: String?, name: String?, isFull: Boolean, program: EPGProgram? ->
-            VideoContentBlock(
-                context = context,
-                videoUrl = url,
-                channelName = name,
-                isFullscreen = isFull,
-                currentProgram = program,
-                isTimeIncorrect = isTimeIncorrect,
-                currentTimeMessage = currentTimeMessage,
-                onPlaybackStarted = {
-                    statusMessage = "🎬 Reproduciendo canal: ${name ?: "Canal"}"
-                    playbackError = null
-                },
-                onPlaybackError = { error ->
-                    playbackError = error
-                    statusMessage = "❌ Error al reproducir: ${error.localizedMessage ?: "desconocido"}"
-                    Log.e("VideoPanel", "Error de reproducción", error)
-                },
-                onToggleFullscreen = {
-                    if (fullscreenState.value) {
-                        restoreFocus = true
-                        fullscreenState.value = false
-                    } else {
-                        fullscreenState.value = true
-                    }
+    val videoContent =
+            remember(playerRestartKey) {
+                movableContentOf {
+                        url: String?,
+                        name: String?,
+                        isFull: Boolean,
+                        program: EPGProgram? ->
+                    VideoContentBlock(
+                            context = context,
+                            videoUrl = url,
+                            channelName = name,
+                            isFullscreen = isFull,
+                            currentProgram = program,
+                            isTimeIncorrect = isTimeIncorrect,
+                            currentTimeMessage = currentTimeMessage,
+                            onPlaybackStarted = {
+                                statusMessage = "🎬 Reproduciendo canal: ${name ?: "Canal"}"
+                                playbackError = null
+                            },
+                            onPlaybackError = { error ->
+                                playbackError = error
+                                statusMessage =
+                                        "❌ Error al reproducir: ${error.localizedMessage ?: "desconocido"}"
+                                Log.e("VideoPanel", "Error de reproducción", error)
+                            },
+                            onToggleFullscreen = {
+                                if (fullscreenState.value) {
+                                    restoreFocus = true
+                                    fullscreenState.value = false
+                                } else {
+                                    fullscreenState.value = true
+                                }
+                            }
+                    )
                 }
-            )
-        }
-    }
+            }
 
     // ── Render ──
     if (isFullscreen) {
         PlutoFullscreenView(
-            filteredChannels = filteredChannels,
-            selectedChannelUrl = selectedChannelUrl,
-            onChannelChanged = { channel ->
-                selectedChannelUrl = channel.url
-                lastClickedChannelUrl = channel.url
-            },
-            onExitFullscreen = {
-                restoreFocus = true
-                fullscreenState.value = false
-            }
-        ) {
-            videoContent(selectedChannelUrl, selectedChannel?.name, true, currentProgram)
-        }
+                filteredChannels = filteredChannels,
+                selectedChannelUrl = selectedChannelUrl,
+                onChannelChanged = { channel ->
+                    selectedChannelUrl = channel.url
+                    lastClickedChannelUrl = channel.url
+                },
+                onExitFullscreen = {
+                    restoreFocus = true
+                    fullscreenState.value = false
+                }
+        ) { videoContent(selectedChannelUrl, selectedChannel?.name, true, currentProgram) }
     } else {
         PlutoNormalLayout(
-            groups = groups,
-            selectedGroupIndex = selectedGroupIndex,
-            onGroupSelected = { selectedGroupIndex = it },
-            filteredChannels = filteredChannels,
-            selectedChannelUrl = selectedChannelUrl,
-            lastClickedChannelUrl = lastClickedChannelUrl,
-            selectedChannelLogo = selectedChannelLogo,
-            statusMessage = statusMessage,
-            playbackError = playbackError,
-            currentProgram = currentProgram,
-            restoreFocus = restoreFocus,
-            onChannelSelected = { channel ->
-                selectedChannelUrl = channel.url
-                statusMessage = "🎬 Cargando canal: ${channel.name}..."
-                playbackError = null
-            },
-            onUpdateLastClicked = { lastClickedChannelUrl = it },
-            onFullscreenRequest = { fullscreenState.value = true },
-            onFocusRestored = { restoreFocus = false }
-        ) {
-            videoContent(selectedChannelUrl, selectedChannel?.name, false, currentProgram)
-        }
+                groups = groups,
+                selectedGroupIndex = selectedGroupIndex,
+                onGroupSelected = { selectedGroupIndex = it },
+                filteredChannels = filteredChannels,
+                selectedChannelUrl = selectedChannelUrl,
+                lastClickedChannelUrl = lastClickedChannelUrl,
+                selectedChannelLogo = selectedChannelLogo,
+                statusMessage = statusMessage,
+                playbackError = playbackError,
+                currentProgram = currentProgram,
+                restoreFocus = restoreFocus,
+                onChannelSelected = { channel ->
+                    selectedChannelUrl = channel.url
+                    statusMessage = "🎬 Cargando canal: ${channel.name}..."
+                    playbackError = null
+                },
+                onUpdateLastClicked = { lastClickedChannelUrl = it },
+                onFullscreenRequest = { fullscreenState.value = true },
+                onFocusRestored = { restoreFocus = false }
+        ) { videoContent(selectedChannelUrl, selectedChannel?.name, false, currentProgram) }
     }
 }
 
@@ -210,138 +213,133 @@ fun PlutoTvScreen() {
 //  Composables internos extraídos
 // ═══════════════════════════════════════════════════════════════
 
-/**
- * Bloque de video con overlay de advertencia de hora.
- */
+/** Bloque de video con overlay de advertencia de hora. */
 @Composable
 private fun VideoContentBlock(
-    context: android.content.Context,
-    videoUrl: String?,
-    channelName: String?,
-    isFullscreen: Boolean,
-    currentProgram: EPGProgram?,
-    isTimeIncorrect: Boolean,
-    currentTimeMessage: String,
-    onPlaybackStarted: () -> Unit,
-    onPlaybackError: (Throwable) -> Unit,
-    onToggleFullscreen: () -> Unit
+        context: android.content.Context,
+        videoUrl: String?,
+        channelName: String?,
+        isFullscreen: Boolean,
+        currentProgram: EPGProgram?,
+        isTimeIncorrect: Boolean,
+        currentTimeMessage: String,
+        onPlaybackStarted: () -> Unit,
+        onPlaybackError: (Throwable) -> Unit,
+        onToggleFullscreen: () -> Unit
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .focusable()
-            .clickable { onToggleFullscreen() }
-    ) {
+    Box(modifier = Modifier.fillMaxSize().focusable().clickable { onToggleFullscreen() }) {
         VideoPanel(
-            context = context,
-            videoUrl = videoUrl,
-            channelName = channelName,
-            onPlaybackStarted = onPlaybackStarted,
-            onPlaybackError = onPlaybackError,
-            modifier = Modifier.fillMaxSize(),
-            currentProgram = currentProgram,
-            isFullscreen = isFullscreen
+                context = context,
+                videoUrl = videoUrl,
+                channelName = channelName,
+                onPlaybackStarted = onPlaybackStarted,
+                onPlaybackError = onPlaybackError,
+                modifier = Modifier.fillMaxSize(),
+                currentProgram = currentProgram,
+                isFullscreen = isFullscreen
         )
 
         if (!isFullscreen) {
             TimeWarningBanner(
-                isVisible = isTimeIncorrect,
-                timeMessage = currentTimeMessage,
-                modifier = Modifier.align(Alignment.TopCenter)
+                    isVisible = isTimeIncorrect,
+                    timeMessage = currentTimeMessage,
+                    modifier = Modifier.align(Alignment.TopCenter)
             )
         }
     }
 }
 
-/**
- * Vista fullscreen con navegación por D-Pad.
- */
+/** Vista fullscreen con navegación por D-Pad. */
 @Composable
 private fun PlutoFullscreenView(
-    filteredChannels: List<Channel>,
-    selectedChannelUrl: String?,
-    onChannelChanged: (Channel) -> Unit,
-    onExitFullscreen: () -> Unit,
-    videoContent: @Composable () -> Unit
+        filteredChannels: List<Channel>,
+        selectedChannelUrl: String?,
+        onChannelChanged: (Channel) -> Unit,
+        onExitFullscreen: () -> Unit,
+        videoContent: @Composable () -> Unit
 ) {
     BackHandler { onExitFullscreen() }
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(PlutoColors.FullscreenBackground)
-            .onKeyEvent { event ->
-                if (event.type == KeyEventType.KeyDown) {
-                    val currentIndex = filteredChannels.indexOfFirst { it.url == selectedChannelUrl }
-                    if (currentIndex != -1) {
-                        when (event.nativeKeyEvent.keyCode) {
-                            KeyEvent.KEYCODE_DPAD_UP -> {
-                                val prevIndex = if (currentIndex <= 0) filteredChannels.size - 1 else currentIndex - 1
-                                onChannelChanged(filteredChannels[prevIndex])
-                                true
+            modifier =
+                    Modifier.fillMaxSize()
+                            .background(PlutoColors.FullscreenBackground)
+                            .onKeyEvent { event ->
+                                if (event.type == KeyEventType.KeyDown) {
+                                    val currentIndex =
+                                            filteredChannels.indexOfFirst {
+                                                it.url == selectedChannelUrl
+                                            }
+                                    if (currentIndex != -1) {
+                                        when (event.nativeKeyEvent.keyCode) {
+                                            KeyEvent.KEYCODE_DPAD_UP -> {
+                                                val prevIndex =
+                                                        if (currentIndex <= 0)
+                                                                filteredChannels.size - 1
+                                                        else currentIndex - 1
+                                                onChannelChanged(filteredChannels[prevIndex])
+                                                true
+                                            }
+                                            KeyEvent.KEYCODE_DPAD_DOWN -> {
+                                                val nextIndex =
+                                                        (currentIndex + 1) % filteredChannels.size
+                                                onChannelChanged(filteredChannels[nextIndex])
+                                                true
+                                            }
+                                            else -> false
+                                        }
+                                    } else false
+                                } else false
                             }
-                            KeyEvent.KEYCODE_DPAD_DOWN -> {
-                                val nextIndex = (currentIndex + 1) % filteredChannels.size
-                                onChannelChanged(filteredChannels[nextIndex])
-                                true
-                            }
-                            else -> false
-                        }
-                    } else false
-                } else false
-            }
-            .focusable()
-    ) {
-        videoContent()
-    }
+                            .focusable()
+    ) { videoContent() }
 }
 
-/**
- * Layout normal (no fullscreen) con video, info, grupos y canales.
- */
+/** Layout normal (no fullscreen) con video, info, grupos y canales. */
 @Composable
 private fun PlutoNormalLayout(
-    groups: List<String>,
-    selectedGroupIndex: Int,
-    onGroupSelected: (Int) -> Unit,
-    filteredChannels: List<Channel>,
-    selectedChannelUrl: String?,
-    lastClickedChannelUrl: String?,
-    selectedChannelLogo: String?,
-    statusMessage: String,
-    playbackError: Throwable?,
-    currentProgram: EPGProgram?,
-    restoreFocus: Boolean,
-    onChannelSelected: (Channel) -> Unit,
-    onUpdateLastClicked: (String) -> Unit,
-    onFullscreenRequest: () -> Unit,
-    onFocusRestored: () -> Unit,
-    videoContent: @Composable () -> Unit
+        groups: List<String>,
+        selectedGroupIndex: Int,
+        onGroupSelected: (Int) -> Unit,
+        filteredChannels: List<Channel>,
+        selectedChannelUrl: String?,
+        lastClickedChannelUrl: String?,
+        selectedChannelLogo: String?,
+        statusMessage: String,
+        playbackError: Throwable?,
+        currentProgram: EPGProgram?,
+        restoreFocus: Boolean,
+        onChannelSelected: (Channel) -> Unit,
+        onUpdateLastClicked: (String) -> Unit,
+        onFullscreenRequest: () -> Unit,
+        onFocusRestored: () -> Unit,
+        videoContent: @Composable () -> Unit
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(PlutoColors.ScreenGradient)
-            .padding(horizontal = 48.dp, vertical = 27.dp) // Overscan zona segura 5%
+            modifier =
+                    Modifier.fillMaxSize()
+                            .background(PlutoColors.ScreenGradient)
+                            .padding(
+                                    horizontal = 48.dp,
+                                    vertical = 27.dp
+                            ) // Overscan zona segura 5%
     ) {
         // ── Fila superior: Video + Info ──
         Row(modifier = Modifier.weight(1.2f).fillMaxWidth()) {
             // Panel de video
             StyledPanelBox(
-                modifier = Modifier.weight(1f).padding(8.dp),
-                gradient = PlutoColors.VideoContainerGradient
-            ) {
-                videoContent()
-            }
+                    modifier = Modifier.weight(1f).padding(8.dp),
+                    gradient = PlutoColors.VideoContainerGradient
+            ) { videoContent() }
 
             // Panel de información del canal
             Box(modifier = Modifier.weight(1.6f).padding(8.dp)) {
                 ChannelInfoPanel(
-                    channelLogo = selectedChannelLogo,
-                    statusMessage = statusMessage,
-                    playbackError = playbackError,
-                    currentProgram = currentProgram,
-                    showEpg = ENABLE_EPG_SIDE_PANEL
+                        channelLogo = selectedChannelLogo,
+                        statusMessage = statusMessage,
+                        playbackError = playbackError,
+                        currentProgram = currentProgram,
+                        showEpg = ENABLE_EPG_SIDE_PANEL
                 )
             }
         }
@@ -355,9 +353,9 @@ private fun PlutoNormalLayout(
             // Lista de grupos
             StyledPanelBox(modifier = Modifier.weight(1f)) {
                 GroupList(
-                    groups = groups,
-                    selectedIndex = selectedGroupIndex,
-                    onSelect = onGroupSelected
+                        groups = groups,
+                        selectedIndex = selectedGroupIndex,
+                        onSelect = onGroupSelected
                 )
             }
 
@@ -366,14 +364,14 @@ private fun PlutoNormalLayout(
             // Lista de canales
             StyledPanelBox(modifier = Modifier.weight(2f)) {
                 ChannelList(
-                    channels = filteredChannels,
-                    selectedUrl = selectedChannelUrl,
-                    lastClickedUrl = lastClickedChannelUrl,
-                    onUpdateLastClicked = onUpdateLastClicked,
-                    onSelect = onChannelSelected,
-                    onFullscreenRequest = onFullscreenRequest,
-                    restoreFocus = restoreFocus,
-                    onFocusRestored = onFocusRestored
+                        channels = filteredChannels,
+                        selectedUrl = selectedChannelUrl,
+                        lastClickedUrl = lastClickedChannelUrl,
+                        onUpdateLastClicked = onUpdateLastClicked,
+                        onSelect = onChannelSelected,
+                        onFullscreenRequest = onFullscreenRequest,
+                        restoreFocus = restoreFocus,
+                        onFocusRestored = onFocusRestored
                 )
             }
         }

@@ -21,15 +21,17 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import coil.compose.AsyncImage
-import com.iptv.ccomate.ui.video.VideoPanel
 import com.iptv.ccomate.data.M3UParser
 import com.iptv.ccomate.data.NetworkClient
 import com.iptv.ccomate.model.Channel
 import com.iptv.ccomate.ui.screens.ChannelListGrok
 import com.iptv.ccomate.ui.screens.GroupList02
 import com.iptv.ccomate.ui.theme.PlutoTvTheme
+import com.iptv.ccomate.ui.video.VideoPanel
 import com.iptv.ccomate.util.AppConfig
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun PlutoTvScreenGrok() {
@@ -48,7 +50,6 @@ fun PlutoTvScreenGrok() {
     var playerRestartKey by remember { mutableIntStateOf(0) }
     var lastClickedChannelUrl by remember { mutableStateOf<String?>(null) }
 
-
     // Detectar regreso de pantalla (ON_RESUME)
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _: LifecycleOwner, event: Lifecycle.Event ->
@@ -65,9 +66,13 @@ fun PlutoTvScreenGrok() {
         coroutineScope.launch {
             try {
                 statusMessage = "Conectando con el servidor..."
-                val m3uContent = NetworkClient.fetchM3U(AppConfig.PLUTO_PLAYLIST_GROK_URL)
+                val channels =
+                        withContext(Dispatchers.IO) {
+                            val m3uContent =
+                                    NetworkClient.fetchM3U(AppConfig.PLUTO_PLAYLIST_GROK_URL)
+                            M3UParser.parse(m3uContent)
+                        }
                 statusMessage = "Procesando canales..."
-                val channels = M3UParser.parse(m3uContent)
                 groups = channels.mapNotNull { it.group }.distinct()
                 allChannels = channels
                 statusMessage = "Listo. Se cargaron ${channels.size} canales."
@@ -95,47 +100,49 @@ fun PlutoTvScreenGrok() {
 
     PlutoTvTheme {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(Color(0xFF1C2526), MaterialTheme.colorScheme.background)
-                    )
-                )
-                .padding(16.dp)
+                modifier =
+                        Modifier.fillMaxSize()
+                                .background(
+                                        brush =
+                                                Brush.verticalGradient(
+                                                        colors =
+                                                                listOf(
+                                                                        Color(0xFF1C2526),
+                                                                        MaterialTheme.colorScheme
+                                                                                .background
+                                                                )
+                                                )
+                                )
+                                .padding(16.dp)
         ) {
-            Row(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-            ) {
+            Row(modifier = Modifier.weight(1f).fillMaxWidth()) {
                 // Panel del reproductor
                 Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(8.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(MaterialTheme.colorScheme.surface)
-                        .border(
-                            BorderStroke(1.dp, Color(0xFF2A2A2A)),
-                            RoundedCornerShape(8.dp)
-                        )
+                        modifier =
+                                Modifier.weight(1f)
+                                        .padding(8.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(MaterialTheme.colorScheme.surface)
+                                        .border(
+                                                BorderStroke(1.dp, Color(0xFF2A2A2A)),
+                                                RoundedCornerShape(8.dp)
+                                        )
                 ) {
 
                     // Indicador de carga
                     if (!isPlaying && selectedChannelUrl != null) {
                         Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(Color(0xFF121212).copy(alpha = 0.6f)),
-                            contentAlignment = Alignment.Center
+                                modifier =
+                                        Modifier.fillMaxSize()
+                                                .background(Color(0xFF121212).copy(alpha = 0.6f)),
+                                contentAlignment = Alignment.Center
                         ) {
                             CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                             Text(
-                                text = "Cargando canal...",
-                                color = MaterialTheme.colorScheme.onSurface,
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.padding(top = 16.dp)
+                                    text = "Cargando canal...",
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.padding(top = 16.dp)
                             )
                         }
                     }
@@ -143,23 +150,23 @@ fun PlutoTvScreenGrok() {
                     // Reproductor de video
                     key(playerRestartKey) {
                         VideoPanel(
-                            context = context,
-                            videoUrl = selectedChannelUrl,
-                            channelName = selectedChannel?.name,
-                            onPlaybackStarted = {
-                                statusMessage =
-                                    "🎬 Reproduciendo canal: ${selectedChannel?.name ?: "Canal"}"
-                                playbackError = null
-                                isPlaying = true
-                            },
-                            onPlaybackError = { error ->
-                                playbackError = error
-                                isPlaying = false
-                                statusMessage =
-                                    "❌ Error al reproducir: ${error.localizedMessage ?: "desconocido"}"
-                                Log.e("VideoPanel", "Error de reproducción", error)
-                            },
-                            modifier = Modifier.fillMaxSize()
+                                context = context,
+                                videoUrl = selectedChannelUrl,
+                                channelName = selectedChannel?.name,
+                                onPlaybackStarted = {
+                                    statusMessage =
+                                            "🎬 Reproduciendo canal: ${selectedChannel?.name ?: "Canal"}"
+                                    playbackError = null
+                                    isPlaying = true
+                                },
+                                onPlaybackError = { error ->
+                                    playbackError = error
+                                    isPlaying = false
+                                    statusMessage =
+                                            "❌ Error al reproducir: ${error.localizedMessage ?: "desconocido"}"
+                                    Log.e("VideoPanel", "Error de reproducción", error)
+                                },
+                                modifier = Modifier.fillMaxSize()
                         )
                     }
                 }
@@ -167,56 +174,67 @@ fun PlutoTvScreenGrok() {
                 // Panel de logo y estado
                 if (!selectedChannelLogo.isNullOrBlank()) {
                     Box(
-                        modifier = Modifier
-                            .weight(1.6f)
-                            .padding(8.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.9f))
-                            .padding(16.dp)
+                            modifier =
+                                    Modifier.weight(1.6f)
+                                            .padding(8.dp)
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(
+                                                    MaterialTheme.colorScheme.surface.copy(
+                                                            alpha = 0.9f
+                                                    )
+                                            )
+                                            .padding(16.dp)
                     ) {
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
                             AsyncImage(
-                                model = selectedChannelLogo,
-                                contentDescription = "Logo del canal ${selectedChannel.name}",
-                                modifier = Modifier
-                                    .size(width = 120.dp, height = 68.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(Color(0xFF121212)) // TV-safe
-                                    .border(
-                                        BorderStroke(1.dp, Color(0xFF4A4A4A)),
-                                        RoundedCornerShape(8.dp)
-                                    )
+                                    model = selectedChannelLogo,
+                                    contentDescription = "Logo del canal ${selectedChannel.name}",
+                                    modifier =
+                                            Modifier.size(width = 120.dp, height = 68.dp)
+                                                    .clip(RoundedCornerShape(8.dp))
+                                                    .background(Color(0xFF121212)) // TV-safe
+                                                    .border(
+                                                            BorderStroke(1.dp, Color(0xFF4A4A4A)),
+                                                            RoundedCornerShape(8.dp)
+                                                    )
                             )
 
                             Column {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     if (isPlaying) {
                                         Text(
-                                            text = "▶ ",
-                                            color = MaterialTheme.colorScheme.secondary,
-                                            fontSize = 14.sp
+                                                text = "▶ ",
+                                                color = MaterialTheme.colorScheme.secondary,
+                                                fontSize = 14.sp
                                         )
                                     } else if (playbackError != null) {
                                         Text(
-                                            text = "❌ ",
-                                            color = MaterialTheme.colorScheme.error,
-                                            fontSize = 14.sp
+                                                text = "❌ ",
+                                                color = MaterialTheme.colorScheme.error,
+                                                fontSize = 14.sp
                                         )
                                     }
                                     Text(
-                                        text = statusMessage,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        style = MaterialTheme.typography.bodyMedium
+                                            text = statusMessage,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            style = MaterialTheme.typography.bodyMedium
                                     )
                                 }
                                 if (playbackError != null) {
                                     Text(
-                                        text = "Error: ${playbackError?.localizedMessage ?: "desconocido"}",
-                                        color = MaterialTheme.colorScheme.error.copy(alpha = 0.8f),
-                                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp) // Mínimo 14sp para TV
+                                            text =
+                                                    "Error: ${playbackError?.localizedMessage ?: "desconocido"}",
+                                            color =
+                                                    MaterialTheme.colorScheme.error.copy(
+                                                            alpha = 0.8f
+                                                    ),
+                                            style =
+                                                    MaterialTheme.typography.bodyMedium.copy(
+                                                            fontSize = 14.sp
+                                                    ) // Mínimo 14sp para TV
                                     )
                                 }
                             }
@@ -226,55 +244,47 @@ fun PlutoTvScreenGrok() {
             }
 
             Spacer(modifier = Modifier.height(8.dp))
-            HorizontalDivider(
-                thickness = 1.dp,
-                color = Color(0xFF2A2A2A)
-            )
+            HorizontalDivider(thickness = 1.dp, color = Color(0xFF2A2A2A))
             Spacer(modifier = Modifier.height(8.dp))
 
             // Listas de grupos y canales
-            Row(
-                modifier = Modifier
-                    .weight(1.8f)
-                    .fillMaxSize()
-                    .padding(8.dp)
-            ) {
+            Row(modifier = Modifier.weight(1.8f).fillMaxSize().padding(8.dp)) {
                 Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(MaterialTheme.colorScheme.surface)
-                        .padding(8.dp)
+                        modifier =
+                                Modifier.weight(1f)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(MaterialTheme.colorScheme.surface)
+                                        .padding(8.dp)
                 ) {
                     GroupList02(
-                        groups = groups,
-                        selectedIndex = selectedGroupIndex,
-                        onSelect = { selectedGroupIndex = it },
-                        modifier = Modifier.fillMaxSize()
+                            groups = groups,
+                            selectedIndex = selectedGroupIndex,
+                            onSelect = { selectedGroupIndex = it },
+                            modifier = Modifier.fillMaxSize()
                     )
                 }
 
                 Spacer(modifier = Modifier.width(16.dp))
 
                 Box(
-                    modifier = Modifier
-                        .weight(2f)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(MaterialTheme.colorScheme.surface)
-                        .padding(8.dp)
+                        modifier =
+                                Modifier.weight(2f)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(MaterialTheme.colorScheme.surface)
+                                        .padding(8.dp)
                 ) {
                     ChannelListGrok(
-                        channels = filteredChannels,
-                        selectedUrl = selectedChannelUrl,
-                        lastClickedUrl = lastClickedChannelUrl,
-                        onUpdateLastClicked = { lastClickedChannelUrl = it },
-                        onSelect = {
-                            selectedChannelUrl = it.url
-                            selectedChannelName = it.name
-                            statusMessage = "🎬 Cargando canal: ${it.name}..."
-                            playbackError = null
-                        },
-                        modifier = Modifier.fillMaxSize()
+                            channels = filteredChannels,
+                            selectedUrl = selectedChannelUrl,
+                            lastClickedUrl = lastClickedChannelUrl,
+                            onUpdateLastClicked = { lastClickedChannelUrl = it },
+                            onSelect = {
+                                selectedChannelUrl = it.url
+                                selectedChannelName = it.name
+                                statusMessage = "🎬 Cargando canal: ${it.name}..."
+                                playbackError = null
+                            },
+                            modifier = Modifier.fillMaxSize()
                     )
                 }
             }

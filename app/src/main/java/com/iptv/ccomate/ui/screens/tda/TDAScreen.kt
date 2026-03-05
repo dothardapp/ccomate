@@ -46,7 +46,9 @@ import com.iptv.ccomate.ui.video.VideoPanel
 import com.iptv.ccomate.util.AppConfig
 import com.iptv.ccomate.util.DeviceIdentifier
 import com.iptv.ccomate.util.TimeUtils
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun TDAScreen() {
@@ -90,10 +92,15 @@ fun TDAScreen() {
                 coroutineScope.launch {
                         try {
                                 statusMessage = "Conectando con TDA..."
-                                val m3uContent =
-                                        NetworkClient.fetchM3U(AppConfig.TDA_PLAYLIST_URL)
+                                val channels =
+                                        withContext(Dispatchers.IO) {
+                                                val m3uContent =
+                                                        NetworkClient.fetchM3U(
+                                                                AppConfig.TDA_PLAYLIST_URL
+                                                        )
+                                                M3UParser.parse(m3uContent)
+                                        }
                                 statusMessage = "Procesando canales..."
-                                val channels = M3UParser.parse(m3uContent)
                                 groups = channels.mapNotNull { it.group }.distinct()
                                 allChannels = channels
                                 statusMessage = "✅ Listo. Se cargaron ${channels.size} canales TDA."
@@ -125,9 +132,7 @@ fun TDAScreen() {
                         movableContentOf { url: String?, name: String?, isFull: Boolean ->
                                 Box(
                                         modifier =
-                                                Modifier.fillMaxSize()
-                                                        .focusable()
-                                                        .clickable {
+                                                Modifier.fillMaxSize().focusable().clickable {
                                                         if (fullscreenState.value) {
                                                                 restoreFocus = true
                                                                 fullscreenState.value = false
@@ -225,41 +230,72 @@ fun TDAScreen() {
                         fullscreenState.value = false
                 }
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color(0xFF121212)) // TV-safe: evitar negro puro
-                        .onKeyEvent { event ->
-                            if (event.type == KeyEventType.KeyDown) {
-                                val currentIndex = filteredChannels.indexOfFirst { it.url == selectedChannelUrl }
-                                if (currentIndex != -1) {
-                                    when (event.nativeKeyEvent.keyCode) {
-                                        KeyEvent.KEYCODE_DPAD_UP -> {
-                                            // Canal anterior
-                                            val prevIndex = if (currentIndex <= 0) filteredChannels.size - 1 else currentIndex - 1
-                                            val nextChannel = filteredChannels[prevIndex]
-                                            selectedChannelUrl = nextChannel.url
-                                            selectedChannelName = nextChannel.name
-                                            lastClickedChannelUrl = nextChannel.url
-                                            true
+                        modifier =
+                                Modifier.fillMaxSize()
+                                        .background(Color(0xFF121212)) // TV-safe: evitar negro puro
+                                        .onKeyEvent { event ->
+                                                if (event.type == KeyEventType.KeyDown) {
+                                                        val currentIndex =
+                                                                filteredChannels.indexOfFirst {
+                                                                        it.url == selectedChannelUrl
+                                                                }
+                                                        if (currentIndex != -1) {
+                                                                when (event.nativeKeyEvent.keyCode
+                                                                ) {
+                                                                        KeyEvent.KEYCODE_DPAD_UP -> {
+                                                                                // Canal anterior
+                                                                                val prevIndex =
+                                                                                        if (currentIndex <=
+                                                                                                        0
+                                                                                        )
+                                                                                                filteredChannels
+                                                                                                        .size -
+                                                                                                        1
+                                                                                        else
+                                                                                                currentIndex -
+                                                                                                        1
+                                                                                val nextChannel =
+                                                                                        filteredChannels[
+                                                                                                prevIndex]
+                                                                                selectedChannelUrl =
+                                                                                        nextChannel
+                                                                                                .url
+                                                                                selectedChannelName =
+                                                                                        nextChannel
+                                                                                                .name
+                                                                                lastClickedChannelUrl =
+                                                                                        nextChannel
+                                                                                                .url
+                                                                                true
+                                                                        }
+                                                                        KeyEvent.KEYCODE_DPAD_DOWN -> {
+                                                                                // Canal siguiente
+                                                                                val nextIndex =
+                                                                                        (currentIndex +
+                                                                                                1) %
+                                                                                                filteredChannels
+                                                                                                        .size
+                                                                                val nextChannel =
+                                                                                        filteredChannels[
+                                                                                                nextIndex]
+                                                                                selectedChannelUrl =
+                                                                                        nextChannel
+                                                                                                .url
+                                                                                selectedChannelName =
+                                                                                        nextChannel
+                                                                                                .name
+                                                                                lastClickedChannelUrl =
+                                                                                        nextChannel
+                                                                                                .url
+                                                                                true
+                                                                        }
+                                                                        else -> false
+                                                                }
+                                                        } else false
+                                                } else false
                                         }
-                                        KeyEvent.KEYCODE_DPAD_DOWN -> {
-                                            // Canal siguiente
-                                            val nextIndex = (currentIndex + 1) % filteredChannels.size
-                                            val nextChannel = filteredChannels[nextIndex]
-                                            selectedChannelUrl = nextChannel.url
-                                            selectedChannelName = nextChannel.name
-                                            lastClickedChannelUrl = nextChannel.url
-                                            true
-                                        }
-                                        else -> false
-                                    }
-                                } else false
-                            } else false
-                        }
-                        .focusable()
-                ) {
-                        videoContent(selectedChannelUrl, selectedChannel?.name, true)
-                }
+                                        .focusable()
+                ) { videoContent(selectedChannelUrl, selectedChannel?.name, true) }
         } else {
                 Column(
                         modifier =
@@ -273,7 +309,10 @@ fun TDAScreen() {
                                                         )
                                                 )
                                         )
-                                        .padding(horizontal = 48.dp, vertical = 27.dp) // Overscan zona segura 5%
+                                        .padding(
+                                                horizontal = 48.dp,
+                                                vertical = 27.dp
+                                        ) // Overscan zona segura 5%
                 ) {
                         Row(modifier = Modifier.weight(1.2f).fillMaxWidth()) {
                                 // Video Container
@@ -343,7 +382,9 @@ fun TDAScreen() {
                                                                                                 72.dp
                                                                                 )
                                                                                 .background(
-                                                                                        Color(0xFF121212) // TV-safe
+                                                                                        Color(
+                                                                                                0xFF121212
+                                                                                        ) // TV-safe
                                                                                 )
                                                                                 .clip(
                                                                                         RoundedCornerShape(
@@ -356,7 +397,9 @@ fun TDAScreen() {
                                                                 text = statusMessage,
                                                                 color =
                                                                         if (playbackError == null)
-                                                                                Color(0xFFF5F5F5) // TV-safe
+                                                                                Color(
+                                                                                        0xFFF5F5F5
+                                                                                ) // TV-safe
                                                                         else Color(0xFFFF5252),
                                                                 fontSize = 18.sp,
                                                                 fontWeight = FontWeight.Bold,
