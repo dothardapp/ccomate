@@ -1,5 +1,6 @@
 package com.iptv.ccomate.ui.screens
 
+import android.view.KeyEvent
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -30,12 +31,20 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Text
 
 @Composable
-fun GroupList(groups: List<String>, selectedIndex: Int, onSelect: (Int) -> Unit) {
+fun GroupList(
+        groups: List<String>,
+        selectedIndex: Int,
+        onSelect: (Int) -> Unit,
+        onNavigateToChannels: () -> Unit = {}
+) {
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     val focusRequesters = remember(groups) { List(groups.size) { FocusRequester() } }
@@ -82,6 +91,14 @@ fun GroupList(groups: List<String>, selectedIndex: Int, onSelect: (Int) -> Unit)
                                     .onFocusChanged { hasFocus = it.isFocused }
                                     .focusable()
                                     .clickable { onSelect(index) }
+                                    // P2: D-Pad Right → navegar a ChannelList
+                                    .onKeyEvent { event ->
+                                        if (event.type == KeyEventType.KeyDown &&
+                                                event.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                                            onNavigateToChannels()
+                                            true
+                                        } else false
+                                    }
                                     .padding(horizontal = 12.dp, vertical = 8.dp)
             ) {
                 Row(verticalAlignment = Alignment.Companion.CenterVertically) {

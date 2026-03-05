@@ -21,6 +21,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.KeyEventType
@@ -69,6 +71,10 @@ fun TDAScreen() {
         val fullscreenState = com.iptv.ccomate.util.LocalFullscreenState.current
         val isFullscreen = fullscreenState.value
         var restoreFocus by remember { mutableStateOf(false) }
+
+        // P2: FocusRequesters para navegación D-Pad entre listas
+        val groupListFocusRequester = remember { FocusRequester() }
+        val channelListFocusRequester = remember { FocusRequester() }
 
         val isTimeIncorrect = remember { !TimeUtils.isSystemTimeValid() }
         val currentTimeMessage = remember { TimeUtils.getSystemTimeMessage() }
@@ -132,7 +138,7 @@ fun TDAScreen() {
                         movableContentOf { url: String?, name: String?, isFull: Boolean ->
                                 Box(
                                         modifier =
-                                                Modifier.fillMaxSize().focusable().clickable {
+                                                Modifier.fillMaxSize().clickable {
                                                         if (fullscreenState.value) {
                                                                 restoreFocus = true
                                                                 fullscreenState.value = false
@@ -225,6 +231,14 @@ fun TDAScreen() {
                 }
 
         if (isFullscreen) {
+                // P1: FocusRequester explícita para fullscreen
+                val fullscreenFocusRequester = remember { FocusRequester() }
+
+                // Solicitar foco automáticamente al entrar en fullscreen
+                LaunchedEffect(Unit) {
+                        fullscreenFocusRequester.requestFocus()
+                }
+
                 BackHandler {
                         restoreFocus = true
                         fullscreenState.value = false
@@ -233,6 +247,7 @@ fun TDAScreen() {
                         modifier =
                                 Modifier.fillMaxSize()
                                         .background(Color(0xFF121212)) // TV-safe: evitar negro puro
+                                        .focusRequester(fullscreenFocusRequester)
                                         .onKeyEvent { event ->
                                                 if (event.type == KeyEventType.KeyDown) {
                                                         val currentIndex =
@@ -433,6 +448,7 @@ fun TDAScreen() {
                                 Box(
                                         modifier =
                                                 Modifier.weight(1f)
+                                                        .focusRequester(groupListFocusRequester)
                                                         .shadow(2.dp, RoundedCornerShape(12.dp))
                                                         .clip(RoundedCornerShape(12.dp))
                                                         .background(
@@ -453,6 +469,10 @@ fun TDAScreen() {
                                                 groups = groups,
                                                 selectedIndex = selectedGroupIndex,
                                                 onSelect = { selectedGroupIndex = it },
+                                                // P2: D-Pad Right → navegar a ChannelList
+                                                onNavigateToChannels = {
+                                                        try { channelListFocusRequester.requestFocus() } catch (_: Exception) {}
+                                                }
                                         )
                                 }
 
@@ -461,6 +481,7 @@ fun TDAScreen() {
                                 Box(
                                         modifier =
                                                 Modifier.weight(2f)
+                                                        .focusRequester(channelListFocusRequester)
                                                         .shadow(2.dp, RoundedCornerShape(12.dp))
                                                         .clip(RoundedCornerShape(12.dp))
                                                         .background(
@@ -493,6 +514,10 @@ fun TDAScreen() {
                                                 },
                                                 onFullscreenRequest = {
                                                         fullscreenState.value = true
+                                                },
+                                                // P2: D-Pad Left → navegar a GroupList
+                                                onNavigateToGroups = {
+                                                        try { groupListFocusRequester.requestFocus() } catch (_: Exception) {}
                                                 },
                                                 restoreFocus = restoreFocus,
                                                 onFocusRestored = { restoreFocus = false }

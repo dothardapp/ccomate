@@ -1,5 +1,7 @@
 package com.iptv.ccomate.ui.screens
 
+import android.view.KeyEvent
+
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -38,6 +40,9 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Icon
@@ -47,6 +52,7 @@ import com.iptv.ccomate.model.Channel
 import com.iptv.ccomate.util.AppConfig
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.yield
 
 @Composable
 fun ChannelList(
@@ -56,6 +62,7 @@ fun ChannelList(
         onUpdateLastClicked: (String) -> Unit,
         onSelect: (Channel) -> Unit,
         onFullscreenRequest: () -> Unit = {},
+        onNavigateToGroups: () -> Unit = {},
         restoreFocus: Boolean = false,
         onFocusRestored: () -> Unit = {}
 ) {
@@ -65,15 +72,37 @@ fun ChannelList(
     // Mapa persistente de FocusRequesters para evitar pérdida en scroll
     val focusRequesters = remember(channels) { mutableMapOf<Int, FocusRequester>() }
 
-    // Lógica Global de Restauración de Foco
+    // Flag para controlar el foco inicial (solo una vez)
+    var initialFocusRequested by remember { mutableStateOf(false) }
+
+    // ── P0: Foco inicial al cargar canales por primera vez ──
+    LaunchedEffect(channels) {
+        if (channels.isNotEmpty() && !initialFocusRequested) {
+            initialFocusRequested = true
+            // Determinar el índice objetivo: canal activo o el primero
+            val targetIndex = if (selectedUrl != null) {
+                channels.indexOfFirst { it.url == selectedUrl }.coerceAtLeast(0)
+            } else {
+                0
+            }
+            listState.scrollToItem(targetIndex)
+            // Esperar frames para que Compose materialice los items
+            yield()
+            yield()
+            focusRequesters[targetIndex]?.requestFocus()
+        }
+    }
+
+    // Lógica Global de Restauración de Foco (post-fullscreen)
     LaunchedEffect(restoreFocus, channels) {
         if (restoreFocus && selectedUrl != null) {
             val index = channels.indexOfFirst { it.url == selectedUrl }
             if (index != -1) {
                 // 1. Forzar scroll para asegurar que el item existe en la composición
                 listState.scrollToItem(index)
-                // 2. Esperar un frame pequeño para que el sistema reconozca el nuevo estado
-                delay(100)
+                // 2. Esperar frames para recomposición (más robusto que delay fijo)
+                yield()
+                yield()
                 // 3. Pedir foco
                 focusRequesters[index]?.requestFocus()
             }
@@ -151,6 +180,14 @@ fun ChannelList(
                                                 showHint = false
                                             }
                                         }
+                                    }
+                                    // P2: D-Pad Left → navegar a GroupList
+                                    .onKeyEvent { event ->
+                                        if (event.type == KeyEventType.KeyDown &&
+                                                event.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                                            onNavigateToGroups()
+                                            true
+                                        } else false
                                     }
                                     .padding(horizontal = 12.dp, vertical = 8.dp)
             ) {

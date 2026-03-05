@@ -57,6 +57,7 @@ import com.iptv.ccomate.viewmodel.VideoPlayerViewModel
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.yield
 
 @OptIn(UnstableApi::class) private const val ENABLE_EPG_OVERLAY = true
 
@@ -345,7 +346,11 @@ fun VideoPlayer(
                             modifier = Modifier
                                     .focusRequester(retryFocusRequester)
                                     .onFocusChanged { isRetryFocused = it.isFocused }
-                                    .focusable()
+                                    // NO usar .focusable() aquí — .clickable() ya provee
+                                    // focusability. Tener ambos crea DOS nodos de foco:
+                                    // FocusRequester enfoca .focusable() pero Enter/OK
+                                    // se maneja en el nodo de .clickable() (sin foco),
+                                    // propagando al Box padre y toggleando fullscreen.
                                     .clickable {
                                         Log.d("VideoPlayer", "Retry button clicked for: $videoUrl")
                                         hasError = false
@@ -374,13 +379,29 @@ fun VideoPlayer(
                 }
             }
 
-            // Focus the retry button when error is shown
-            LaunchedEffect(hasError) {
-                if (hasError) {
-                    delay(200)
-                    try {
-                        retryFocusRequester.requestFocus()
-                    } catch (_: Exception) {}
+            // Focus del botón reintentar — DENTRO del AnimatedVisibility
+            // LaunchedEffect(Unit) se ejecuta cuando el contenido ENTRA en composición,
+            // garantizando que el FocusRequester ya está adjunto al botón.
+            // Reintenta múltiples veces para dispositivos lentos (ZTE zBox).
+            LaunchedEffect(Unit) {
+                // Esperar a que la animación fadeIn y el layout se estabilicen
+                delay(600)
+                yield()
+                var focused = false
+                repeat(5) { attempt ->
+                    if (!focused) {
+                        try {
+                            retryFocusRequester.requestFocus()
+                            focused = true
+                            Log.d("VideoPlayer", "Retry button focused on attempt ${attempt + 1}")
+                        } catch (e: Exception) {
+                            Log.w("VideoPlayer", "Focus attempt ${attempt + 1} failed: ${e.message}")
+                            delay(300)
+                        }
+                    }
+                }
+                if (!focused) {
+                    Log.e("VideoPlayer", "Failed to focus retry button after 5 attempts")
                 }
             }
         }

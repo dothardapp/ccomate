@@ -11,6 +11,8 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
@@ -56,6 +58,10 @@ fun PlutoTvScreen() {
     var playbackError by remember { mutableStateOf<Throwable?>(null) }
     var playerRestartKey by remember { mutableIntStateOf(0) }
     var restoreFocus by remember { mutableStateOf(false) }
+
+    // P2: FocusRequesters para navegación D-Pad entre listas
+    val groupListFocusRequester = remember { FocusRequester() }
+    val channelListFocusRequester = remember { FocusRequester() }
 
     // ── Estado de tiempo ──
     val isTimeIncorrect = remember { !TimeUtils.isSystemTimeValid() }
@@ -204,7 +210,9 @@ fun PlutoTvScreen() {
                 },
                 onUpdateLastClicked = { lastClickedChannelUrl = it },
                 onFullscreenRequest = { fullscreenState.value = true },
-                onFocusRestored = { restoreFocus = false }
+                onFocusRestored = { restoreFocus = false },
+                groupListFocusRequester = groupListFocusRequester,
+                channelListFocusRequester = channelListFocusRequester
         ) { videoContent(selectedChannelUrl, selectedChannel?.name, false, currentProgram) }
     }
 }
@@ -227,7 +235,7 @@ private fun VideoContentBlock(
         onPlaybackError: (Throwable) -> Unit,
         onToggleFullscreen: () -> Unit
 ) {
-    Box(modifier = Modifier.fillMaxSize().focusable().clickable { onToggleFullscreen() }) {
+    Box(modifier = Modifier.fillMaxSize().clickable { onToggleFullscreen() }) {
         VideoPanel(
                 context = context,
                 videoUrl = videoUrl,
@@ -258,12 +266,21 @@ private fun PlutoFullscreenView(
         onExitFullscreen: () -> Unit,
         videoContent: @Composable () -> Unit
 ) {
+    // P1: FocusRequester explícita para fullscreen
+    val fullscreenFocusRequester = remember { FocusRequester() }
+
+    // Solicitar foco automáticamente al entrar en fullscreen
+    LaunchedEffect(Unit) {
+        fullscreenFocusRequester.requestFocus()
+    }
+
     BackHandler { onExitFullscreen() }
 
     Box(
             modifier =
                     Modifier.fillMaxSize()
                             .background(PlutoColors.FullscreenBackground)
+                            .focusRequester(fullscreenFocusRequester)
                             .onKeyEvent { event ->
                                 if (event.type == KeyEventType.KeyDown) {
                                     val currentIndex =
@@ -313,6 +330,8 @@ private fun PlutoNormalLayout(
         onUpdateLastClicked: (String) -> Unit,
         onFullscreenRequest: () -> Unit,
         onFocusRestored: () -> Unit,
+        groupListFocusRequester: FocusRequester = remember { FocusRequester() },
+        channelListFocusRequester: FocusRequester = remember { FocusRequester() },
         videoContent: @Composable () -> Unit
 ) {
     Column(
@@ -351,18 +370,22 @@ private fun PlutoNormalLayout(
         // ── Fila inferior: Grupos + Canales ──
         Row(modifier = Modifier.weight(1.6f).fillMaxSize().padding(8.dp)) {
             // Lista de grupos
-            StyledPanelBox(modifier = Modifier.weight(1f)) {
+            StyledPanelBox(modifier = Modifier.weight(1f).focusRequester(groupListFocusRequester)) {
                 GroupList(
                         groups = groups,
                         selectedIndex = selectedGroupIndex,
-                        onSelect = onGroupSelected
+                        onSelect = onGroupSelected,
+                        // P2: D-Pad Right → navegar a ChannelList
+                        onNavigateToChannels = {
+                            try { channelListFocusRequester.requestFocus() } catch (_: Exception) {}
+                        }
                 )
             }
 
             Spacer(modifier = Modifier.width(12.dp))
 
             // Lista de canales
-            StyledPanelBox(modifier = Modifier.weight(2f)) {
+            StyledPanelBox(modifier = Modifier.weight(2f).focusRequester(channelListFocusRequester)) {
                 ChannelList(
                         channels = filteredChannels,
                         selectedUrl = selectedChannelUrl,
@@ -370,6 +393,10 @@ private fun PlutoNormalLayout(
                         onUpdateLastClicked = onUpdateLastClicked,
                         onSelect = onChannelSelected,
                         onFullscreenRequest = onFullscreenRequest,
+                        // P2: D-Pad Left → navegar a GroupList
+                        onNavigateToGroups = {
+                            try { groupListFocusRequester.requestFocus() } catch (_: Exception) {}
+                        },
                         restoreFocus = restoreFocus,
                         onFocusRestored = onFocusRestored
                 )
