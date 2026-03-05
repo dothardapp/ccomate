@@ -29,7 +29,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -57,13 +56,13 @@ import androidx.tv.material3.Text
 import com.iptv.ccomate.viewmodel.VideoPlayerViewModel
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
 
 @OptIn(UnstableApi::class) private const val ENABLE_EPG_OVERLAY = true
 
 private const val BUFFERING_TIMEOUT_MS = 15000L
 private const val MAX_RETRY_ATTEMPTS = 3
+private val TIME_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
 @Composable
 fun VideoPlayer(
@@ -89,8 +88,6 @@ fun VideoPlayer(
         viewModelStoreOwner = context as ComponentActivity
     )
     var exoPlayer by remember { mutableStateOf<ExoPlayer?>(null) }
-
-    Log.d("VideoPlayer", "Rendering VideoPlayer for URL: $videoUrl")
 
     // Actualizar el ExoPlayer cuando cambie la URL
     LaunchedEffect(videoUrl, retryCount) {
@@ -248,7 +245,6 @@ fun VideoPlayer(
         // Mostrar el PlayerView solo si exoPlayer no es nulo y no hay error
         if (!hasError) {
             exoPlayer?.let { player ->
-                Log.d("VideoPlayer", "Rendering PlayerView for player: $player")
                 AndroidView(
                         factory = {
                             PlayerView(it).apply {
@@ -270,7 +266,6 @@ fun VideoPlayer(
 
         // Indicador de buffering
         AnimatedVisibility(visible = isBuffering && !hasError, enter = fadeIn(), exit = fadeOut()) {
-            Log.d("VideoPlayer", "Showing buffering indicator")
             Box(
                     modifier = Modifier.fillMaxSize().background(Color(0x66000000)),
                     contentAlignment = Alignment.Center
@@ -379,7 +374,6 @@ fun VideoPlayer(
                 enter = fadeIn(),
                 exit = fadeOut()
         ) {
-            Log.d("VideoPlayer", "Showing channel overlay: $channelName")
             Box(
                     modifier =
                             Modifier.fillMaxWidth()
@@ -405,9 +399,8 @@ fun VideoPlayer(
                     )
 
                     if (ENABLE_EPG_OVERLAY && currentProgram != null) {
-                        val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
-                        val start = currentProgram.startTime.format(timeFormatter)
-                        val end = currentProgram.endTime.format(timeFormatter)
+                        val start = currentProgram.startTime.format(TIME_FORMATTER)
+                        val end = currentProgram.endTime.format(TIME_FORMATTER)
 
                         Text(
                                 text = "$start - $end",

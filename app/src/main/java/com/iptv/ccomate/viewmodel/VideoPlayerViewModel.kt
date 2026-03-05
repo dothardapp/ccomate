@@ -96,27 +96,26 @@ class VideoPlayerViewModel @Inject constructor() : ViewModel() {
             dataSourceFactory!!
         }
 
-    private suspend fun createMediaSource(videoUrl: String): MediaSource {
-        val factory = getOrCreateDataSourceFactory()
-        val urlLower = videoUrl.lowercase()
-        return when {
-            urlLower.endsWith(".flv") -> {
-                Log.d("VideoPlayerViewModel", "Creando ProgressiveMediaSource para $videoUrl")
-                ProgressiveMediaSource.Factory(factory)
-                    .createMediaSource(MediaItem.fromUri(videoUrl.toUri()))
-            }
-            urlLower.contains(".m3u8") -> {
-                Log.d("VideoPlayerViewModel", "Creando HlsMediaSource para $videoUrl")
-                HlsMediaSource.Factory(factory)
-                    .createMediaSource(MediaItem.fromUri(videoUrl.toUri()))
-            }
-            else -> {
-                Log.d("VideoPlayerViewModel", "Creando ProgressiveMediaSource por defecto para $videoUrl")
-                ProgressiveMediaSource.Factory(factory)
-                    .createMediaSource(MediaItem.fromUri(videoUrl.toUri()))
+    private suspend fun createMediaSource(videoUrl: String): MediaSource =
+        withContext(Dispatchers.IO) {
+            val factory = getOrCreateDataSourceFactory()
+            val mediaItem = MediaItem.fromUri(videoUrl.toUri())
+            val urlLower = videoUrl.lowercase()
+            when {
+                urlLower.endsWith(".flv") -> {
+                    ProgressiveMediaSource.Factory(factory)
+                        .createMediaSource(mediaItem)
+                }
+                urlLower.contains(".m3u8") -> {
+                    HlsMediaSource.Factory(factory)
+                        .createMediaSource(mediaItem)
+                }
+                else -> {
+                    ProgressiveMediaSource.Factory(factory)
+                        .createMediaSource(mediaItem)
+                }
             }
         }
-    }
 
     suspend fun setPlayer(context: Context, videoUrl: String): Result<ExoPlayer> {
         return try {
