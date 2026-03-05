@@ -1,12 +1,10 @@
 package com.iptv.ccomate.ui.screens.pluto
 
-import android.app.Application
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.iptv.ccomate.data.ChannelRepository
 import com.iptv.ccomate.data.EPGRepository
-import com.iptv.ccomate.data.M3UParser
-import com.iptv.ccomate.data.NetworkClient
 import com.iptv.ccomate.model.Channel
 import com.iptv.ccomate.model.EPGProgram
 import com.iptv.ccomate.util.AppConfig
@@ -35,7 +33,8 @@ data class PlutoUiState(
 
 @HiltViewModel
 class PlutoTvViewModel @Inject constructor(
-    private val epgRepository: EPGRepository
+    private val epgRepository: EPGRepository,
+    private val channelRepository: ChannelRepository
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(PlutoUiState())
     val uiState: StateFlow<PlutoUiState> = _uiState.asStateFlow()
@@ -48,16 +47,15 @@ class PlutoTvViewModel @Inject constructor(
     private fun loadChannels() {
         viewModelScope.launch {
             try {
-                _uiState.value = _uiState.value.copy(statusMessage = "Conectando con el servidor...", isLoading = true)
-                
+                _uiState.value = _uiState.value.copy(statusMessage = "Cargando canales...", isLoading = true)
+
                 val channels = withContext(Dispatchers.IO) {
-                    val m3uContent = NetworkClient.fetchM3U(AppConfig.PLUTO_PLAYLIST_URL)
-                    M3UParser.parse(m3uContent)
+                    channelRepository.getChannels("PLUTO", AppConfig.PLUTO_PLAYLIST_URL)
                 }
 
                 val groups = channels.mapNotNull { it.group }.distinct()
                 val firstChannel = channels.firstOrNull()
-                
+
                 _uiState.value = _uiState.value.copy(
                     allChannels = channels,
                     groups = groups,
@@ -66,12 +64,12 @@ class PlutoTvViewModel @Inject constructor(
                     lastClickedChannelUrl = _uiState.value.lastClickedChannelUrl ?: firstChannel?.url,
                     isLoading = false
                 )
-                
+
                 updateCurrentProgram()
             } catch (e: Exception) {
-                Log.e("PlutoTvViewModel", "Error loading M3U", e)
+                Log.e("PlutoTvViewModel", "Error loading channels", e)
                 _uiState.value = _uiState.value.copy(
-                    statusMessage = "❌ Error al cargar canales: ${e.localizedMessage ?: "desconocido"}",
+                    statusMessage = "Error al cargar canales: ${e.localizedMessage ?: "desconocido"}",
                     groups = listOf("Error al cargar"),
                     isLoading = false
                 )

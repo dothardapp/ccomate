@@ -1,11 +1,9 @@
 package com.iptv.ccomate.ui.screens.tda
 
-import android.app.Application
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.iptv.ccomate.data.M3UParser
-import com.iptv.ccomate.data.NetworkClient
+import com.iptv.ccomate.data.ChannelRepository
 import com.iptv.ccomate.model.Channel
 import com.iptv.ccomate.util.AppConfig
 import kotlinx.coroutines.Dispatchers
@@ -31,7 +29,9 @@ data class TdaUiState(
 )
 
 @HiltViewModel
-class TdaViewModel @Inject constructor() : ViewModel() {
+class TdaViewModel @Inject constructor(
+    private val channelRepository: ChannelRepository
+) : ViewModel() {
     private val _uiState = MutableStateFlow(TdaUiState())
     val uiState: StateFlow<TdaUiState> = _uiState.asStateFlow()
 
@@ -42,29 +42,28 @@ class TdaViewModel @Inject constructor() : ViewModel() {
     private fun loadChannels() {
         viewModelScope.launch {
             try {
-                _uiState.compareAndSet(_uiState.value, _uiState.value.copy(statusMessage = "Conectando con TDA...", isLoading = true))
-                
+                _uiState.value = _uiState.value.copy(statusMessage = "Cargando canales TDA...", isLoading = true)
+
                 val channels = withContext(Dispatchers.IO) {
-                    val m3uContent = NetworkClient.fetchM3U(AppConfig.TDA_PLAYLIST_URL)
-                    M3UParser.parse(m3uContent)
+                    channelRepository.getChannels("TDA", AppConfig.TDA_PLAYLIST_URL)
                 }
 
                 val groups = channels.mapNotNull { it.group }.distinct()
                 val firstChannel = channels.firstOrNull()
-                
+
                 _uiState.value = _uiState.value.copy(
                     allChannels = channels,
                     groups = groups,
-                    statusMessage = "✅ Listo. Se cargaron ${channels.size} canales TDA.",
+                    statusMessage = "Listo. Se cargaron ${channels.size} canales TDA.",
                     selectedChannelUrl = _uiState.value.selectedChannelUrl ?: firstChannel?.url,
                     selectedChannelName = _uiState.value.selectedChannelName ?: firstChannel?.name,
                     lastClickedChannelUrl = _uiState.value.lastClickedChannelUrl ?: firstChannel?.url,
                     isLoading = false
                 )
             } catch (e: Exception) {
-                Log.e("TdaViewModel", "Error loading M3U", e)
+                Log.e("TdaViewModel", "Error loading channels", e)
                 _uiState.value = _uiState.value.copy(
-                    statusMessage = "❌ Error al cargar canales TDA: ${e.localizedMessage ?: "desconocido"}",
+                    statusMessage = "Error al cargar canales TDA: ${e.localizedMessage ?: "desconocido"}",
                     groups = listOf("Error al cargar"),
                     isLoading = false
                 )
