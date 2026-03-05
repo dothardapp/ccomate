@@ -46,7 +46,8 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.activity.ComponentActivity
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
@@ -81,10 +82,12 @@ fun VideoPlayer(
     var errorMessage by remember { mutableStateOf("") }
     var retryCount by remember { mutableIntStateOf(0) }
     val lifecycleOwner = LocalLifecycleOwner.current
-    val coroutineScope = rememberCoroutineScope()
     val retryFocusRequester = remember { FocusRequester() }
 
-    val viewModel: VideoPlayerViewModel = viewModel()
+    // USAR SCOPE DE ACTIVITY para garantizar un único reproductor y liberación al cerrar
+    val viewModel: VideoPlayerViewModel = hiltViewModel(
+        viewModelStoreOwner = context as ComponentActivity
+    )
     var exoPlayer by remember { mutableStateOf<ExoPlayer?>(null) }
 
     Log.d("VideoPlayer", "Rendering VideoPlayer for URL: $videoUrl")
@@ -123,14 +126,6 @@ fun VideoPlayer(
             // Si todavía está en buffering después del timeout
             if (isBuffering && !hasError) {
                 Log.w("VideoPlayer", "Buffering timeout alcanzado para: $videoUrl")
-                // Detener el player para evitar spam de codec en main thread
-                try {
-                    exoPlayer?.stop()
-                    exoPlayer?.clearMediaItems()
-                    Log.d("VideoPlayer", "Player detenido tras timeout")
-                } catch (e: Exception) {
-                    Log.w("VideoPlayer", "Error al detener player tras timeout", e)
-                }
                 isBuffering = false
                 hasError = true
                 errorMessage = "El canal no responde. Posible problema de red o señal."
@@ -138,15 +133,6 @@ fun VideoPlayer(
                     Exception("Timeout de carga: el stream no respondió en ${BUFFERING_TIMEOUT_MS / 1000}s")
                 )
             }
-        }
-    }
-
-    // Log para verificar si exoPlayer cambió
-    LaunchedEffect(exoPlayer) {
-        if (exoPlayer != null) {
-            Log.d("VideoPlayer", "exoPlayer updated: $exoPlayer")
-        } else {
-            Log.d("VideoPlayer", "exoPlayer is null")
         }
     }
 
@@ -163,32 +149,13 @@ fun VideoPlayer(
                 Lifecycle.Event.ON_STOP -> {
                     viewModel.stopPlayer()
                 }
-                Lifecycle.Event.ON_DESTROY -> {
-                    Log.d(
-                            "VideoPlayer",
-                            "ON_DESTROY - No se detiene el ExoPlayer, lo hace el ViewModel"
-                    )
-                }
                 else -> {}
             }
         }
 
         lifecycleOwner.lifecycle.addObserver(observer)
-
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
-            Log.d("VideoPlayer", "DisposableEffect onDispose called")
-        }
-    }
-
-    // Liberar el player cuando el composable sale de la composición (ej: navegación)
-    DisposableEffect(Unit) {
-        onDispose {
-            Log.d("VideoPlayer", "Composable leaving composition - releasing player")
-            exoPlayer = null
-            kotlinx.coroutines.MainScope().launch {
-                viewModel.releasePlayer()
-            }
         }
     }
 

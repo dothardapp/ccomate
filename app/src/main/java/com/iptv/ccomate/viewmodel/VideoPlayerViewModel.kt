@@ -19,8 +19,10 @@ import androidx.media3.exoplayer.hls.HlsMediaSource
 import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import com.iptv.ccomate.util.AppConfig
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import javax.inject.Inject
 import okhttp3.OkHttpClient
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
@@ -28,8 +30,8 @@ import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
 
-@OptIn(UnstableApi::class)
-class VideoPlayerViewModel : ViewModel() {
+@HiltViewModel
+class VideoPlayerViewModel @Inject constructor() : ViewModel() {
     private var exoPlayer: ExoPlayer? = null
     private var dataSourceFactory: DataSource.Factory? = null
 
@@ -119,15 +121,13 @@ class VideoPlayerViewModel : ViewModel() {
     suspend fun setPlayer(context: Context, videoUrl: String): Result<ExoPlayer> {
         return try {
             if (videoUrl.isNotEmpty() && (videoUrl.startsWith("http://") || videoUrl.startsWith("https://"))) {
-                // Release previous player completely before creating a new one
-                // to avoid LoadControl thread conflicts
-                val existingPlayer = exoPlayer
-                if (existingPlayer != null) {
-                    withContext(Dispatchers.Main) {
+                // Sincronizar liberación para evitar múltiples hilos de codec
+                withContext(Dispatchers.Main) {
+                    exoPlayer?.let { existingPlayer ->
+                        Log.d("VideoPlayerViewModel", "Liberando ExoPlayer anterior (URL: $videoUrl)")
                         existingPlayer.stop()
                         existingPlayer.clearMediaItems()
                         existingPlayer.release()
-                        Log.d("VideoPlayerViewModel", "ExoPlayer anterior liberado antes de crear uno nuevo")
                     }
                     exoPlayer = null
                 }
@@ -137,6 +137,7 @@ class VideoPlayerViewModel : ViewModel() {
                         .setLoadControl(createLoadControl())
                         .build()
                 }
+                
                 val mediaSource = createMediaSource(videoUrl)
                 withContext(Dispatchers.Main) {
                     newPlayer.setMediaSource(mediaSource)
@@ -147,9 +148,9 @@ class VideoPlayerViewModel : ViewModel() {
                             Log.e("VideoPlayerViewModel", "Error de reproducción: ${error.message}", error)
                         }
                     })
+                    exoPlayer = newPlayer
                 }
-                exoPlayer = newPlayer
-                Log.d("VideoPlayerViewModel", "ExoPlayer configurado: $newPlayer con MediaSource: $mediaSource")
+                Log.d("VideoPlayerViewModel", "ExoPlayer configurado exitosamente")
                 Result.success(newPlayer)
             } else {
                 Log.w("VideoPlayerViewModel", "URL inválida: $videoUrl")

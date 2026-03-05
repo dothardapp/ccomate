@@ -6,9 +6,11 @@ import androidx.lifecycle.viewModelScope
 import com.iptv.ccomate.util.DeviceIdentifier
 import com.iptv.ccomate.util.DeviceInfo
 import com.iptv.ccomate.util.SubscriptionManager
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 sealed class SubscriptionState {
     object Loading : SubscriptionState()
@@ -18,7 +20,8 @@ sealed class SubscriptionState {
     object NeedsUserInfo : SubscriptionState()
 }
 
-class SubscriptionViewModel : ViewModel() {
+@HiltViewModel
+class SubscriptionViewModel @Inject constructor() : ViewModel() {
     private val _state = MutableStateFlow<SubscriptionState>(SubscriptionState.Loading)
     val state: StateFlow<SubscriptionState> = _state
 

@@ -9,12 +9,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.rememberNavController
 import com.iptv.ccomate.navigation.AppNavGraph
 import com.iptv.ccomate.navigation.CcoNavigationDrawer
 import com.iptv.ccomate.viewmodel.SubscriptionViewModel
 
+import dagger.hilt.android.AndroidEntryPoint
+
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -23,7 +26,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun CcoMateApp(viewModel: SubscriptionViewModel = viewModel()) {
+fun CcoMateApp(viewModel: SubscriptionViewModel = hiltViewModel()) {
     val context = LocalContext.current
     val navController = rememberNavController()
     // val state by viewModel.state.collectAsState()

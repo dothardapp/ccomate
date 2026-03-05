@@ -51,23 +51,21 @@ import com.iptv.ccomate.util.TimeUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @Composable
-fun TDAScreen() {
+fun TDAScreen(
+    viewModel: TdaViewModel = hiltViewModel()
+) {
         val context = LocalContext.current
         val lifecycleOwner = LocalLifecycleOwner.current
-        val coroutineScope = rememberCoroutineScope()
 
-        var selectedGroupIndex by remember { mutableIntStateOf(0) }
-        var groups by remember { mutableStateOf<List<String>>(emptyList()) }
-        var allChannels by remember { mutableStateOf<List<Channel>>(emptyList()) }
-        var selectedChannelUrl by remember { mutableStateOf<String?>(null) }
-        var selectedChannelName by remember { mutableStateOf<String?>(null) }
-        var statusMessage by remember { mutableStateOf("Inicializando TDA...") }
-        var playbackError by remember { mutableStateOf<Throwable?>(null) }
-        var isPlaying by remember { mutableStateOf(false) }
+        // Observar estado desde el ViewModel
+        val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+        // ── Estado de UI local ──
         var playerRestartKey by remember { mutableIntStateOf(0) }
-        var lastClickedChannelUrl by remember { mutableStateOf<String?>(null) }
         val fullscreenState = com.iptv.ccomate.util.LocalFullscreenState.current
         val isFullscreen = fullscreenState.value
         var restoreFocus by remember { mutableStateOf(false) }
@@ -82,7 +80,6 @@ fun TDAScreen() {
         DisposableEffect(lifecycleOwner) {
                 val observer = LifecycleEventObserver { _: LifecycleOwner, event: Lifecycle.Event ->
                         if (event == Lifecycle.Event.ON_RESUME) {
-                                // Keep the restart key logic but minimize impact
                                 playerRestartKey++
                         }
                 }
@@ -90,51 +87,15 @@ fun TDAScreen() {
                 onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
         }
 
-        LaunchedEffect(Unit) {
-                val installationId = DeviceIdentifier.getInstallationId(context)
-                val deviceInfo = DeviceIdentifier.getDeviceInfo(context)
-                Log.d("DeviceIdentifier", "Device Info: $deviceInfo")
-                Log.d("InstallationId", "Installation Info: $installationId")
-                coroutineScope.launch {
-                        try {
-                                statusMessage = "Conectando con TDA..."
-                                val channels =
-                                        withContext(Dispatchers.IO) {
-                                                val m3uContent =
-                                                        NetworkClient.fetchM3U(
-                                                                AppConfig.TDA_PLAYLIST_URL
-                                                        )
-                                                M3UParser.parse(m3uContent)
-                                        }
-                                statusMessage = "Procesando canales..."
-                                groups = channels.mapNotNull { it.group }.distinct()
-                                allChannels = channels
-                                statusMessage = "✅ Listo. Se cargaron ${channels.size} canales TDA."
-
-                                if (selectedChannelUrl == null) {
-                                        val first = channels.firstOrNull()
-                                        selectedChannelUrl = first?.url
-                                        selectedChannelName = first?.name
-                                        lastClickedChannelUrl = first?.url
-                                }
-                                playerRestartKey++
-                        } catch (e: Exception) {
-                                statusMessage =
-                                        "❌ Error al cargar canales TDA: ${e.localizedMessage ?: "desconocido"}"
-                                groups = listOf("Error al cargar")
-                                Log.e("TDAScreen", "Error al cargar M3U", e)
-                        }
-                }
-        }
-
-        val selectedGroup = groups.getOrNull(selectedGroupIndex)
-        val filteredChannels = allChannels.filter { it.group == selectedGroup }
-        val selectedChannel = allChannels.firstOrNull { it.url == selectedChannelUrl }
+        // ── Derivados ──
+        val selectedGroup = uiState.groups.getOrNull(uiState.selectedGroupIndex)
+        val filteredChannels = uiState.allChannels.filter { it.group == selectedGroup }
+        val selectedChannel = uiState.allChannels.firstOrNull { it.url == uiState.selectedChannelUrl }
         val selectedChannelLogo = selectedChannel?.logo
 
         // Define movable video content
         val videoContent =
-                remember(playerRestartKey) {
+                remember {
                         movableContentOf { url: String?, name: String?, isFull: Boolean ->
                                 Box(
                                         modifier =
@@ -152,16 +113,10 @@ fun TDAScreen() {
                                                 videoUrl = url,
                                                 channelName = name,
                                                 onPlaybackStarted = {
-                                                        statusMessage =
-                                                                "🎬 Reproduciendo canal: ${name ?: "Canal"}"
-                                                        playbackError = null
-                                                        isPlaying = true
+                                                        viewModel.onPlaybackStarted(name)
                                                 },
                                                 onPlaybackError = { error ->
-                                                        playbackError = error
-                                                        isPlaying = false
-                                                        statusMessage =
-                                                                "❌ Error al reproducir: ${error.localizedMessage ?: "desconocido"}"
+                                                        viewModel.onPlaybackError(error)
                                                         Log.e(
                                                                 "VideoPanelTDAScreen",
                                                                 "Error de reproducción",
@@ -252,7 +207,7 @@ fun TDAScreen() {
                                                 if (event.type == KeyEventType.KeyDown) {
                                                         val currentIndex =
                                                                 filteredChannels.indexOfFirst {
-                                                                        it.url == selectedChannelUrl
+                                                                        it.url == uiState.selectedChannelUrl
                                                                 }
                                                         if (currentIndex != -1) {
                                                                 when (event.nativeKeyEvent.keyCode
@@ -272,15 +227,8 @@ fun TDAScreen() {
                                                                                 val nextChannel =
                                                                                         filteredChannels[
                                                                                                 prevIndex]
-                                                                                selectedChannelUrl =
-                                                                                        nextChannel
-                                                                                                .url
-                                                                                selectedChannelName =
-                                                                                        nextChannel
-                                                                                                .name
-                                                                                lastClickedChannelUrl =
-                                                                                        nextChannel
-                                                                                                .url
+                                                                                viewModel.selectChannel(nextChannel)
+                                                                                viewModel.updateLastClickedChannel(nextChannel.url)
                                                                                 true
                                                                         }
                                                                         KeyEvent.KEYCODE_DPAD_DOWN -> {
@@ -293,15 +241,8 @@ fun TDAScreen() {
                                                                                 val nextChannel =
                                                                                         filteredChannels[
                                                                                                 nextIndex]
-                                                                                selectedChannelUrl =
-                                                                                        nextChannel
-                                                                                                .url
-                                                                                selectedChannelName =
-                                                                                        nextChannel
-                                                                                                .name
-                                                                                lastClickedChannelUrl =
-                                                                                        nextChannel
-                                                                                                .url
+                                                                                viewModel.selectChannel(nextChannel)
+                                                                                viewModel.updateLastClickedChannel(nextChannel.url)
                                                                                 true
                                                                         }
                                                                         else -> false
@@ -310,7 +251,7 @@ fun TDAScreen() {
                                                 } else false
                                         }
                                         .focusable()
-                ) { videoContent(selectedChannelUrl, selectedChannel?.name, true) }
+                ) { videoContent(uiState.selectedChannelUrl, selectedChannel?.name, true) }
         } else {
                 Column(
                         modifier =
@@ -347,10 +288,10 @@ fun TDAScreen() {
                                                         )
                                                         .border(
                                                                 0.5.dp,
-                                                                Color(0xFFB0B0B0),
+                                                                 Color(0xFFB0B0B0),
                                                                 RoundedCornerShape(12.dp)
                                                         )
-                                ) { videoContent(selectedChannelUrl, selectedChannel?.name, false) }
+                                ) { videoContent(uiState.selectedChannelUrl, selectedChannel?.name, false) }
 
                                 // Info Panel
                                 Box(modifier = Modifier.weight(1.6f).padding(8.dp)) {
@@ -409,9 +350,9 @@ fun TDAScreen() {
                                                         )
                                                         Spacer(modifier = Modifier.height(16.dp))
                                                         Text(
-                                                                text = statusMessage,
+                                                                text = uiState.statusMessage,
                                                                 color =
-                                                                        if (playbackError == null)
+                                                                        if (uiState.playbackError == null)
                                                                                 Color(
                                                                                         0xFFF5F5F5
                                                                                 ) // TV-safe
@@ -420,7 +361,7 @@ fun TDAScreen() {
                                                                 fontWeight = FontWeight.Bold,
                                                                 textAlign = TextAlign.Center
                                                         )
-                                                        if (playbackError != null) {
+                                                        if (uiState.playbackError != null) {
                                                                 Spacer(
                                                                         modifier =
                                                                                 Modifier.height(
@@ -429,7 +370,7 @@ fun TDAScreen() {
                                                                 )
                                                                 Text(
                                                                         text =
-                                                                                "Error: ${playbackError?.localizedMessage ?: "desconocido"}",
+                                                                                "Error: ${uiState.playbackError?.localizedMessage ?: "desconocido"}",
                                                                         color = Color(0xFFFF5252),
                                                                         fontSize = 15.sp,
                                                                         textAlign = TextAlign.Center
@@ -466,13 +407,14 @@ fun TDAScreen() {
                                                         )
                                 ) {
                                         GroupList(
-                                                groups = groups,
-                                                selectedIndex = selectedGroupIndex,
-                                                onSelect = { selectedGroupIndex = it },
+                                                groups = uiState.groups,
+                                                selectedIndex = uiState.selectedGroupIndex,
+                                                onSelect = { viewModel.selectGroup(it) },
                                                 // P2: D-Pad Right → navegar a ChannelList
                                                 onNavigateToChannels = {
                                                         try { channelListFocusRequester.requestFocus() } catch (_: Exception) {}
-                                                }
+                                                },
+                                                isLoading = uiState.isLoading
                                         )
                                 }
 
@@ -500,17 +442,13 @@ fun TDAScreen() {
                                 ) {
                                         ChannelList(
                                                 channels = filteredChannels,
-                                                selectedUrl = selectedChannelUrl,
-                                                lastClickedUrl = lastClickedChannelUrl,
+                                                selectedUrl = uiState.selectedChannelUrl,
+                                                lastClickedUrl = uiState.lastClickedChannelUrl,
                                                 onUpdateLastClicked = {
-                                                        lastClickedChannelUrl = it
+                                                        viewModel.updateLastClickedChannel(it)
                                                 },
                                                 onSelect = {
-                                                        selectedChannelUrl = it.url
-                                                        selectedChannelName = it.name
-                                                        statusMessage =
-                                                                "🎬 Cargando canal: ${it.name}..."
-                                                        playbackError = null
+                                                        viewModel.selectChannel(it)
                                                 },
                                                 onFullscreenRequest = {
                                                         fullscreenState.value = true
@@ -520,7 +458,8 @@ fun TDAScreen() {
                                                         try { groupListFocusRequester.requestFocus() } catch (_: Exception) {}
                                                 },
                                                 restoreFocus = restoreFocus,
-                                                onFocusRestored = { restoreFocus = false }
+                                                onFocusRestored = { restoreFocus = false },
+                                                isLoading = uiState.isLoading
                                         )
                                 }
                         }

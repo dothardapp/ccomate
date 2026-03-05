@@ -1,6 +1,7 @@
 package com.iptv.ccomate.ui.screens
 
 import android.view.KeyEvent
+import com.iptv.ccomate.ui.components.ChannelSkeletonItem
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -64,7 +65,8 @@ fun ChannelList(
         onFullscreenRequest: () -> Unit = {},
         onNavigateToGroups: () -> Unit = {},
         restoreFocus: Boolean = false,
-        onFocusRestored: () -> Unit = {}
+        onFocusRestored: () -> Unit = {},
+        isLoading: Boolean = false
 ) {
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
@@ -118,7 +120,12 @@ fun ChannelList(
             state = listState,
             horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        itemsIndexed(channels) { index, channel ->
+        if (isLoading) {
+            items(10) {
+                ChannelSkeletonItem()
+            }
+        } else {
+            itemsIndexed(channels) { index, channel ->
             var hasFocus by remember { mutableStateOf(false) }
             val isPlaying = selectedUrl == channel.url
             var showHint by remember { mutableStateOf(false) }
@@ -232,6 +239,7 @@ fun ChannelList(
                         )
                     }
                 }
+            }
             }
         }
     }

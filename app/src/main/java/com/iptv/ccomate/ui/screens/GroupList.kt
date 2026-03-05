@@ -1,6 +1,7 @@
 package com.iptv.ccomate.ui.screens
 
 import android.view.KeyEvent
+import com.iptv.ccomate.ui.components.GroupSkeletonItem
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -43,7 +44,8 @@ fun GroupList(
         groups: List<String>,
         selectedIndex: Int,
         onSelect: (Int) -> Unit,
-        onNavigateToChannels: () -> Unit = {}
+        onNavigateToChannels: () -> Unit = {},
+        isLoading: Boolean = false
 ) {
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
@@ -57,7 +59,12 @@ fun GroupList(
             state = listState,
             horizontalAlignment = Alignment.Companion.CenterHorizontally
     ) {
-        itemsIndexed(groups) { index, group ->
+        if (isLoading) {
+            items(10) {
+                GroupSkeletonItem()
+            }
+        } else {
+            itemsIndexed(groups) { index, group ->
             var hasFocus by remember { mutableStateOf(false) }
             val isSelected = index == selectedIndex
 
@@ -120,6 +127,7 @@ fun GroupList(
                                     }
                     )
                 }
+            }
             }
         }
     }

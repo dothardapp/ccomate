@@ -6,13 +6,18 @@ import com.iptv.ccomate.data.local.AppDatabase
 import com.iptv.ccomate.data.local.EPGEntity
 import com.iptv.ccomate.model.EPGProgram
 import com.iptv.ccomate.util.AppConfig
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
+import javax.inject.Inject
 
-class EPGRepository(private val context: Context) {
-    private val epgDao = AppDatabase.getDatabase(context).epgDao()
+class EPGRepository @Inject constructor(
+    @ApplicationContext private val context: Context,
+    private val appDatabase: AppDatabase
+) {
+    private val epgDao = appDatabase.epgDao()
     private val sharedPrefs = context.getSharedPreferences("epg_prefs", Context.MODE_PRIVATE)
     
     private val CACHE_TIMEOUT_MS = 60 * 60 * 1000 // 60 minutes

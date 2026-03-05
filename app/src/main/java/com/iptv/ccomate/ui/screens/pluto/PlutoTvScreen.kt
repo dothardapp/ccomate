@@ -35,31 +35,28 @@ import com.iptv.ccomate.util.AppConfig
 import com.iptv.ccomate.util.LocalFullscreenState
 import com.iptv.ccomate.util.TimeUtils
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 private const val ENABLE_EPG_SIDE_PANEL = true
 
 @Composable
-fun PlutoTvScreen() {
+fun PlutoTvScreen(
+    viewModel: PlutoTvViewModel = hiltViewModel()
+) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val fullscreenState = LocalFullscreenState.current
     val isFullscreen = fullscreenState.value
 
-    // ── Estado de canales ──
-    var selectedGroupIndex by remember { mutableIntStateOf(0) }
-    var groups by remember { mutableStateOf<List<String>>(emptyList()) }
-    var allChannels by remember { mutableStateOf<List<Channel>>(emptyList()) }
-    var selectedChannelUrl by remember { mutableStateOf<String?>(null) }
-    var lastClickedChannelUrl by remember { mutableStateOf<String?>(null) }
+    // Observar el estado desde el ViewModel
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    // ── Estado de UI ──
-    var statusMessage by remember { mutableStateOf("Inicializando...") }
-    var playbackError by remember { mutableStateOf<Throwable?>(null) }
+    // ── Estado de UI local ──
     var playerRestartKey by remember { mutableIntStateOf(0) }
     var restoreFocus by remember { mutableStateOf(false) }
 
-    // P2: FocusRequesters para navegación D-Pad entre listas
+    // FocusRequesters para navegación D-Pad entre listas
     val groupListFocusRequester = remember { FocusRequester() }
     val channelListFocusRequester = remember { FocusRequester() }
 
@@ -67,16 +64,10 @@ fun PlutoTvScreen() {
     val isTimeIncorrect = remember { !TimeUtils.isSystemTimeValid() }
     val currentTimeMessage = remember { TimeUtils.getSystemTimeMessage() }
 
-    // ── Estado EPG ──
-    var epgData by remember { mutableStateOf<Map<String, List<EPGProgram>>>(emptyMap()) }
-    var currentProgram by remember { mutableStateOf<EPGProgram?>(null) }
-    val epgRepository = remember { EPGRepository(context) }
-
-
     // ── Derivados ──
-    val selectedGroup = groups.getOrNull(selectedGroupIndex)
-    val filteredChannels = allChannels.filter { it.group == selectedGroup }
-    val selectedChannel = allChannels.firstOrNull { it.url == selectedChannelUrl }
+    val selectedGroup = uiState.groups.getOrNull(uiState.selectedGroupIndex)
+    val filteredChannels = uiState.allChannels.filter { it.group == selectedGroup }
+    val selectedChannel = uiState.allChannels.firstOrNull { it.url == uiState.selectedChannelUrl }
     val selectedChannelLogo = selectedChannel?.logo
 
     // ── Lifecycle: reiniciar player al volver ──
@@ -84,63 +75,16 @@ fun PlutoTvScreen() {
         val observer = LifecycleEventObserver { _: LifecycleOwner, event: Lifecycle.Event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 playerRestartKey++
+                viewModel.updateCurrentProgram()
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    // ── Carga de canales M3U ──
-    LaunchedEffect(Unit) {
-        try {
-            statusMessage = "Conectando con el servidor..."
-            val channels =
-                    withContext(Dispatchers.IO) {
-                        val m3uContent = NetworkClient.fetchM3U(AppConfig.PLUTO_PLAYLIST_URL)
-                        M3UParser.parse(m3uContent)
-                    }
-            statusMessage = "Procesando canales..."
-            groups = channels.mapNotNull { it.group }.distinct()
-            allChannels = channels
-            statusMessage = "Listo. Se cargaron ${channels.size} canales."
-
-            if (selectedChannelUrl == null) {
-                val first = channels.firstOrNull()
-                selectedChannelUrl = first?.url
-                lastClickedChannelUrl = first?.url
-            }
-            playerRestartKey++
-        } catch (e: Exception) {
-            statusMessage = "❌ Error al cargar canales: ${e.localizedMessage ?: "desconocido"}"
-            groups = listOf("Error al cargar")
-            Log.e("PlutoScreen", "Error al cargar M3U", e)
-        }
-    }
-
-    // ── Carga de EPG ──
-    LaunchedEffect(Unit) {
-        try {
-            val parsedEpg = epgRepository.getEPGData()
-            epgData = parsedEpg
-            Log.d("PlutoTvScreen", "EPG Loaded: ${parsedEpg.size} channels")
-        } catch (e: Exception) {
-            Log.e("PlutoTvScreen", "Error loading EPG", e)
-        }
-    }
-
-
-    // ── Actualizar programa actual ──
-    LaunchedEffect(selectedChannel, epgData) {
-        currentProgram =
-                selectedChannel?.tvgId?.let { tvgId -> epgData[tvgId] }?.find { program ->
-                    val now = java.time.ZonedDateTime.now()
-                    now.isAfter(program.startTime) && now.isBefore(program.endTime)
-                }
-    }
-
     // ── Contenido de video reutilizable ──
     val videoContent =
-            remember(playerRestartKey) {
+            remember {
                 movableContentOf {
                         url: String?,
                         name: String?,
@@ -155,13 +99,10 @@ fun PlutoTvScreen() {
                             isTimeIncorrect = isTimeIncorrect,
                             currentTimeMessage = currentTimeMessage,
                             onPlaybackStarted = {
-                                statusMessage = "🎬 Reproduciendo canal: ${name ?: "Canal"}"
-                                playbackError = null
+                                viewModel.onPlaybackStarted(name)
                             },
                             onPlaybackError = { error ->
-                                playbackError = error
-                                statusMessage =
-                                        "❌ Error al reproducir: ${error.localizedMessage ?: "desconocido"}"
+                                viewModel.onPlaybackError(error)
                                 Log.e("VideoPanel", "Error de reproducción", error)
                             },
                             onToggleFullscreen = {
@@ -180,40 +121,39 @@ fun PlutoTvScreen() {
     if (isFullscreen) {
         PlutoFullscreenView(
                 filteredChannels = filteredChannels,
-                selectedChannelUrl = selectedChannelUrl,
+                selectedChannelUrl = uiState.selectedChannelUrl,
                 onChannelChanged = { channel ->
-                    selectedChannelUrl = channel.url
-                    lastClickedChannelUrl = channel.url
+                    viewModel.selectChannel(channel)
+                    viewModel.updateLastClickedChannel(channel.url)
                 },
                 onExitFullscreen = {
                     restoreFocus = true
                     fullscreenState.value = false
                 }
-        ) { videoContent(selectedChannelUrl, selectedChannel?.name, true, currentProgram) }
+        ) { videoContent(uiState.selectedChannelUrl, selectedChannel?.name, true, uiState.currentProgram) }
     } else {
         PlutoNormalLayout(
-                groups = groups,
-                selectedGroupIndex = selectedGroupIndex,
-                onGroupSelected = { selectedGroupIndex = it },
+                groups = uiState.groups,
+                selectedGroupIndex = uiState.selectedGroupIndex,
+                onGroupSelected = { viewModel.selectGroup(it) },
                 filteredChannels = filteredChannels,
-                selectedChannelUrl = selectedChannelUrl,
-                lastClickedChannelUrl = lastClickedChannelUrl,
+                selectedChannelUrl = uiState.selectedChannelUrl,
+                lastClickedChannelUrl = uiState.lastClickedChannelUrl,
                 selectedChannelLogo = selectedChannelLogo,
-                statusMessage = statusMessage,
-                playbackError = playbackError,
-                currentProgram = currentProgram,
+                statusMessage = uiState.statusMessage,
+                playbackError = uiState.playbackError,
+                currentProgram = uiState.currentProgram,
                 restoreFocus = restoreFocus,
                 onChannelSelected = { channel ->
-                    selectedChannelUrl = channel.url
-                    statusMessage = "🎬 Cargando canal: ${channel.name}..."
-                    playbackError = null
+                    viewModel.selectChannel(channel)
                 },
-                onUpdateLastClicked = { lastClickedChannelUrl = it },
+                onUpdateLastClicked = { viewModel.updateLastClickedChannel(it) },
                 onFullscreenRequest = { fullscreenState.value = true },
                 onFocusRestored = { restoreFocus = false },
                 groupListFocusRequester = groupListFocusRequester,
-                channelListFocusRequester = channelListFocusRequester
-        ) { videoContent(selectedChannelUrl, selectedChannel?.name, false, currentProgram) }
+                channelListFocusRequester = channelListFocusRequester,
+                isLoading = uiState.isLoading
+        ) { videoContent(uiState.selectedChannelUrl, selectedChannel?.name, false, uiState.currentProgram) }
     }
 }
 
@@ -332,6 +272,7 @@ private fun PlutoNormalLayout(
         onFocusRestored: () -> Unit,
         groupListFocusRequester: FocusRequester = remember { FocusRequester() },
         channelListFocusRequester: FocusRequester = remember { FocusRequester() },
+        isLoading: Boolean = false,
         videoContent: @Composable () -> Unit
 ) {
     Column(
@@ -378,7 +319,8 @@ private fun PlutoNormalLayout(
                         // P2: D-Pad Right → navegar a ChannelList
                         onNavigateToChannels = {
                             try { channelListFocusRequester.requestFocus() } catch (_: Exception) {}
-                        }
+                        },
+                        isLoading = isLoading
                 )
             }
 
@@ -398,7 +340,8 @@ private fun PlutoNormalLayout(
                             try { groupListFocusRequester.requestFocus() } catch (_: Exception) {}
                         },
                         restoreFocus = restoreFocus,
-                        onFocusRestored = onFocusRestored
+                        onFocusRestored = onFocusRestored,
+                        isLoading = isLoading
                 )
             }
         }
