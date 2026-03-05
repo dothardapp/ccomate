@@ -33,7 +33,8 @@ class VideoPlayerViewModel : ViewModel() {
     private var exoPlayer: ExoPlayer? = null
     private var dataSourceFactory: DataSource.Factory? = null
 
-    private val loadControl = DefaultLoadControl.Builder()
+    // LoadControl is created per-player to avoid sharing across playback threads
+    private fun createLoadControl() = DefaultLoadControl.Builder()
         .setBufferDurationsMs(5000, 15000, 500, 1000)
         .build()
 
@@ -118,27 +119,38 @@ class VideoPlayerViewModel : ViewModel() {
     suspend fun setPlayer(context: Context, videoUrl: String): Result<ExoPlayer> {
         return try {
             if (videoUrl.isNotEmpty() && (videoUrl.startsWith("http://") || videoUrl.startsWith("https://"))) {
-                val currentPlayer = exoPlayer ?: withContext(Dispatchers.IO) {
+                // Release previous player completely before creating a new one
+                // to avoid LoadControl thread conflicts
+                val existingPlayer = exoPlayer
+                if (existingPlayer != null) {
+                    withContext(Dispatchers.Main) {
+                        existingPlayer.stop()
+                        existingPlayer.clearMediaItems()
+                        existingPlayer.release()
+                        Log.d("VideoPlayerViewModel", "ExoPlayer anterior liberado antes de crear uno nuevo")
+                    }
+                    exoPlayer = null
+                }
+
+                val newPlayer = withContext(Dispatchers.Main) {
                     ExoPlayer.Builder(context)
-                        .setLoadControl(loadControl)
+                        .setLoadControl(createLoadControl())
                         .build()
                 }
                 val mediaSource = createMediaSource(videoUrl)
                 withContext(Dispatchers.Main) {
-                    currentPlayer.setMediaSource(mediaSource)
-                    currentPlayer.prepare()
-                    currentPlayer.playWhenReady = true
-                    if (exoPlayer == null) {
-                        currentPlayer.addListener(object : Player.Listener {
-                            override fun onPlayerError(error: PlaybackException) {
-                                Log.e("VideoPlayerViewModel", "Error de reproducción: ${error.message}", error)
-                            }
-                        })
-                    }
+                    newPlayer.setMediaSource(mediaSource)
+                    newPlayer.prepare()
+                    newPlayer.playWhenReady = true
+                    newPlayer.addListener(object : Player.Listener {
+                        override fun onPlayerError(error: PlaybackException) {
+                            Log.e("VideoPlayerViewModel", "Error de reproducción: ${error.message}", error)
+                        }
+                    })
                 }
-                exoPlayer = currentPlayer
-                Log.d("VideoPlayerViewModel", "ExoPlayer configurado: $currentPlayer con MediaSource: $mediaSource")
-                Result.success(currentPlayer)
+                exoPlayer = newPlayer
+                Log.d("VideoPlayerViewModel", "ExoPlayer configurado: $newPlayer con MediaSource: $mediaSource")
+                Result.success(newPlayer)
             } else {
                 Log.w("VideoPlayerViewModel", "URL inválida: $videoUrl")
                 Result.failure(IllegalArgumentException("URL inválida: $videoUrl"))

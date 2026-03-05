@@ -44,6 +44,7 @@ import androidx.tv.material3.Text
 import com.iptv.ccomate.viewmodel.VideoPlayerViewModel
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @OptIn(UnstableApi::class) private const val ENABLE_EPG_OVERLAY = true
 
@@ -127,6 +128,17 @@ fun VideoPlayer(
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
             Log.d("VideoPlayer", "DisposableEffect onDispose called")
+        }
+    }
+
+    // Liberar el player cuando el composable sale de la composición (ej: navegación)
+    DisposableEffect(Unit) {
+        onDispose {
+            Log.d("VideoPlayer", "Composable leaving composition - releasing player")
+            exoPlayer = null
+            kotlinx.coroutines.MainScope().launch {
+                viewModel.releasePlayer()
+            }
         }
     }
 

@@ -46,6 +46,12 @@ fun CcoNavigationDrawer(navController: NavController, content: @Composable () ->
                         items = drawerItems,
                         selectedIndex = selectedIndex,
                         onItemClick = { index, route ->
+                            val currentRoute = navController.currentBackStackEntry?.destination?.route
+                            if (currentRoute == route) {
+                                // Ya estamos en esta pantalla, solo cerrar el drawer
+                                scope.launch { drawerState.setValue(DrawerValue.Closed) }
+                                return@DrawerItemRenderer
+                            }
                             selectedIndex = index
                             navController.navigate(route) {
                                 popUpTo(0) { inclusive = true }

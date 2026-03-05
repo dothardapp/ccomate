@@ -20,7 +20,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.iptv.ccomate.data.EPGParser
+import com.iptv.ccomate.data.EPGRepository
+
 import com.iptv.ccomate.data.M3UParser
 import com.iptv.ccomate.data.NetworkClient
 import com.iptv.ccomate.model.Channel
@@ -63,6 +64,8 @@ fun PlutoTvScreen() {
     // ── Estado EPG ──
     var epgData by remember { mutableStateOf<Map<String, List<EPGProgram>>>(emptyMap()) }
     var currentProgram by remember { mutableStateOf<EPGProgram?>(null) }
+    val epgRepository = remember { EPGRepository(context) }
+
 
     // ── Derivados ──
     val selectedGroup = groups.getOrNull(selectedGroupIndex)
@@ -111,17 +114,14 @@ fun PlutoTvScreen() {
     // ── Carga de EPG ──
     LaunchedEffect(Unit) {
         try {
-            val parsedEpg =
-                    withContext(Dispatchers.IO) {
-                        val epgContent = NetworkClient.fetchM3U(AppConfig.EPG_URL)
-                        EPGParser.parse(epgContent)
-                    }
+            val parsedEpg = epgRepository.getEPGData()
             epgData = parsedEpg
             Log.d("PlutoTvScreen", "EPG Loaded: ${parsedEpg.size} channels")
         } catch (e: Exception) {
             Log.e("PlutoTvScreen", "Error loading EPG", e)
         }
     }
+
 
     // ── Actualizar programa actual ──
     LaunchedEffect(selectedChannel, epgData) {
