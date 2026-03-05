@@ -22,19 +22,13 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.iptv.ccomate.data.EPGRepository
-
-import com.iptv.ccomate.data.M3UParser
-import com.iptv.ccomate.data.NetworkClient
 import com.iptv.ccomate.model.Channel
 import com.iptv.ccomate.model.EPGProgram
 import com.iptv.ccomate.ui.screens.ChannelList
 import com.iptv.ccomate.ui.screens.GroupList
 import com.iptv.ccomate.ui.video.VideoPanel
-import com.iptv.ccomate.util.AppConfig
 import com.iptv.ccomate.util.LocalFullscreenState
 import com.iptv.ccomate.util.TimeUtils
-import kotlinx.coroutines.Dispatchers
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 

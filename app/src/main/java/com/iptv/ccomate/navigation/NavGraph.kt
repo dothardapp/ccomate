@@ -6,7 +6,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.NavHostController
 import com.iptv.ccomate.ui.screens.HomeScreen
 import com.iptv.ccomate.ui.screens.pluto.PlutoTvScreen
-import com.iptv.ccomate.ui.screens.pluto.PlutoTvScreenGrok
 import com.iptv.ccomate.ui.screens.tda.TDAScreen
 
 @Composable
