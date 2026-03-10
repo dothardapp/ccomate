@@ -8,7 +8,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -53,7 +52,6 @@ import com.iptv.ccomate.model.Channel
 import com.iptv.ccomate.util.AppConfig
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.yield
 
 @Composable
 fun ChannelList(
@@ -88,9 +86,8 @@ fun ChannelList(
                 0
             }
             listState.scrollToItem(targetIndex)
-            // Esperar frames para que Compose materialice los items
-            yield()
-            yield()
+            // Esperar a que Compose materialice los items tras el scroll
+            delay(50)
             focusRequesters[targetIndex]?.requestFocus()
         }
     }
@@ -100,11 +97,10 @@ fun ChannelList(
         if (restoreFocus && selectedUrl != null) {
             val index = channels.indexOfFirst { it.url == selectedUrl }
             if (index != -1) {
-                // 1. Forzar scroll para asegurar que el item existe en la composición
+                // 1. Forzar scroll para asegurar que el item existe en la composicion
                 listState.scrollToItem(index)
-                // 2. Esperar frames para recomposición (más robusto que delay fijo)
-                yield()
-                yield()
+                // 2. Esperar a que Compose materialice el item tras el scroll
+                delay(50)
                 // 3. Pedir foco
                 focusRequesters[index]?.requestFocus()
             }
@@ -174,7 +170,13 @@ fun ChannelList(
                                             }
                                         }
                                     }
-                                    .focusable()
+                                    .onKeyEvent { event ->
+                                        if (event.type == KeyEventType.KeyDown &&
+                                                event.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                                            onNavigateToGroups()
+                                            true
+                                        } else false
+                                    }
                                     .clickable {
                                         if (isPlaying) {
                                             onFullscreenRequest()
@@ -187,14 +189,6 @@ fun ChannelList(
                                                 showHint = false
                                             }
                                         }
-                                    }
-                                    // P2: D-Pad Left → navegar a GroupList
-                                    .onKeyEvent { event ->
-                                        if (event.type == KeyEventType.KeyDown &&
-                                                event.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
-                                            onNavigateToGroups()
-                                            true
-                                        } else false
                                     }
                                     .padding(horizontal = 12.dp, vertical = 8.dp)
             ) {

@@ -11,7 +11,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -56,7 +55,6 @@ import androidx.tv.material3.Text
 import com.iptv.ccomate.viewmodel.VideoPlayerViewModel
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.yield
 
 @OptIn(UnstableApi::class) private const val ENABLE_EPG_OVERLAY = true
 
@@ -72,6 +70,7 @@ fun VideoPlayer(
         channelName: String? = null,
         onPlaybackStarted: (() -> Unit)? = null,
         onPlaybackError: ((Throwable) -> Unit)? = null,
+        onErrorStateChanged: ((Boolean) -> Unit)? = null,
         currentProgram: com.iptv.ccomate.model.EPGProgram? = null,
         isFullscreen: Boolean = false
 ) {
@@ -96,9 +95,6 @@ fun VideoPlayer(
         showOverlay = false
         hasError = false
         errorMessage = ""
-
-        // Garantizar que la rueda de carga se muestre por al menos 300ms
-        delay(300)
 
         viewModel
                 .setPlayer(context, videoUrl)
@@ -225,6 +221,11 @@ fun VideoPlayer(
         }
     }
 
+    // Notificar cambios en el estado de error al contenedor padre
+    LaunchedEffect(hasError) {
+        onErrorStateChanged?.invoke(hasError)
+    }
+
     // Ocultar overlay después de 3 segundos
     LaunchedEffect(showOverlay) {
         if (showOverlay) {
@@ -341,29 +342,18 @@ fun VideoPlayer(
                 }
             }
 
-            // Focus del botón reintentar — DENTRO del AnimatedVisibility
-            // LaunchedEffect(Unit) se ejecuta cuando el contenido ENTRA en composición,
-            // garantizando que el FocusRequester ya está adjunto al botón.
-            // Reintenta múltiples veces para dispositivos lentos (ZTE zBox).
+            // Focus del botón reintentar — DENTRO del AnimatedVisibility.
+            // LaunchedEffect(Unit) se ejecuta cuando el contenido ENTRA en composición.
+            // Con FullscreenDPadContainer, el nodo D-Pad se elimina al haber error,
+            // dejando el botón Reintentar como único nodo focusable.
             LaunchedEffect(Unit) {
-                // Esperar a que la animación fadeIn y el layout se estabilicen
-                delay(600)
-                yield()
-                var focused = false
-                repeat(5) { attempt ->
-                    if (!focused) {
-                        try {
-                            retryFocusRequester.requestFocus()
-                            focused = true
-                            Log.d("VideoPlayer", "Retry button focused on attempt ${attempt + 1}")
-                        } catch (e: Exception) {
-                            Log.w("VideoPlayer", "Focus attempt ${attempt + 1} failed: ${e.message}")
-                            delay(300)
-                        }
-                    }
-                }
-                if (!focused) {
-                    Log.e("VideoPlayer", "Failed to focus retry button after 5 attempts")
+                // Esperar un frame para que el layout se estabilice tras fadeIn
+                delay(100)
+                try {
+                    retryFocusRequester.requestFocus()
+                    Log.d("VideoPlayer", "Retry button focused")
+                } catch (e: Exception) {
+                    Log.w("VideoPlayer", "Focus request failed: ${e.message}")
                 }
             }
         }

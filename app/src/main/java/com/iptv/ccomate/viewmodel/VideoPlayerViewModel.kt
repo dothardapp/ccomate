@@ -120,8 +120,11 @@ class VideoPlayerViewModel @Inject constructor() : ViewModel() {
     suspend fun setPlayer(context: Context, videoUrl: String): Result<ExoPlayer> {
         return try {
             if (videoUrl.isNotEmpty() && (videoUrl.startsWith("http://") || videoUrl.startsWith("https://"))) {
-                // Sincronizar liberación para evitar múltiples hilos de codec
-                withContext(Dispatchers.Main) {
+                // Preparar MediaSource en IO primero (no necesita el player anterior)
+                val mediaSource = createMediaSource(videoUrl)
+
+                // Liberar player anterior y crear nuevo en Main (requerido por ExoPlayer)
+                val newPlayer = withContext(Dispatchers.Main) {
                     exoPlayer?.let { existingPlayer ->
                         Log.d("VideoPlayerViewModel", "Liberando ExoPlayer anterior (URL: $videoUrl)")
                         existingPlayer.stop()
@@ -129,22 +132,18 @@ class VideoPlayerViewModel @Inject constructor() : ViewModel() {
                         existingPlayer.release()
                     }
                     exoPlayer = null
-                }
 
-                val newPlayer = withContext(Dispatchers.Main) {
                     ExoPlayer.Builder(context)
                         .setLoadControl(createLoadControl())
                         .build()
                 }
-                
-                val mediaSource = createMediaSource(videoUrl)
                 withContext(Dispatchers.Main) {
                     newPlayer.setMediaSource(mediaSource)
                     newPlayer.prepare()
                     newPlayer.playWhenReady = true
                     newPlayer.addListener(object : Player.Listener {
                         override fun onPlayerError(error: PlaybackException) {
-                            Log.e("VideoPlayerViewModel", "Error de reproducción: ${error.message}", error)
+                            Log.e("VideoPlayerViewModel", "Error de reproduccion: ${error.message}", error)
                         }
                     })
                     exoPlayer = newPlayer
@@ -152,8 +151,8 @@ class VideoPlayerViewModel @Inject constructor() : ViewModel() {
                 Log.d("VideoPlayerViewModel", "ExoPlayer configurado exitosamente")
                 Result.success(newPlayer)
             } else {
-                Log.w("VideoPlayerViewModel", "URL inválida: $videoUrl")
-                Result.failure(IllegalArgumentException("URL inválida: $videoUrl"))
+                Log.w("VideoPlayerViewModel", "URL invalida: $videoUrl")
+                Result.failure(IllegalArgumentException("URL invalida: $videoUrl"))
             }
         } catch (e: Exception) {
             Log.e("VideoPlayerViewModel", "Error al configurar media: ${e.message}", e)

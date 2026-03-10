@@ -24,6 +24,7 @@ fun VideoPanel(
         onPlaybackStarted: () -> Unit,
         onPlaybackError: (Throwable) -> Unit,
         modifier: Modifier = Modifier,
+        onErrorStateChanged: ((Boolean) -> Unit)? = null,
         currentProgram: com.iptv.ccomate.model.EPGProgram? = null,
         isFullscreen: Boolean = false
 ) {
@@ -48,6 +49,7 @@ fun VideoPanel(
                                     .padding(1.dp),
                     onPlaybackStarted = onPlaybackStarted,
                     onPlaybackError = onPlaybackError,
+                    onErrorStateChanged = onErrorStateChanged,
                     currentProgram = currentProgram,
                     isFullscreen = isFullscreen
             )

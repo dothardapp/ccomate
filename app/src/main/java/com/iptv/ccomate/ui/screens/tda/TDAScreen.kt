@@ -1,8 +1,6 @@
 package com.iptv.ccomate.ui.screens.tda
 
 import android.util.Log
-import android.view.KeyEvent
-import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -11,8 +9,6 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
@@ -25,9 +21,6 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.onKeyEvent
-import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -39,9 +32,9 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.tv.material3.Text
 import coil.compose.AsyncImage
-import com.iptv.ccomate.model.Channel
 import com.iptv.ccomate.ui.screens.ChannelList
 import com.iptv.ccomate.ui.screens.GroupList
+import com.iptv.ccomate.ui.video.FullscreenDPadContainer
 import com.iptv.ccomate.ui.video.VideoPanel
 import com.iptv.ccomate.util.TimeUtils
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -86,165 +79,49 @@ fun TDAScreen(
         val selectedChannel = uiState.allChannels.firstOrNull { it.url == uiState.selectedChannelUrl }
         val selectedChannelLogo = selectedChannel?.logo
 
-        // Define movable video content
+        // Estado de error del player (para que FullscreenDPadContainer sepa
+        // cuando quitar el controlador D-Pad y dejar foco al boton Reintentar)
+        var hasPlayerError by remember { mutableStateOf(false) }
+
+        // movableContentOf: permite mover el VideoPanel entre layout normal y fullscreen
+        // sin destruir/recrear el ExoPlayer. SIN .clickable (no agrega nodo de foco).
         val videoContent =
                 remember {
                         movableContentOf { url: String?, name: String?, isFull: Boolean ->
-                                Box(
-                                        modifier =
-                                                Modifier.fillMaxSize().clickable {
-                                                        if (fullscreenState.value) {
-                                                                restoreFocus = true
-                                                                fullscreenState.value = false
-                                                        } else {
-                                                                fullscreenState.value = true
-                                                        }
-                                                }
-                                ) {
-                                        VideoPanel(
-                                                context = context,
-                                                videoUrl = url,
-                                                channelName = name,
-                                                onPlaybackStarted = {
-                                                        viewModel.onPlaybackStarted(name)
-                                                },
-                                                onPlaybackError = { error ->
-                                                        viewModel.onPlaybackError(error)
-                                                        Log.e(
-                                                                "VideoPanelTDAScreen",
-                                                                "Error de reproducción",
-                                                                error
-                                                        )
-                                                },
-                                                modifier = Modifier.fillMaxSize()
-                                        )
-
-                                        // Time warning overlay
-                                        if (!isFull) {
-                                                androidx.compose.animation.AnimatedVisibility(
-                                                        visible = isTimeIncorrect,
-                                                        enter =
-                                                                fadeIn() +
-                                                                        scaleIn(
-                                                                                animationSpec =
-                                                                                        tween(300)
-                                                                        ),
-                                                        exit =
-                                                                fadeOut() +
-                                                                        scaleOut(
-                                                                                animationSpec =
-                                                                                        tween(300)
-                                                                        ),
-                                                        modifier =
-                                                                Modifier.fillMaxWidth()
-                                                                        .align(Alignment.TopCenter)
-                                                                        .background(
-                                                                                Color(0xE6FF6F00)
-                                                                        )
-                                                                        .border(
-                                                                                1.dp,
-                                                                                Color(0xFFF5F5F5),
-                                                                                RoundedCornerShape(
-                                                                                        6.dp
-                                                                                )
-                                                                        )
-                                                                        .padding(12.dp)
-                                                ) {
-                                                        Column(
-                                                                horizontalAlignment =
-                                                                        Alignment
-                                                                                .CenterHorizontally,
-                                                                modifier = Modifier.fillMaxWidth()
-                                                        ) {
-                                                                Text(
-                                                                        text =
-                                                                                "⚠️ Reloj del dispositivo mal configurado",
-                                                                        color = Color(0xFFF5F5F5),
-                                                                        fontSize = 18.sp,
-                                                                        fontWeight =
-                                                                                FontWeight.Bold,
-                                                                        textAlign = TextAlign.Center
-                                                                )
-                                                                Text(
-                                                                        text = currentTimeMessage,
-                                                                        color = Color(0xFFCFD8DC),
-                                                                        fontSize = 15.sp,
-                                                                        textAlign = TextAlign.Center
-                                                                )
-                                                        }
-                                                }
-                                        }
-                                }
+                                VideoPanel(
+                                        context = context,
+                                        videoUrl = url,
+                                        channelName = name,
+                                        onPlaybackStarted = {
+                                                viewModel.onPlaybackStarted(name)
+                                        },
+                                        onPlaybackError = { error ->
+                                                viewModel.onPlaybackError(error)
+                                                Log.e("VideoPanelTDAScreen", "Error de reproduccion", error)
+                                        },
+                                        modifier = Modifier.fillMaxSize(),
+                                        onErrorStateChanged = { hasPlayerError = it },
+                                        isFullscreen = isFull
+                                )
                         }
                 }
 
         if (isFullscreen) {
-                // P1: FocusRequester explícita para fullscreen
-                val fullscreenFocusRequester = remember { FocusRequester() }
-
-                // Solicitar foco automáticamente al entrar en fullscreen
-                LaunchedEffect(Unit) {
-                        fullscreenFocusRequester.requestFocus()
+                FullscreenDPadContainer(
+                        channels = filteredChannels,
+                        selectedChannelUrl = uiState.selectedChannelUrl,
+                        hasPlayerError = hasPlayerError,
+                        onChannelChanged = { channel ->
+                                viewModel.selectChannel(channel)
+                                viewModel.updateLastClickedChannel(channel.url)
+                        },
+                        onExitFullscreen = {
+                                restoreFocus = true
+                                fullscreenState.value = false
+                        }
+                ) {
+                        videoContent(uiState.selectedChannelUrl, selectedChannel?.name, true)
                 }
-
-                BackHandler {
-                        restoreFocus = true
-                        fullscreenState.value = false
-                }
-                Box(
-                        modifier =
-                                Modifier.fillMaxSize()
-                                        .background(Color(0xFF121212)) // TV-safe: evitar negro puro
-                                        .focusRequester(fullscreenFocusRequester)
-                                        .onKeyEvent { event ->
-                                                if (event.type == KeyEventType.KeyDown) {
-                                                        val currentIndex =
-                                                                filteredChannels.indexOfFirst {
-                                                                        it.url == uiState.selectedChannelUrl
-                                                                }
-                                                        if (currentIndex != -1) {
-                                                                when (event.nativeKeyEvent.keyCode
-                                                                ) {
-                                                                        KeyEvent.KEYCODE_DPAD_UP -> {
-                                                                                // Canal anterior
-                                                                                val prevIndex =
-                                                                                        if (currentIndex <=
-                                                                                                        0
-                                                                                        )
-                                                                                                filteredChannels
-                                                                                                        .size -
-                                                                                                        1
-                                                                                        else
-                                                                                                currentIndex -
-                                                                                                        1
-                                                                                val nextChannel =
-                                                                                        filteredChannels[
-                                                                                                prevIndex]
-                                                                                viewModel.selectChannel(nextChannel)
-                                                                                viewModel.updateLastClickedChannel(nextChannel.url)
-                                                                                true
-                                                                        }
-                                                                        KeyEvent.KEYCODE_DPAD_DOWN -> {
-                                                                                // Canal siguiente
-                                                                                val nextIndex =
-                                                                                        (currentIndex +
-                                                                                                1) %
-                                                                                                filteredChannels
-                                                                                                        .size
-                                                                                val nextChannel =
-                                                                                        filteredChannels[
-                                                                                                nextIndex]
-                                                                                viewModel.selectChannel(nextChannel)
-                                                                                viewModel.updateLastClickedChannel(nextChannel.url)
-                                                                                true
-                                                                        }
-                                                                        else -> false
-                                                                }
-                                                        } else false
-                                                } else false
-                                        }
-                                        .focusable()
-                ) { videoContent(uiState.selectedChannelUrl, selectedChannel?.name, true) }
         } else {
                 Column(
                         modifier =
@@ -284,7 +161,41 @@ fun TDAScreen(
                                                                  Color(0xFFB0B0B0),
                                                                 RoundedCornerShape(12.dp)
                                                         )
-                                ) { videoContent(uiState.selectedChannelUrl, selectedChannel?.name, false) }
+                                ) {
+                                        Box(modifier = Modifier.fillMaxSize()) {
+                                                videoContent(uiState.selectedChannelUrl, selectedChannel?.name, false)
+
+                                                androidx.compose.animation.AnimatedVisibility(
+                                                        visible = isTimeIncorrect,
+                                                        enter = fadeIn() + scaleIn(animationSpec = tween(300)),
+                                                        exit = fadeOut() + scaleOut(animationSpec = tween(300)),
+                                                        modifier = Modifier.fillMaxWidth()
+                                                                .align(Alignment.TopCenter)
+                                                                .background(Color(0xE6FF6F00))
+                                                                .border(1.dp, Color(0xFFF5F5F5), RoundedCornerShape(6.dp))
+                                                                .padding(12.dp)
+                                                ) {
+                                                        Column(
+                                                                horizontalAlignment = Alignment.CenterHorizontally,
+                                                                modifier = Modifier.fillMaxWidth()
+                                                        ) {
+                                                                Text(
+                                                                        text = "⚠️ Reloj del dispositivo mal configurado",
+                                                                        color = Color(0xFFF5F5F5),
+                                                                        fontSize = 18.sp,
+                                                                        fontWeight = FontWeight.Bold,
+                                                                        textAlign = TextAlign.Center
+                                                                )
+                                                                Text(
+                                                                        text = currentTimeMessage,
+                                                                        color = Color(0xFFCFD8DC),
+                                                                        fontSize = 15.sp,
+                                                                        textAlign = TextAlign.Center
+                                                                )
+                                                        }
+                                                }
+                                        }
+                                }
 
                                 // Info Panel
                                 Box(modifier = Modifier.weight(1.6f).padding(8.dp)) {
