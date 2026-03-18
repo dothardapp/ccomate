@@ -1,82 +1,98 @@
-@file:Suppress("NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
-
 package com.iptv.ccomate.util
 
-import okhttp3.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import okhttp3.FormBody
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import org.json.JSONObject
-import java.io.IOException
+import java.util.concurrent.TimeUnit
+import javax.inject.Inject
+import javax.inject.Singleton
 
-object SubscriptionManager {
-    private val client = OkHttpClient()
+sealed class SubscriptionResult {
+    data class Subscribed(val clientIp: String?) : SubscriptionResult()
+    data class NotSubscribed(val message: String, val clientIp: String?) : SubscriptionResult()
+    object NotFound : SubscriptionResult()
+    data class Error(val message: String) : SubscriptionResult()
+}
 
-    fun registerDevice(deviceInfo: DeviceInfo, clientIp: String?, callback: (Boolean, String?) -> Unit) {
-        val requestBody = FormBody.Builder()
-            .add("installationId", deviceInfo.installationId)
-            .add("localIp", deviceInfo.localIp ?: "unknown")
-            .add("deviceModel", deviceInfo.deviceModel)
-            .apply {
-                deviceInfo.dni?.let { add("dni", it) }
-                deviceInfo.name?.let { add("name", it) }
-                deviceInfo.phone?.let { add("phone", it) }
-                clientIp?.let { add("gatewayIp", it) }
-            }
-            .build()
+sealed class RegisterResult {
+    object Success : RegisterResult()
+    data class Error(val message: String) : RegisterResult()
+}
 
-        val request = Request.Builder()
-            .url(AppConfig.REGISTER_DEVICE_URL)
-            .post(requestBody)
-            .build()
+@Singleton
+class SubscriptionManager @Inject constructor() {
+    private val client = OkHttpClient.Builder()
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .build()
 
-        client.newCall(request).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                callback(false, "Network error: ${e.message}")
-            }
+    suspend fun checkSubscription(installationId: String): SubscriptionResult =
+        withContext(Dispatchers.IO) {
+            val url = "${AppConfig.CHECK_SUBSCRIPTION_URL}?installationId=$installationId"
+            val request = Request.Builder().url(url).get().build()
 
-            override fun onResponse(call: Call, response: Response) {
-                val body = response.body?.string()
-                try {
-                    val json = JSONObject(body ?: "{}")
-                    val success = json.getBoolean("success")
+            try {
+                val response = client.newCall(request).execute()
+                val bodyString = response.body?.string() ?: "{}"
+                val json = JSONObject(bodyString)
+
+                val success = json.getBoolean("success")
+                if (!success) {
                     val message = json.optString("message", "Unknown error")
-                    callback(success, if (success) null else message)
-                } catch (e: Exception) {
-                    callback(false, "Parsing error: ${e.message}")
-                }
-            }
-        })
-    }
-
-    fun checkSubscription(installationId: String, callback: (isSubscribed: Boolean, clientIp: String?, error: String?) -> Unit) {
-        val url = "${AppConfig.CHECK_SUBSCRIPTION_URL}?installationId=$installationId"
-        val request = Request.Builder()
-            .url(url)
-            .get()
-            .build()
-
-        client.newCall(request).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                callback(false, null, "Network error: ${e.message}")
-            }
-
-            override fun onResponse(call: Call, response: Response) {
-                val body = response.body?.string()
-                try {
-                    val json = JSONObject(body ?: "{}")
-                    val success = json.getBoolean("success")
-                    val clientIp = json.optString("clientIp", null)
-
-                    if (!success) {
-                        val message = json.optString("message", "Unknown error")
-                        callback(false, clientIp, message)
-                        return
+                    if (message.contains("Device not found")) {
+                        return@withContext SubscriptionResult.NotFound
                     }
-
-                    val isSubscribed = json.getBoolean("subscribed")
-                    callback(isSubscribed, clientIp, null)
-                } catch (e: Exception) {
-                    callback(false, null, "Parsing error: ${e.message}")
+                    return@withContext SubscriptionResult.Error(message)
                 }
+
+                val clientIp = json.optString("clientIp", null)
+                val isSubscribed = json.getBoolean("subscribed")
+
+                if (isSubscribed) {
+                    SubscriptionResult.Subscribed(clientIp)
+                } else {
+                    SubscriptionResult.NotSubscribed("No tienes una suscripcion activa", clientIp)
+                }
+            } catch (e: Exception) {
+                SubscriptionResult.Error("Error de red: ${e.message}")
             }
-        })
-    }
+        }
+
+    suspend fun registerDevice(deviceInfo: DeviceInfo, clientIp: String?): RegisterResult =
+        withContext(Dispatchers.IO) {
+            val requestBody = FormBody.Builder()
+                .add("installationId", deviceInfo.installationId)
+                .add("localIp", deviceInfo.localIp ?: "unknown")
+                .add("deviceModel", deviceInfo.deviceModel)
+                .apply {
+                    deviceInfo.dni?.let { add("dni", it) }
+                    deviceInfo.name?.let { add("name", it) }
+                    deviceInfo.phone?.let { add("phone", it) }
+                    clientIp?.let { add("gatewayIp", it) }
+                }
+                .build()
+
+            val request = Request.Builder()
+                .url(AppConfig.REGISTER_DEVICE_URL)
+                .post(requestBody)
+                .build()
+
+            try {
+                val response = client.newCall(request).execute()
+                val bodyString = response.body?.string() ?: "{}"
+                val json = JSONObject(bodyString)
+                val success = json.getBoolean("success")
+                if (success) {
+                    RegisterResult.Success
+                } else {
+                    val message = json.optString("message", "Unknown error")
+                    RegisterResult.Error(message)
+                }
+            } catch (e: Exception) {
+                RegisterResult.Error("Error de red: ${e.message}")
+            }
+        }
 }

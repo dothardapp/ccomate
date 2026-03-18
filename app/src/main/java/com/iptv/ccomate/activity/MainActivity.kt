@@ -32,7 +32,7 @@ fun CcoMateApp(viewModel: SubscriptionViewModel = hiltViewModel()) {
     // val state by viewModel.state.collectAsState()
     val fullscreenState = remember { mutableStateOf(false) }
 
-    // LaunchedEffect(Unit) { viewModel.checkSubscription(context) }
+    // LaunchedEffect(Unit) { viewModel.checkSubscription() }
 
     MaterialTheme {
         androidx.compose.runtime.CompositionLocalProvider(
@@ -64,13 +64,13 @@ fun CcoMateApp(viewModel: SubscriptionViewModel = hiltViewModel()) {
                 is SubscriptionState.NotSubscribed -> {
                     ErrorScreen(
                             message = (state as SubscriptionState.NotSubscribed).message,
-                            onRetry = { viewModel.checkSubscription(context) }
+                            onRetry = { viewModel.checkSubscription() }
                     )
                 }
                 is SubscriptionState.Error -> {
                     ErrorScreen(
                             message = (state as SubscriptionState.Error).message,
-                            onRetry = { viewModel.checkSubscription(context) }
+                            onRetry = { viewModel.checkSubscription() }
                     )
                 }
                 is SubscriptionState.NeedsUserInfo -> {

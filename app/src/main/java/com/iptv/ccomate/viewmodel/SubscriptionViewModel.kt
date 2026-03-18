@@ -1,12 +1,16 @@
 package com.iptv.ccomate.viewmodel
 
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.iptv.ccomate.util.DeviceIdentifier
 import com.iptv.ccomate.util.DeviceInfo
+import com.iptv.ccomate.util.RegisterResult
 import com.iptv.ccomate.util.SubscriptionManager
+import com.iptv.ccomate.util.SubscriptionResult
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -21,31 +25,35 @@ sealed class SubscriptionState {
 }
 
 @HiltViewModel
-class SubscriptionViewModel @Inject constructor() : ViewModel() {
+class SubscriptionViewModel @Inject constructor(
+    @ApplicationContext private val appContext: Context,
+    private val subscriptionManager: SubscriptionManager
+) : ViewModel() {
     private val _state = MutableStateFlow<SubscriptionState>(SubscriptionState.Loading)
     val state: StateFlow<SubscriptionState> = _state
 
     private lateinit var deviceInfo: DeviceInfo
     private var clientIp: String? = null
 
-    fun checkSubscription(context: Context) {
+    fun checkSubscription() {
+        _state.value = SubscriptionState.Loading
         viewModelScope.launch {
-            deviceInfo = DeviceIdentifier.getDeviceInfo(context)
-            println("Installation ID: ${deviceInfo.installationId}")
+            deviceInfo = DeviceIdentifier.getDeviceInfo(appContext)
+            Log.d("SubscriptionViewModel", "Installation ID: ${deviceInfo.installationId}")
 
-            SubscriptionManager.checkSubscription(deviceInfo.installationId) { isSubscribed, ip, subError ->
-                clientIp = ip // Almacenar la IP del cliente
-                if (subError == null) {
-                    if (isSubscribed) {
-                        _state.value = SubscriptionState.Subscribed(deviceInfo.installationId)
-                    } else {
-                        _state.value = SubscriptionState.NotSubscribed("No tienes una suscripción activa")
-                    }
-                } else if (subError.contains("Device not found")) {
-                    _state.value = SubscriptionState.NeedsUserInfo
-                } else {
-                    _state.value = SubscriptionState.Error(subError)
+            val result = subscriptionManager.checkSubscription(deviceInfo.installationId)
+
+            _state.value = when (result) {
+                is SubscriptionResult.Subscribed -> {
+                    clientIp = result.clientIp
+                    SubscriptionState.Subscribed(deviceInfo.installationId)
                 }
+                is SubscriptionResult.NotSubscribed -> {
+                    clientIp = result.clientIp
+                    SubscriptionState.NotSubscribed(result.message)
+                }
+                is SubscriptionResult.NotFound -> SubscriptionState.NeedsUserInfo
+                is SubscriptionResult.Error -> SubscriptionState.Error(result.message)
             }
         }
     }
@@ -59,19 +67,18 @@ class SubscriptionViewModel @Inject constructor() : ViewModel() {
                 phone = phone
             )
 
-            SubscriptionManager.registerDevice(updatedDeviceInfo, clientIp) { regSuccess, regError ->
-                if (regSuccess) {
-                    SubscriptionManager.checkSubscription(updatedDeviceInfo.installationId) { newIsSubscribed, _, newSubError ->
-                        if (newSubError != null) {
-                            _state.value = SubscriptionState.Error(newSubError)
-                        } else if (newIsSubscribed) {
-                            _state.value = SubscriptionState.Subscribed(updatedDeviceInfo.installationId)
-                        } else {
-                            _state.value = SubscriptionState.NotSubscribed("No tienes una suscripción activa")
-                        }
+            when (val regResult = subscriptionManager.registerDevice(updatedDeviceInfo, clientIp)) {
+                is RegisterResult.Success -> {
+                    val subResult = subscriptionManager.checkSubscription(updatedDeviceInfo.installationId)
+                    _state.value = when (subResult) {
+                        is SubscriptionResult.Subscribed -> SubscriptionState.Subscribed(updatedDeviceInfo.installationId)
+                        is SubscriptionResult.NotSubscribed -> SubscriptionState.NotSubscribed(subResult.message)
+                        is SubscriptionResult.NotFound -> SubscriptionState.NeedsUserInfo
+                        is SubscriptionResult.Error -> SubscriptionState.Error(subResult.message)
                     }
-                } else {
-                    _state.value = SubscriptionState.Error(regError ?: "Error al registrar dispositivo")
+                }
+                is RegisterResult.Error -> {
+                    _state.value = SubscriptionState.Error(regResult.message)
                 }
             }
         }

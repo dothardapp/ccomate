@@ -97,7 +97,7 @@ fun VideoPlayer(
         errorMessage = ""
 
         viewModel
-                .setPlayer(context, videoUrl)
+                .setPlayer(videoUrl)
                 .onSuccess { player ->
                     Log.d("VideoPlayer", "ExoPlayer successfully set: $player")
                     exoPlayer = player

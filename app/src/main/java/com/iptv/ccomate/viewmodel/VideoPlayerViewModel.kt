@@ -1,16 +1,13 @@
 package com.iptv.ccomate.viewmodel
 
-import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Build
 import android.util.Log
-import androidx.annotation.OptIn
 import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
-import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
@@ -20,18 +17,17 @@ import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import com.iptv.ccomate.util.AppConfig
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import javax.inject.Inject
 import okhttp3.OkHttpClient
-import java.security.SecureRandom
-import java.security.cert.X509Certificate
-import javax.net.ssl.SSLContext
-import javax.net.ssl.TrustManager
-import javax.net.ssl.X509TrustManager
+import java.util.concurrent.TimeUnit
+import javax.inject.Inject
 
 @HiltViewModel
-class VideoPlayerViewModel @Inject constructor() : ViewModel() {
+class VideoPlayerViewModel @Inject constructor(
+    @ApplicationContext private val appContext: Context
+) : ViewModel() {
     private var exoPlayer: ExoPlayer? = null
     private var dataSourceFactory: DataSource.Factory? = null
 
@@ -50,48 +46,19 @@ class VideoPlayerViewModel @Inject constructor() : ViewModel() {
     private suspend fun getOrCreateDataSourceFactory(): DataSource.Factory =
         withContext(Dispatchers.IO) {
             if (dataSourceFactory == null) {
-                try {
-                    // Crear un TrustManager que acepte todos los certificados (solo para pruebas)
-                    val trustAllCerts = arrayOf<TrustManager>(@SuppressLint("CustomX509TrustManager")
-                    object : X509TrustManager {
-                        @SuppressLint("TrustAllX509TrustManager")
-                        override fun checkClientTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
-                        @SuppressLint("TrustAllX509TrustManager")
-                        override fun checkServerTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
-                        override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
-                    })
+                val okHttpClient = OkHttpClient.Builder()
+                    .connectTimeout(15, TimeUnit.SECONDS)
+                    .readTimeout(30, TimeUnit.SECONDS)
+                    .build()
 
-                    // Configurar SSLContext con el TrustManager personalizado
-                    val sslContext = SSLContext.getInstance("TLS")
-                    sslContext.init(null, trustAllCerts, SecureRandom())
-
-                    // Crear un OkHttpClient con el SSLContext personalizado
-                    val okHttpClient = OkHttpClient.Builder()
-                        .sslSocketFactory(sslContext.socketFactory, trustAllCerts[0] as X509TrustManager)
-                        .hostnameVerifier { _, _ -> true } // Ignorar verificación de hostname
-                        .build()
-
-                    // Crear el DataSource.Factory usando OkHttpDataSource
-                    dataSourceFactory = OkHttpDataSource.Factory(okHttpClient)
-                        .setUserAgent(buildDynamicUserAgent())
-                        .setDefaultRequestProperties(
-                            mapOf(
-                                "Referer" to AppConfig.VIDEO_REFERER,
-                                "Origin" to AppConfig.VIDEO_ORIGIN
-                            )
+                dataSourceFactory = OkHttpDataSource.Factory(okHttpClient)
+                    .setUserAgent(buildDynamicUserAgent())
+                    .setDefaultRequestProperties(
+                        mapOf(
+                            "Referer" to AppConfig.VIDEO_REFERER,
+                            "Origin" to AppConfig.VIDEO_ORIGIN
                         )
-                } catch (e: Exception) {
-                    Log.e("VideoPlayerViewModel", "Error al configurar SSLContext: ${e.message}")
-                    // Fallback a la configuración por defecto si falla
-                    dataSourceFactory = OkHttpDataSource.Factory(OkHttpClient())
-                        .setUserAgent(buildDynamicUserAgent())
-                        .setDefaultRequestProperties(
-                            mapOf(
-                                "Referer" to AppConfig.VIDEO_REFERER,
-                                "Origin" to AppConfig.VIDEO_ORIGIN
-                            )
-                        )
-                }
+                    )
             }
             dataSourceFactory!!
         }
@@ -117,7 +84,7 @@ class VideoPlayerViewModel @Inject constructor() : ViewModel() {
             }
         }
 
-    suspend fun setPlayer(context: Context, videoUrl: String): Result<ExoPlayer> {
+    suspend fun setPlayer(videoUrl: String): Result<ExoPlayer> {
         return try {
             if (videoUrl.isNotEmpty() && (videoUrl.startsWith("http://") || videoUrl.startsWith("https://"))) {
                 // Preparar MediaSource en IO primero (no necesita el player anterior)
@@ -133,7 +100,7 @@ class VideoPlayerViewModel @Inject constructor() : ViewModel() {
                     }
                     exoPlayer = null
 
-                    ExoPlayer.Builder(context)
+                    ExoPlayer.Builder(appContext)
                         .setLoadControl(createLoadControl())
                         .build()
                 }
