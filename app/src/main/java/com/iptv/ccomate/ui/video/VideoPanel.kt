@@ -1,6 +1,5 @@
 package com.iptv.ccomate.ui.video
 
-import android.content.Context
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -18,7 +17,6 @@ import androidx.compose.ui.unit.sp
 
 @Composable
 fun VideoPanel(
-        context: Context,
         videoUrl: String?,
         channelName: String?,
         onPlaybackStarted: () -> Unit,
@@ -40,7 +38,6 @@ fun VideoPanel(
         // Renderizar VideoPlayer si videoUrl no es null
         videoUrl?.let {
             VideoPlayer(
-                    context = context,
                     videoUrl = it,
                     channelName = channelName,
                     modifier =

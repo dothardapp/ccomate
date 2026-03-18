@@ -1,6 +1,7 @@
 package com.iptv.ccomate.ui.video
 
 import android.content.Context
+import android.content.ContextWrapper
 import android.util.Log
 import android.view.ViewGroup
 import android.widget.FrameLayout
@@ -39,6 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
@@ -64,7 +66,6 @@ private val TIME_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:
 
 @Composable
 fun VideoPlayer(
-        context: Context,
         videoUrl: String,
         modifier: Modifier = Modifier,
         channelName: String? = null,
@@ -82,9 +83,12 @@ fun VideoPlayer(
     val lifecycleOwner = LocalLifecycleOwner.current
     val retryFocusRequester = remember { FocusRequester() }
 
-    // USAR SCOPE DE ACTIVITY para garantizar un único reproductor y liberación al cerrar
+    // Resolver el ComponentActivity de forma segura (soporta ContextWrappers)
+    val context = LocalContext.current
+    val activity = context.findActivity()
+        ?: throw IllegalStateException("VideoPlayer debe ser alojado en un ComponentActivity")
     val viewModel: VideoPlayerViewModel = hiltViewModel(
-        viewModelStoreOwner = context as ComponentActivity
+        viewModelStoreOwner = activity
     )
     var exoPlayer by remember { mutableStateOf<ExoPlayer?>(null) }
 
@@ -414,4 +418,10 @@ fun VideoPlayer(
             }
         }
     }
+}
+
+private fun Context.findActivity(): ComponentActivity? = when (this) {
+    is ComponentActivity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }
