@@ -3,7 +3,7 @@ package com.iptv.ccomate.activity
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.material3.MaterialTheme
+import com.iptv.ccomate.ui.theme.CCOMateTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -34,7 +34,7 @@ fun CcoMateApp(viewModel: SubscriptionViewModel = hiltViewModel()) {
 
     // LaunchedEffect(Unit) { viewModel.checkSubscription() }
 
-    MaterialTheme {
+    CCOMateTheme {
         androidx.compose.runtime.CompositionLocalProvider(
                 com.iptv.ccomate.util.LocalFullscreenState provides fullscreenState
         ) {

@@ -21,7 +21,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -34,7 +34,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Text
-import kotlinx.coroutines.flow.filter
+import com.iptv.ccomate.ui.theme.AppColors
 
 @Composable
 fun VideoPlayerError(
@@ -53,7 +53,7 @@ fun VideoPlayerError(
         modifier = modifier
     ) {
         Box(
-            modifier = Modifier.fillMaxSize().background(Color(0xE6121212)),
+            modifier = Modifier.fillMaxSize().background(AppColors.overlayDarker),
             contentAlignment = Alignment.Center
         ) {
             Column(
@@ -63,7 +63,7 @@ fun VideoPlayerError(
             ) {
                 Text(
                     text = errorMessage,
-                    color = Color(0xFFF5F5F5),
+                    color = AppColors.textPrimary,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
                     textAlign = TextAlign.Center,
@@ -74,7 +74,7 @@ fun VideoPlayerError(
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = channelName,
-                        color = Color(0xFFBDBDBD),
+                        color = AppColors.textSecondary,
                         fontSize = 12.sp,
                         textAlign = TextAlign.Center,
                         maxLines = 1
@@ -92,12 +92,12 @@ fun VideoPlayerError(
                             onRetry()
                         }
                         .background(
-                            if (isRetryFocused) Color(0xFF42A5F5) else Color(0xFF2196F3),
+                            if (isRetryFocused) AppColors.accentBlueFocused else AppColors.accentBlue,
                             RoundedCornerShape(6.dp)
                         )
                         .border(
                             width = if (isRetryFocused) 2.dp else 1.dp,
-                            color = if (isRetryFocused) Color.White else Color(0xFF64B5F6),
+                            color = if (isRetryFocused) Color.White else AppColors.accentBlueBorder,
                             shape = RoundedCornerShape(6.dp)
                         )
                         .padding(horizontal = 20.dp, vertical = 10.dp),
@@ -113,18 +113,17 @@ fun VideoPlayerError(
             }
         }
 
-        // Request focus when error becomes visible using snapshotFlow
-        LaunchedEffect(Unit) {
-            snapshotFlow { visible }
-                .filter { it }
-                .collect {
-                    try {
-                        retryFocusRequester.requestFocus()
-                        Log.d("VideoPlayerError", "Retry button focused")
-                    } catch (e: Exception) {
-                        Log.w("VideoPlayerError", "Focus request failed: ${e.message}")
-                    }
+        // Request focus when error becomes visible — wait one frame for layout
+        LaunchedEffect(visible) {
+            if (visible) {
+                withFrameNanos { }
+                try {
+                    retryFocusRequester.requestFocus()
+                    Log.d("VideoPlayerError", "Retry button focused")
+                } catch (e: Exception) {
+                    Log.w("VideoPlayerError", "Focus request failed: ${e.message}")
                 }
+            }
         }
     }
 }

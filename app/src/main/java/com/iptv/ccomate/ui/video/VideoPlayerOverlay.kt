@@ -12,13 +12,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Text
 import com.iptv.ccomate.model.EPGProgram
+import com.iptv.ccomate.ui.theme.AppColors
 import java.time.format.DateTimeFormatter
 
 private val TIME_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
@@ -41,7 +41,7 @@ fun VideoPlayerOverlay(
                 .fillMaxWidth()
                 .padding(24.dp)
                 .background(
-                    Color(0xFF121212).copy(alpha = 0.7f),
+                    AppColors.background.copy(alpha = 0.7f),
                     RoundedCornerShape(8.dp)
                 ),
             contentAlignment = Alignment.CenterStart
@@ -51,7 +51,7 @@ fun VideoPlayerOverlay(
                     text = currentProgram?.title ?: channelName ?: "",
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFFF5F5F5),
+                    color = AppColors.textPrimary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -63,7 +63,7 @@ fun VideoPlayerOverlay(
                     Text(
                         text = "$start - $end",
                         fontSize = 16.sp,
-                        color = Color(0xFFBDBDBD),
+                        color = AppColors.textSecondary,
                         modifier = Modifier.padding(top = 4.dp)
                     )
 
@@ -71,7 +71,7 @@ fun VideoPlayerOverlay(
                         Text(
                             text = currentProgram.description,
                             fontSize = 14.sp,
-                            color = Color(0xFFF5F5F5).copy(alpha = 0.8f),
+                            color = AppColors.textDescription,
                             maxLines = 3,
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.padding(top = 8.dp)

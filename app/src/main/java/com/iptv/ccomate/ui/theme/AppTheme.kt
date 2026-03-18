@@ -34,6 +34,19 @@ object AppColors {
     // Estado
     val selected = Color(0xFFF5F5F5)
     val unselected = Color(0xFFF5F5F5).copy(alpha = 0.7f)
+
+    // Acentos
+    val accentBlue = Color(0xFF2196F3)
+    val accentBlueFocused = Color(0xFF42A5F5)
+    val accentBlueBorder = Color(0xFF64B5F6)
+
+    // Overlays
+    val overlayDark = Color(0x66000000)
+    val overlayDarker = Color(0xE6121212)
+    val overlayPanel = Color(0xAB030301)
+
+    // Texto específico del reproductor
+    val textDescription = Color(0xFFF5F5F5).copy(alpha = 0.8f)
 }
 
 /**

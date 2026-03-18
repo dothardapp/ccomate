@@ -7,6 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -14,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.iptv.ccomate.ui.theme.AppColors
 
 @Composable
 fun VideoPanel(
@@ -26,13 +28,13 @@ fun VideoPanel(
         currentProgram: com.iptv.ccomate.model.EPGProgram? = null,
         isFullscreen: Boolean = false
 ) {
-    Box(modifier = modifier.background(Color(0xAB030301))) {
+    Box(modifier = modifier.background(AppColors.overlayPanel)) {
         // Mostrar la rueda de carga si videoUrl es null (canales aún cargando)
         AnimatedVisibility(visible = videoUrl == null, enter = fadeIn(), exit = fadeOut()) {
             Box(
-                    modifier = Modifier.Companion.fillMaxSize().background(Color(0x66000000)),
-                    contentAlignment = Alignment.Companion.Center
-            ) { CircularProgressIndicator(color = Color(0xFFF5F5F5), strokeWidth = 3.dp) }
+                    modifier = Modifier.fillMaxSize().background(AppColors.overlayDark),
+                    contentAlignment = Alignment.Center
+            ) { CircularProgressIndicator(color = AppColors.textPrimary, strokeWidth = 3.dp) }
         }
 
         // Renderizar VideoPlayer si videoUrl no es null
@@ -41,7 +43,7 @@ fun VideoPanel(
                     videoUrl = it,
                     channelName = channelName,
                     modifier =
-                            Modifier.Companion.background(Color.Companion.Transparent)
+                            Modifier.background(Color.Transparent)
                                     .fillMaxSize()
                                     .padding(1.dp),
                     onPlaybackStarted = onPlaybackStarted,
@@ -57,17 +59,15 @@ fun VideoPanel(
                             Modifier.align(Alignment.TopCenter)
                                     .padding(8.dp)
                                     .background(
-                                            Color(0xFF121212).copy(alpha = 0.6f),
-                                            androidx.compose.foundation.shape.RoundedCornerShape(
-                                                    4.dp
-                                            )
+                                            AppColors.background.copy(alpha = 0.6f),
+                                            RoundedCornerShape(4.dp)
                                     )
                                     .padding(horizontal = 8.dp, vertical = 4.dp)
             ) {
                 androidx.tv.material3.Text(
                         text = "Ahora: ${currentProgram.title}",
-                        color = Color(0xFFF5F5F5),
-                        fontSize = 14.sp // Mínimo 14sp para TV
+                        color = AppColors.textPrimary,
+                        fontSize = 14.sp
                 )
             }
         }

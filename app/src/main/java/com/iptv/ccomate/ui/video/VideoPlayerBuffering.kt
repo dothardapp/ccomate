@@ -10,8 +10,8 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.iptv.ccomate.ui.theme.AppColors
 
 @Composable
 fun VideoPlayerBuffering(
@@ -25,10 +25,10 @@ fun VideoPlayerBuffering(
         modifier = modifier
     ) {
         Box(
-            modifier = Modifier.fillMaxSize().background(Color(0x66000000)),
+            modifier = Modifier.fillMaxSize().background(AppColors.overlayDark),
             contentAlignment = Alignment.Center
         ) {
-            CircularProgressIndicator(color = Color(0xFFF5F5F5), strokeWidth = 3.dp)
+            CircularProgressIndicator(color = AppColors.textPrimary, strokeWidth = 3.dp)
         }
     }
 }

@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -51,6 +52,11 @@ fun FullscreenDPadContainer(
         }
     }
 
+    // Pre-calcular el índice fuera del handler de teclado
+    val currentIndex by remember(channels, selectedChannelUrl) {
+        derivedStateOf { channels.indexOfFirst { it.url == selectedChannelUrl } }
+    }
+
     BackHandler { onExitFullscreen() }
 
     Box(
@@ -70,29 +76,28 @@ fun FullscreenDPadContainer(
                     .fillMaxSize()
                     .focusRequester(dpadFocusRequester)
                     .onKeyEvent { event ->
-                        if (event.type == KeyEventType.KeyDown) {
-                            val currentIndex = channels.indexOfFirst {
-                                it.url == selectedChannelUrl
-                            }
-                            if (currentIndex != -1) {
-                                when (event.nativeKeyEvent.keyCode) {
-                                    KeyEvent.KEYCODE_DPAD_UP -> {
-                                        val prevIndex = if (currentIndex <= 0)
-                                            channels.size - 1
-                                        else
-                                            currentIndex - 1
-                                        onChannelChanged(channels[prevIndex])
-                                        true
-                                    }
-                                    KeyEvent.KEYCODE_DPAD_DOWN -> {
-                                        val nextIndex =
-                                            (currentIndex + 1) % channels.size
-                                        onChannelChanged(channels[nextIndex])
-                                        true
-                                    }
-                                    else -> false
+                        if (event.type == KeyEventType.KeyDown && currentIndex != -1) {
+                            when (event.nativeKeyEvent.keyCode) {
+                                KeyEvent.KEYCODE_DPAD_UP -> {
+                                    val prevIndex = if (currentIndex <= 0)
+                                        channels.size - 1
+                                    else
+                                        currentIndex - 1
+                                    onChannelChanged(channels[prevIndex])
+                                    true
                                 }
-                            } else false
+                                KeyEvent.KEYCODE_DPAD_DOWN -> {
+                                    val nextIndex =
+                                        (currentIndex + 1) % channels.size
+                                    onChannelChanged(channels[nextIndex])
+                                    true
+                                }
+                                KeyEvent.KEYCODE_DPAD_LEFT,
+                                KeyEvent.KEYCODE_DPAD_RIGHT,
+                                KeyEvent.KEYCODE_DPAD_CENTER,
+                                KeyEvent.KEYCODE_ENTER -> true
+                                else -> false
+                            }
                         } else false
                     }
                     .focusable()

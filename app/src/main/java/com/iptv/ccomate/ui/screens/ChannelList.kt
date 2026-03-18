@@ -51,7 +51,10 @@ import coil.compose.AsyncImage
 import com.iptv.ccomate.model.Channel
 import com.iptv.ccomate.util.AppConfig
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.snapshotFlow
 
 @Composable
 fun ChannelList(
@@ -86,8 +89,10 @@ fun ChannelList(
                 0
             }
             listState.scrollToItem(targetIndex)
-            // Esperar a que Compose materialice los items tras el scroll
-            delay(50)
+            // Esperar a que Compose materialice el item tras el scroll
+            snapshotFlow {
+                listState.layoutInfo.visibleItemsInfo.any { it.index == targetIndex }
+            }.filter { it }.first()
             focusRequesters[targetIndex]?.requestFocus()
         }
     }
@@ -100,7 +105,9 @@ fun ChannelList(
                 // 1. Forzar scroll para asegurar que el item existe en la composicion
                 listState.scrollToItem(index)
                 // 2. Esperar a que Compose materialice el item tras el scroll
-                delay(50)
+                snapshotFlow {
+                    listState.layoutInfo.visibleItemsInfo.any { it.index == index }
+                }.filter { it }.first()
                 // 3. Pedir foco
                 focusRequesters[index]?.requestFocus()
             }
