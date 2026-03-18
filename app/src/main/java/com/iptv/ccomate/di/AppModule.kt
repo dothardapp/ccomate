@@ -3,8 +3,6 @@ package com.iptv.ccomate.di
 import android.content.Context
 import com.iptv.ccomate.data.local.AppDatabase
 import com.iptv.ccomate.data.local.ChannelDao
-import com.iptv.ccomate.data.ChannelRepository
-import com.iptv.ccomate.data.EPGRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -24,19 +22,7 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideEPGRepository(@ApplicationContext context: Context, database: AppDatabase): EPGRepository {
-        return EPGRepository(context, database)
-    }
-
-    @Provides
-    @Singleton
     fun provideChannelDao(database: AppDatabase): ChannelDao {
         return database.channelDao()
-    }
-
-    @Provides
-    @Singleton
-    fun provideChannelRepository(channelDao: ChannelDao): ChannelRepository {
-        return ChannelRepository(channelDao)
     }
 }

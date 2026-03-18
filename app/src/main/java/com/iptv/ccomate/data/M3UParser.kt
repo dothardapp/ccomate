@@ -1,8 +1,17 @@
 package com.iptv.ccomate.data
 
 import com.iptv.ccomate.model.Channel
+import javax.inject.Inject
+import javax.inject.Singleton
 
-object M3UParser {
+@Singleton
+class M3UParser @Inject constructor() {
+    private val nameRegex = Regex(".*,(.*)")
+    private val logoRegex = Regex("""tvg-logo="(.*?)"""")
+    private val groupRegex = Regex("""group-title="(.*?)"""")
+    private val channelIdRegex = Regex("""channel-id="(.*?)"""")
+    private val tvgIdRegex = Regex("""tvg-id="(.*?)"""")
+
     fun parse(m3uContent: String): List<Channel> {
         val channels = mutableListOf<Channel>()
         val lines = m3uContent.lines()
@@ -14,25 +23,13 @@ object M3UParser {
         for (i in lines.indices) {
             val line = lines[i]
             if (line.startsWith("#EXTINF")) {
-                // Extraer el nombre después de la última coma
-                val nameMatch = Regex(".*,(.*)").find(line)
-                currentName = nameMatch?.groupValues?.get(1)?.trim() ?: "Sin nombre"
-
-                val logoMatch = Regex("tvg-logo=\"(.*?)\"").find(line)
-                currentLogo = logoMatch?.groupValues?.get(1)
-
-                val groupMatch = Regex("group-title=\"(.*?)\"").find(line)
-                currentGroup = groupMatch?.groupValues?.get(1)
+                currentName = nameRegex.find(line)?.groupValues?.get(1)?.trim() ?: "Sin nombre"
+                currentLogo = logoRegex.find(line)?.groupValues?.get(1)
+                currentGroup = groupRegex.find(line)?.groupValues?.get(1)
 
                 // Prioritize channel-id, fallback to tvg-id
-                val channelIdMatch = Regex("channel-id=\"(.*?)\"").find(line)
-                var extractedId = channelIdMatch?.groupValues?.get(1)
-
-                if (extractedId == null) {
-                    val tvgIdMatch = Regex("tvg-id=\"(.*?)\"").find(line)
-                    extractedId = tvgIdMatch?.groupValues?.get(1)
-                }
-                currentTvgId = extractedId
+                val extractedId = channelIdRegex.find(line)?.groupValues?.get(1)
+                currentTvgId = extractedId ?: tvgIdRegex.find(line)?.groupValues?.get(1)
             } else if (line.startsWith("http")) {
                 channels.add(
                         Channel(currentName, line.trim(), currentLogo, currentGroup, currentTvgId)

@@ -7,6 +7,9 @@ import com.iptv.ccomate.data.local.EPGEntity
 import com.iptv.ccomate.model.EPGProgram
 import com.iptv.ccomate.util.AppConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
+import io.ktor.client.request.get
+import io.ktor.client.statement.bodyAsChannel
+import io.ktor.utils.io.jvm.javaio.toInputStream
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.ZonedDateTime
@@ -15,7 +18,9 @@ import javax.inject.Inject
 
 class EPGRepository @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val appDatabase: AppDatabase
+    private val appDatabase: AppDatabase,
+    private val networkClient: NetworkClient,
+    private val epgParser: EPGParser
 ) {
     private val epgDao = appDatabase.epgDao()
     private val sharedPrefs = context.getSharedPreferences("epg_prefs", Context.MODE_PRIVATE)
@@ -46,18 +51,20 @@ class EPGRepository @Inject constructor(
 
     private suspend fun fetchAndSave(): Map<String, List<EPGProgram>> {
         try {
-            val xmlContent = NetworkClient.fetchM3U(AppConfig.EPG_URL)
-            val parsedData = EPGParser.parse(xmlContent)
-            
+            val response = networkClient.client.get(AppConfig.EPG_URL)
+            val parsedData = response.bodyAsChannel().toInputStream().use { stream ->
+                epgParser.parse(stream)
+            }
+
             val entities = parsedData.flatMap { (_, programs) ->
                 programs.map { it.toEntity() }
             }
 
             epgDao.deleteAll()
             epgDao.insertAll(entities)
-            
+
             sharedPrefs.edit().putLong("last_update", System.currentTimeMillis()).apply()
-            
+
             return parsedData
         } catch (e: Exception) {
             Log.e("EPGRepository", "Error fetching EPG", e)

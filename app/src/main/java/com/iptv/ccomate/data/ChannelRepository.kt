@@ -9,7 +9,9 @@ import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 class ChannelRepository @Inject constructor(
-    private val channelDao: ChannelDao
+    private val channelDao: ChannelDao,
+    private val networkClient: NetworkClient,
+    private val m3uParser: M3UParser
 ) {
     suspend fun getChannels(source: String, playlistUrl: String): List<Channel> =
         withContext(Dispatchers.IO) {
@@ -28,8 +30,8 @@ class ChannelRepository @Inject constructor(
         }
 
     private suspend fun fetchAndCache(source: String, playlistUrl: String): List<Channel> {
-        val m3uContent = NetworkClient.fetchM3U(playlistUrl)
-        val channels = M3UParser.parse(m3uContent)
+        val m3uContent = networkClient.fetchM3U(playlistUrl)
+        val channels = m3uParser.parse(m3uContent)
         val entities = channels.map { it.toEntity(source) }
         channelDao.replaceChannels(source, entities)
         Log.d("ChannelRepository", "Cached ${channels.size} channels for $source")

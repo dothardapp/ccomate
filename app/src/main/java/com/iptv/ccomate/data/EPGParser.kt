@@ -2,24 +2,27 @@ package com.iptv.ccomate.data
 
 import android.util.Log
 import com.iptv.ccomate.model.EPGProgram
-import java.io.StringReader
+import java.io.InputStream
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import org.xmlpull.v1.XmlPullParser
 import org.xmlpull.v1.XmlPullParserFactory
+import javax.inject.Inject
+import javax.inject.Singleton
 
-object EPGParser {
+@Singleton
+class EPGParser @Inject constructor() {
     // Format example: 20260112065500 -0300
     private val DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMddHHmmss Z", Locale.US)
 
-    fun parse(xmlContent: String): Map<String, List<EPGProgram>> {
+    fun parse(inputStream: InputStream): Map<String, List<EPGProgram>> {
         val epgData = mutableMapOf<String, MutableList<EPGProgram>>()
 
         try {
             val factory = XmlPullParserFactory.newInstance()
             val parser = factory.newPullParser()
-            parser.setInput(StringReader(xmlContent))
+            parser.setInput(inputStream, null)
 
             var eventType = parser.eventType
             var currentChannelId: String? = null
