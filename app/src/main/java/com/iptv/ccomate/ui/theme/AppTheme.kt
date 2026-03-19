@@ -58,8 +58,7 @@ object AppGradients {
      * Gradiente vertical gris usado en HomeScreen y Drawer.
      * Va de gris claro a gris oscuro (casi negro).
      */
-    val verticalGrayGradient: Brush
-        get() = Brush.verticalGradient(
+    val verticalGrayGradient: Brush = Brush.verticalGradient(
             colors = listOf(
                 AppColors.lightGray,
                 AppColors.gray1,

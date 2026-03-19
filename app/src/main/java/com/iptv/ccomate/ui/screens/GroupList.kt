@@ -46,7 +46,7 @@ fun GroupList(
         isLoading: Boolean = false
 ) {
     val listState = rememberLazyListState()
-    val focusRequesters = remember(groups) { List(groups.size) { FocusRequester() } }
+    val focusRequesters = remember { mutableMapOf<Int, FocusRequester>() }
 
     // Factor de escala para foco
     val scaleFactor = 1.1f
@@ -64,6 +64,10 @@ fun GroupList(
             itemsIndexed(groups) { index, group ->
             var hasFocus by remember { mutableStateOf(false) }
             val isSelected = index == selectedIndex
+
+            val itemFocusRequester = remember {
+                focusRequesters.getOrPut(index) { FocusRequester() }
+            }
 
             // Escala animada para foco TV (1.1x)
             val focusScale by
@@ -91,7 +95,7 @@ fun GroupList(
                                                     else Color.Transparent,
                                             shape = RoundedCornerShape(6.dp)
                                     )
-                                    .focusRequester(focusRequesters[index])
+                                    .focusRequester(itemFocusRequester)
                                     .onFocusChanged { hasFocus = it.isFocused }
                                     .onKeyEvent { event ->
                                         if (event.type == KeyEventType.KeyDown &&

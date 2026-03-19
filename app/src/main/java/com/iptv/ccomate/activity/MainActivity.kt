@@ -3,18 +3,16 @@ package com.iptv.ccomate.activity
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import com.iptv.ccomate.ui.theme.CCOMateTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.movableContentOf
 import androidx.compose.runtime.remember
-import androidx.compose.ui.platform.LocalContext
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.rememberNavController
 import com.iptv.ccomate.navigation.AppNavGraph
 import com.iptv.ccomate.navigation.CcoNavigationDrawer
-import com.iptv.ccomate.viewmodel.SubscriptionViewModel
-
+import com.iptv.ccomate.ui.theme.CCOMateTheme
+import com.iptv.ccomate.util.LocalFullscreenState
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -26,60 +24,16 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun CcoMateApp(viewModel: SubscriptionViewModel = hiltViewModel()) {
-    val context = LocalContext.current
+fun CcoMateApp() {
     val navController = rememberNavController()
-    // val state by viewModel.state.collectAsState()
     val fullscreenState = remember { mutableStateOf(false) }
 
-    // LaunchedEffect(Unit) { viewModel.checkSubscription() }
-
     CCOMateTheme {
-        androidx.compose.runtime.CompositionLocalProvider(
-                com.iptv.ccomate.util.LocalFullscreenState provides fullscreenState
-        ) {
-            // Bypass subscription check temporarily
+        CompositionLocalProvider(LocalFullscreenState provides fullscreenState) {
             val navContent = remember {
-                androidx.compose.runtime.movableContentOf {
-                    AppNavGraph(navController = navController)
-                }
+                movableContentOf { AppNavGraph(navController = navController) }
             }
-
             CcoNavigationDrawer(navController = navController) { navContent() }
-
-            /*
-            when (state) {
-                is SubscriptionState.Loading -> {
-                    LoadingScreen()
-                }
-                is SubscriptionState.Subscribed -> {
-                    val navContent = remember {
-                        androidx.compose.runtime.movableContentOf {
-                            AppNavGraph(navController = navController)
-                        }
-                    }
-
-                    CcoNavigationDrawer(navController = navController) { navContent() }
-                }
-                is SubscriptionState.NotSubscribed -> {
-                    ErrorScreen(
-                            message = (state as SubscriptionState.NotSubscribed).message,
-                            onRetry = { viewModel.checkSubscription() }
-                    )
-                }
-                is SubscriptionState.Error -> {
-                    ErrorScreen(
-                            message = (state as SubscriptionState.Error).message,
-                            onRetry = { viewModel.checkSubscription() }
-                    )
-                }
-                is SubscriptionState.NeedsUserInfo -> {
-                    UserInfoScreen { dni, name, phone ->
-                        viewModel.registerWithUserInfo(dni, name, phone)
-                    }
-                }
-            }
-            */
         }
     }
 }

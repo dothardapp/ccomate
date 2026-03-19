@@ -14,6 +14,5 @@ data class ChannelUiState(
     val playbackError: Throwable? = null,
     val isPlaying: Boolean = false,
     val isLoading: Boolean = false,
-    val epgData: Map<String, List<EPGProgram>> = emptyMap(),
     val currentProgram: EPGProgram? = null
 )

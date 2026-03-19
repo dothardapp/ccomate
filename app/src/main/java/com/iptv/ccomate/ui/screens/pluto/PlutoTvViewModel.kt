@@ -11,6 +11,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.ZonedDateTime
+import com.iptv.ccomate.model.EPGProgram
 import javax.inject.Inject
 
 @HiltViewModel
@@ -22,6 +23,8 @@ class PlutoTvViewModel @Inject constructor(
     override val sourceName = "PLUTO"
     override val playlistUrl = AppConfig.PLUTO_PLAYLIST_URL
 
+    private var epgData: Map<String, List<EPGProgram>> = emptyMap()
+
     init {
         initialize()
     }
@@ -32,7 +35,7 @@ class PlutoTvViewModel @Inject constructor(
                 val parsedEpg = withContext(Dispatchers.IO) {
                     epgRepository.getEPGData()
                 }
-                _uiState.value = _uiState.value.copy(epgData = parsedEpg)
+                epgData = parsedEpg
                 Log.d("PlutoTvViewModel", "EPG Loaded: ${parsedEpg.size} channels")
                 updateCurrentProgram()
             } catch (e: Exception) {
@@ -53,7 +56,7 @@ class PlutoTvViewModel @Inject constructor(
         val state = _uiState.value
         val selectedChannel = state.allChannels.firstOrNull { it.url == state.selectedChannelUrl }
 
-        val program = selectedChannel?.tvgId?.let { tvgId -> state.epgData[tvgId] }?.find { p ->
+        val program = selectedChannel?.tvgId?.let { tvgId -> epgData[tvgId] }?.find { p ->
             val now = ZonedDateTime.now()
             now.isAfter(p.startTime) && now.isBefore(p.endTime)
         }

@@ -28,14 +28,5 @@ fun DrawerIconContent(
                 modifier = modifier
             )
         }
-        is DrawerIcon.Svg -> {
-            // Nota: Para SVG, necesitas una librería como coil-compose
-            // Por ahora, asumimos que es un recurso drawable
-            Image(
-                painter = painterResource(id = icon.resId),
-                contentDescription = label,
-                modifier = modifier
-            )
-        }
     }
 }

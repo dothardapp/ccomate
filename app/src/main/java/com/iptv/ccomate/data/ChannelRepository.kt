@@ -4,7 +4,10 @@ import android.util.Log
 import com.iptv.ccomate.data.local.ChannelDao
 import com.iptv.ccomate.data.local.ChannelEntity
 import com.iptv.ccomate.model.Channel
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
@@ -13,6 +16,8 @@ class ChannelRepository @Inject constructor(
     private val networkClient: NetworkClient,
     private val m3uParser: M3UParser
 ) {
+    private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     suspend fun getChannels(source: String, playlistUrl: String): List<Channel> =
         withContext(Dispatchers.IO) {
             // Cache-first: intentar desde Room
@@ -20,7 +25,7 @@ class ChannelRepository @Inject constructor(
             if (cached.isNotEmpty()) {
                 Log.d("ChannelRepository", "Cache hit for $source: ${cached.size} channels")
                 // Lanzar actualización de fondo sin bloquear la UI
-                refreshInBackground(source, playlistUrl)
+                repositoryScope.launch { refreshInBackground(source, playlistUrl) }
                 return@withContext cached.map { it.toChannel() }
             }
 

@@ -53,6 +53,7 @@ class VideoPlayerViewModel @Inject constructor(
     private var exoPlayer: ExoPlayer? = null
     private var dataSourceFactory: DataSource.Factory? = null
     private var bufferingTimeoutJob: Job? = null
+    private var currentPlaybackJob: Job? = null
 
     private val playerListener = object : Player.Listener {
         override fun onPlaybackStateChanged(state: Int) {
@@ -194,6 +195,8 @@ class VideoPlayerViewModel @Inject constructor(
             return
         }
 
+        currentPlaybackJob?.cancel()
+
         _playerState.value = _playerState.value.copy(
             isBuffering = true,
             hasError = false,
@@ -201,7 +204,7 @@ class VideoPlayerViewModel @Inject constructor(
             currentUrl = videoUrl
         )
 
-        viewModelScope.launch {
+        currentPlaybackJob = viewModelScope.launch {
             try {
                 val mediaSource = createMediaSource(videoUrl)
 
@@ -241,6 +244,7 @@ class VideoPlayerViewModel @Inject constructor(
     }
 
     fun releasePlayer() {
+        currentPlaybackJob?.cancel()
         cancelBufferingTimeout()
         exoPlayer?.let { player ->
             player.removeListener(playerListener)

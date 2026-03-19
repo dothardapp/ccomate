@@ -1,31 +1,20 @@
 package com.iptv.ccomate.ui.theme
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
-import androidx.tv.material3.ExperimentalTvMaterial3Api
+import androidx.compose.ui.graphics.Color
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.darkColorScheme
-import androidx.tv.material3.lightColorScheme
 
-@OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
-fun CCOMateTheme(
-    isInDarkTheme: Boolean = isSystemInDarkTheme(),
-    content: @Composable () -> Unit,
-) {
-    val colorScheme = if (isInDarkTheme) {
-        darkColorScheme(
-            primary = Purple80,
-            secondary = PurpleGrey80,
-            tertiary = Pink80
-        )
-    } else {
-        lightColorScheme(
-            primary = Purple40,
-            secondary = PurpleGrey40,
-            tertiary = Pink40
-        )
-    }
+fun CCOMateTheme(content: @Composable () -> Unit) {
+    val colorScheme = darkColorScheme(
+        primary = AppColors.textPrimary,
+        secondary = AppColors.gray2,
+        background = AppColors.background,
+        surface = AppColors.gray5,
+        error = Color(0xFFFF5252)
+    )
+
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,

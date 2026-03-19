@@ -32,21 +32,22 @@ class SubscriptionViewModel @Inject constructor(
     private val _state = MutableStateFlow<SubscriptionState>(SubscriptionState.Loading)
     val state: StateFlow<SubscriptionState> = _state
 
-    private lateinit var deviceInfo: DeviceInfo
+    private var deviceInfo: DeviceInfo? = null
     private var clientIp: String? = null
 
     fun checkSubscription() {
         _state.value = SubscriptionState.Loading
         viewModelScope.launch {
-            deviceInfo = DeviceIdentifier.getDeviceInfo(appContext)
-            Log.d("SubscriptionViewModel", "Installation ID: ${deviceInfo.installationId}")
+            val info = DeviceIdentifier.getDeviceInfo(appContext)
+            deviceInfo = info
+            Log.d("SubscriptionViewModel", "Installation ID: ${info.installationId}")
 
-            val result = subscriptionManager.checkSubscription(deviceInfo.installationId)
+            val result = subscriptionManager.checkSubscription(info.installationId)
 
             _state.value = when (result) {
                 is SubscriptionResult.Subscribed -> {
                     clientIp = result.clientIp
-                    SubscriptionState.Subscribed(deviceInfo.installationId)
+                    SubscriptionState.Subscribed(info.installationId)
                 }
                 is SubscriptionResult.NotSubscribed -> {
                     clientIp = result.clientIp
@@ -59,9 +60,13 @@ class SubscriptionViewModel @Inject constructor(
     }
 
     fun registerWithUserInfo(dni: String, name: String, phone: String) {
+        val info = deviceInfo ?: run {
+            _state.value = SubscriptionState.Error("Debe verificar la suscripción o conexión primero")
+            return
+        }
         _state.value = SubscriptionState.Loading
         viewModelScope.launch {
-            val updatedDeviceInfo = deviceInfo.copy(
+            val updatedDeviceInfo = info.copy(
                 dni = dni,
                 name = name,
                 phone = phone

@@ -59,10 +59,16 @@ fun ChannelScreen(
     val isTimeIncorrect = remember { !TimeUtils.isSystemTimeValid() }
     val currentTimeMessage = remember { TimeUtils.getSystemTimeMessage() }
 
-    // -- Derivados --
-    val selectedGroup = uiState.groups.getOrNull(uiState.selectedGroupIndex)
-    val filteredChannels = uiState.allChannels.filter { it.group == selectedGroup }
-    val selectedChannel = uiState.allChannels.firstOrNull { it.url == uiState.selectedChannelUrl }
+    // -- Derivados (cacheados para evitar recomputo en cada recomposición) --
+    val selectedGroup by remember(uiState.groups, uiState.selectedGroupIndex) {
+        derivedStateOf { uiState.groups.getOrNull(uiState.selectedGroupIndex) }
+    }
+    val filteredChannels by remember(uiState.allChannels, selectedGroup) {
+        derivedStateOf { uiState.allChannels.filter { it.group == selectedGroup } }
+    }
+    val selectedChannel by remember(uiState.allChannels, uiState.selectedChannelUrl) {
+        derivedStateOf { uiState.allChannels.firstOrNull { it.url == uiState.selectedChannelUrl } }
+    }
     val selectedChannelLogo = selectedChannel?.logo
 
     // -- Lifecycle: reiniciar player al volver --
