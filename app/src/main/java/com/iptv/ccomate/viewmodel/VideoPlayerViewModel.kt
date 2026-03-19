@@ -233,6 +233,9 @@ class VideoPlayerViewModel @Inject constructor(
                     _playerState.value = _playerState.value.copy(player = player)
                 }
                 Log.d("VideoPlayerVM", "Playing: $videoUrl")
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                Log.d("VideoPlayerVM", "Playback coroutine cancelled for: $videoUrl")
+                throw e
             } catch (e: Exception) {
                 Log.e("VideoPlayerVM", "Error setting media: ${e.message}", e)
                 _playerState.value = _playerState.value.copy(

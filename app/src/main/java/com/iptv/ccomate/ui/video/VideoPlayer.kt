@@ -107,10 +107,15 @@ fun VideoPlayer(
         }
     }
 
-    // Release player when this Composable leaves composition
+    // Release player when this Composable leaves composition,
+    // pero SOLO si la URL actual del ViewModel coincide con la nuestra.
+    // Esto evita que la pantalla saliente (TDA) destruya el player
+    // que la pantalla entrante (Pluto) acaba de crear.
     DisposableEffect(Unit) {
         onDispose {
-            viewModel.releasePlayer()
+            if (viewModel.playerState.value.currentUrl == videoUrl) {
+                viewModel.releasePlayer()
+            }
         }
     }
 
