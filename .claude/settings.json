@@ -1,0 +1,40 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(do rm -rf \"$APP_TV/$dir\")",
+      "Read(//c/Users/josel/AndroidStudioProjects/CCOMate/**)",
+      "Bash(ls c:/Users/josel/AndroidStudioProjects/CCOMate/gradlew*)",
+      "Bash(./gradlew :core:compileDebugKotlin :app-tv:compileDebugKotlin)",
+      "Bash(./gradlew clean)",
+      "Bash(./gradlew :app-tv:compileDebugKotlin)",
+      "Bash(CORE=\"c:/Users/josel/AndroidStudioProjects/CCOMate/core/src/main/java/com/iptv/ccomate\")",
+      "Bash(mkdir -p \"$CORE/ui/screens/base\" \"$CORE/ui/screens/tda\" \"$CORE/ui/screens/pluto\")",
+      "Bash(cp \"$APP_TV/ui/screens/base/ChannelUiState.kt\" \"$CORE/viewmodel/\")",
+      "Bash(cp \"$APP_TV/ui/screens/base/ChannelListViewModel.kt\" \"$CORE/viewmodel/\")",
+      "Bash(cp \"$APP_TV/ui/screens/tda/TdaViewModel.kt\" \"$CORE/viewmodel/\")",
+      "Bash(cp \"$APP_TV/ui/screens/pluto/PlutoTvViewModel.kt\" \"$CORE/viewmodel/\")",
+      "Bash(CORE_VM=\"c:/Users/josel/AndroidStudioProjects/CCOMate/core/src/main/java/com/iptv/ccomate/viewmodel\")",
+      "Bash(sed -i 's/package com.iptv.ccomate.ui.screens.base/package com.iptv.ccomate.viewmodel/' \"$CORE_VM/ChannelUiState.kt\" \"$CORE_VM/ChannelListViewModel.kt\")",
+      "Bash(sed -i 's/package com.iptv.ccomate.ui.screens.tda/package com.iptv.ccomate.viewmodel/' \"$CORE_VM/TdaViewModel.kt\")",
+      "Bash(sed -i 's/package com.iptv.ccomate.ui.screens.pluto/package com.iptv.ccomate.viewmodel/' \"$CORE_VM/PlutoTvViewModel.kt\")",
+      "Bash(sed -i 's/import com.iptv.ccomate.ui.screens.base.ChannelListViewModel//' \"$CORE_VM/TdaViewModel.kt\" \"$CORE_VM/PlutoTvViewModel.kt\")",
+      "Bash(./gradlew :core:clean :app-tv:clean)",
+      "Bash(\"c:/Users/josel/AndroidStudioProjects/CCOMate/app-mobile/src/main/AndroidManifest.xml\":*)",
+      "Bash(./gradlew :app-mobile:compileDebugKotlin)",
+      "Bash(./gradlew :core:bundleLibCompileToJarDebug)",
+      "Bash(./gradlew --stop)",
+      "Bash(tasklist)",
+      "Bash(./gradlew :core:clean)",
+      "Bash(echo $?)",
+      "Bash(./gradlew :core:bundleLibCompileToJarDebug --rerun-tasks)",
+      "Bash(./gradlew :app-mobile:kspDebugKotlin)",
+      "Bash(powershell.exe -Command \"Get-Process java | Select-Object Id, ProcessName, Path | Format-Table\")",
+      "Bash(./gradlew :core:compileDebugKotlin)",
+      "Bash(ls c:/Users/josel/AndroidStudioProjects/CCOMate/app-mobile/src/main/res/mipmap-*/ic_launcher_foreground.webp)"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\josel\\AndroidStudioProjects\\CCOMate\\$APP_TV\\ui\\screens\\base",
+      "c:\\Users\\josel\\AndroidStudioProjects\\CCOMate\\app-tv\\src\\main\\res\\raw"
+    ]
+  }
+}

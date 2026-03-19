@@ -23,4 +23,6 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "CCOMate"
-include(":app")
+include(":app-tv")
+include(":app-mobile")
+include(":core")
