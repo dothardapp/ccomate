@@ -41,7 +41,8 @@ class EPGRepository @Inject constructor(
     }
 
     private suspend fun loadFromLocal(): Map<String, List<EPGProgram>> {
-        val entities = epgDao.getAllPrograms()
+        val now = ZonedDateTime.now().toString()
+        val entities = epgDao.getActivePrograms(now)
         return entities.groupBy { it.channelId }.mapValues { entry ->
             entry.value.map { it.toDomainModel() }
         }
@@ -58,8 +59,7 @@ class EPGRepository @Inject constructor(
                 programs.map { it.toEntity() }
             }
 
-            epgDao.deleteAll()
-            epgDao.insertAll(entities)
+            epgDao.replaceAll(entities)
 
             sharedPrefs.edit().putLong("last_update", System.currentTimeMillis()).apply()
 

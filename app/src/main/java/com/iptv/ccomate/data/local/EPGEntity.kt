@@ -1,10 +1,16 @@
 package com.iptv.ccomate.data.local
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
-import java.time.ZonedDateTime
 
-@Entity(tableName = "epg_programs")
+@Entity(
+    tableName = "epg_programs",
+    indices = [
+        Index(value = ["channelId"]),
+        Index(value = ["channelId", "endTime"])
+    ]
+)
 data class EPGEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val channelId: String,

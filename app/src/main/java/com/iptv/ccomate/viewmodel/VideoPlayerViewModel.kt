@@ -13,6 +13,8 @@ import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.trackselection.AdaptiveTrackSelection
+import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.exoplayer.hls.HlsMediaSource
 import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
@@ -140,8 +142,11 @@ class VideoPlayerViewModel @Inject constructor(
     }
 
     private fun createLoadControl() = DefaultLoadControl.Builder()
-        .setBufferDurationsMs(10000, 30000, 1000, 2000)
+        .setBufferDurationsMs(32000, 64000, 1500, 3000)
         .build()
+
+    private fun createTrackSelector() =
+        DefaultTrackSelector(appContext, AdaptiveTrackSelection.Factory())
 
     private fun buildDynamicUserAgent(): String {
         val androidVersion = Build.VERSION.RELEASE
@@ -211,6 +216,7 @@ class VideoPlayerViewModel @Inject constructor(
                 withContext(Dispatchers.Main) {
                     val player = exoPlayer ?: run {
                         val newPlayer = ExoPlayer.Builder(appContext)
+                            .setTrackSelector(createTrackSelector())
                             .setLoadControl(createLoadControl())
                             .build()
                         newPlayer.addListener(playerListener)
