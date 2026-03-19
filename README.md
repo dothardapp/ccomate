@@ -1,34 +1,107 @@
 # CCOMate
 
-Una aplicación de IPTV para reproducir canales como Canal 26, Telefe, TV Pública, Crónica TV y Pluto TV.
+Aplicacion IPTV multi-plataforma para Android TV y dispositivos moviles. Reproduce canales de TDA (Television Digital Abierta argentina) y Pluto TV con guia de programacion EPG integrada.
 
-## Características
-- Reproduce streams HLS y FLV.
-- Manejo de certificados SSL personalizados para conexiones seguras.
-- Interfaz en Jetpack Compose con navegación optimizada para Android TV.
-- Carga de logotipos de canales con soporte para dominios como `images.pluto.tv` y `mtvi.com`.
+## Arquitectura
 
-## Instalación
-1. Clona el repositorio:
-   ```
-   git clone https://github.com/tu-usuario/CCOMate.git
-   ```
-2. Abre el proyecto en Android Studio.
-3. Compila y ejecuta en un dispositivo Android (probado en Android 7.1 y 8.1).
+Proyecto multi-modulo con logica de negocio compartida:
+
+```
+CCOMate/
+├── :core          → Modelos, repositorios, ViewModels, Room DB, DI (Hilt), networking
+├── :app-tv        → UI optimizada para Android TV (D-Pad, NavigationDrawer, tv-material3)
+└── :app-mobile    → UI para moviles/tablets (Scaffold, BottomNavigation, Material3)
+```
+
+## Funcionalidades
+
+- Reproduccion de streams HLS via Media3 ExoPlayer con bitrate adaptativo
+- Guia de programacion EPG para Pluto TV con actualizacion automatica
+- Base de datos local Room con queries optimizadas e indices
+- Fullscreen inmersivo en mobile al rotar a landscape (sin interrupcion de video)
+- Navegacion D-Pad completa en Android TV con restauracion de foco
+- Certificados SSL personalizados para streams que lo requieran
+- Carga de logos con Coil (PNG, SVG, WebP)
+- Tema oscuro nativo en ambas plataformas
+
+## Stack Tecnologico
+
+| Componente | Tecnologia |
+|---|---|
+| UI TV | Jetpack Compose + tv-material3 |
+| UI Mobile | Jetpack Compose + Material3 |
+| Video | Media3 ExoPlayer 1.6.1 (HLS, AdaptiveTrackSelection) |
+| Networking | Ktor CIO + OkHttp (datasource) |
+| Base de datos | Room 2.7.2 con KSP |
+| DI | Hilt 2.55 |
+| Imagenes | Coil 2.x (compose, SVG) |
+| Navegacion | Navigation Compose |
+| Lenguaje | Kotlin 2.0.21 |
+| Build | AGP 9.0.1 + Version Catalog |
 
 ## Requisitos
-- Android 7.0 o superior.
-- Dependencias:
-    - ExoPlayer 2.19.1 (para reproducción de video).
-    - Jetpack Compose (para la interfaz).
-    - Coil (para carga de imágenes).
+
+- Android Studio Meerkat o superior
+- JDK 11
+- Android SDK 35 (compileSdk)
+- Dispositivo o emulador con minSdk 24 (TV) / 26 (Mobile)
+
+## Instalacion
+
+```bash
+git clone https://github.com/tu-usuario/CCOMate.git
+cd CCOMate
+```
+
+Abrir en Android Studio y sincronizar Gradle. Seleccionar la configuracion de ejecucion deseada:
+
+- **app-tv** para Android TV / dispositivos con leanback
+- **app-mobile** para telefonos y tablets
+
+## Estructura de Modulos
+
+### :core
+
+Contiene toda la logica compartida entre ambas apps:
+
+- `model/` — Channel, EPGProgram, DrawerItem
+- `data/` — ChannelRepository, EPGRepository, Room (AppDatabase, DAOs, Entities), M3UParser, EPGParser, NetworkClient
+- `viewmodel/` — VideoPlayerViewModel, SubscriptionViewModel, ChannelListViewModel, TdaViewModel, PlutoTvViewModel
+- `di/` — AppModule (Hilt, provee Room DB y DAOs)
+- `util/` — AppConfig, DeviceIdentifier, SubscriptionManager, TimeUtils, SvgUtils
+
+### :app-tv
+
+UI especifica para Android TV:
+
+- NavigationDrawer lateral con logo animado
+- ChannelScreen con layout split (video + info arriba, grupos + canales abajo)
+- Fullscreen con zapping via D-Pad (izquierda/derecha cambia canal)
+- Skeleton loading con shimmer compartido
+- movableContentOf para preservar ExoPlayer entre layouts
+
+### :app-mobile
+
+UI especifica para moviles y tablets:
+
+- Scaffold con BottomNavigationBar (Inicio, TDA, Pluto TV)
+- Video player 16:9 en portrait, fullscreen inmersivo en landscape
+- FilterChips horizontales para grupos de canales
+- Lista scrolleable de canales con logo y nombre
+- movableContentOf para video sin interrupcion al rotar
 
 ## Notas
-- Algunos servidores requieren certificados personalizados debido a configuraciones SSL incompletas. Estos están incluidos en `res/raw` y configurados en `network-security-config.xml`.
-- Usa con precaución: Asegúrate de tener permisos para reproducir los streams.
+
+- Los certificados SSL personalizados estan en `res/raw/` y configurados en `network_security_config.xml` de cada modulo app
+- El proyecto usa `api()` en `:core` para exponer dependencias transitivas a los modulos app
+- Los ViewModels de canal son `Activity-scoped` para sobrevivir a la navegacion entre pantallas
 
 ## Capturas
-(Agrega capturas de pantalla si lo deseas, por ejemplo, de `PlutoTvScreen03` o `ChannelList02`.)
+
+<!-- Agrega capturas aqui: -->
+<!-- ![TDA en TV](screenshots/tda_tv.png) -->
+<!-- ![Pluto en Mobile](screenshots/pluto_mobile.png) -->
 
 ## Contribuciones
-¡Siéntete libre de hacer un fork y contribuir al proyecto!
+
+Las contribuciones son bienvenidas. Haz un fork, crea tu branch y envia un pull request.
