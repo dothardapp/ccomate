@@ -6,9 +6,11 @@ import android.util.Log
 import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.annotation.OptIn
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
@@ -44,6 +46,7 @@ data class PlayerUiState(
 
 private const val BUFFERING_TIMEOUT_MS = 15000L
 
+@OptIn(UnstableApi::class)
 @HiltViewModel
 class VideoPlayerViewModel @Inject constructor(
     @ApplicationContext private val appContext: Context
