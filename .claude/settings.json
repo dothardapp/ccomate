@@ -31,7 +31,11 @@
       "Bash(powershell.exe -Command \"Get-Process java | Select-Object Id, ProcessName, Path | Format-Table\")",
       "Bash(./gradlew :core:compileDebugKotlin)",
       "Bash(ls c:/Users/josel/AndroidStudioProjects/CCOMate/app-mobile/src/main/res/mipmap-*/ic_launcher_foreground.webp)",
-      "Bash(\"c:/Users/josel/AndroidStudioProjects/CCOMate/README.md\":*)"
+      "Bash(\"c:/Users/josel/AndroidStudioProjects/CCOMate/README.md\":*)",
+      "Bash(./gradlew :app-tv:compileDebugKotlin :app-mobile:compileDebugKotlin)",
+      "Bash(./gradlew :core:clean :app-mobile:clean :app-tv:clean)",
+      "Bash(./gradlew :core:compileDebugKotlin :app-mobile:compileDebugKotlin :app-tv:compileDebugKotlin)",
+      "Bash(./gradlew clean assembleDebug)"
     ],
     "additionalDirectories": [
       "C:\\Users\\josel\\AndroidStudioProjects\\CCOMate\\$APP_TV\\ui\\screens\\base",

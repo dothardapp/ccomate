@@ -1,6 +1,7 @@
 package com.iptv.ccomate.ui.screens.tda
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -13,6 +14,9 @@ import com.iptv.ccomate.viewmodel.TdaViewModel
 fun TDAScreen(
     viewModel: TdaViewModel = hiltViewModel()
 ) {
+    // Recargar desde cache al entrar en composicion (recoge cambios de Settings)
+    LaunchedEffect(Unit) { viewModel.loadChannels() }
+
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     ChannelScreen(

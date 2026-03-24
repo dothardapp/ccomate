@@ -1,5 +1,6 @@
 package com.iptv.ccomate.ui.video
 
+import android.app.Activity
 import android.view.KeyEvent
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -7,6 +8,7 @@ import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -20,6 +22,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import com.iptv.ccomate.model.Channel
 
 /**
@@ -43,6 +49,30 @@ fun FullscreenDPadContainer(
     onExitFullscreen: () -> Unit,
     content: @Composable () -> Unit
 ) {
+    // Modo inmersivo: ocultar system bars al entrar en fullscreen
+    val context = LocalContext.current
+    DisposableEffect(Unit) {
+        val activity = context as? Activity
+        val window = activity?.window
+        val controller = window?.let {
+            WindowCompat.getInsetsController(it, it.decorView)
+        }
+
+        controller?.let {
+            it.hide(WindowInsetsCompat.Type.systemBars())
+            it.systemBarsBehavior =
+                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        }
+
+        onDispose {
+            controller?.let {
+                it.show(WindowInsetsCompat.Type.systemBars())
+                it.systemBarsBehavior =
+                    WindowInsetsControllerCompat.BEHAVIOR_DEFAULT
+            }
+        }
+    }
+
     val dpadFocusRequester = remember { FocusRequester() }
 
     // Solicitar foco al controlador D-Pad al entrar en fullscreen (solo si no hay error)

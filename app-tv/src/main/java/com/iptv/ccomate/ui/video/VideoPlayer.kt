@@ -6,6 +6,7 @@ import android.util.Log
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -16,6 +17,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -23,11 +25,10 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.ui.PlayerView
 import com.iptv.ccomate.model.EPGProgram
 import com.iptv.ccomate.viewmodel.VideoPlayerViewModel
 import kotlinx.coroutines.delay
+import org.videolan.libvlc.util.VLCVideoLayout
 
 @Composable
 fun VideoPlayer(
@@ -47,21 +48,17 @@ fun VideoPlayer(
     val playerState by viewModel.playerState.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    // Overlay auto-hide
     var showOverlay by remember { mutableStateOf(false) }
 
-    // Trigger playUrl when videoUrl changes
     LaunchedEffect(videoUrl) {
         Log.d("VideoPlayer", "URL changed: $videoUrl")
         viewModel.playUrl(videoUrl)
     }
 
-    // Notify parent about error state changes
     LaunchedEffect(playerState.hasError) {
         onErrorStateChanged?.invoke(playerState.hasError)
     }
 
-    // Notify parent about playback started
     LaunchedEffect(playerState.isPlaying) {
         if (playerState.isPlaying) {
             showOverlay = true
@@ -69,14 +66,12 @@ fun VideoPlayer(
         }
     }
 
-    // Notify parent about errors
     LaunchedEffect(playerState.hasError, playerState.errorMessage) {
         if (playerState.hasError && playerState.errorMessage.isNotEmpty()) {
             onPlaybackError?.invoke(Exception(playerState.errorMessage))
         }
     }
 
-    // Auto-hide overlay after 3 seconds
     LaunchedEffect(showOverlay) {
         if (showOverlay) {
             delay(3000)
@@ -84,14 +79,10 @@ fun VideoPlayer(
         }
     }
 
-    // Show overlay when entering fullscreen
     LaunchedEffect(isFullscreen) {
-        if (isFullscreen) {
-            showOverlay = true
-        }
+        if (isFullscreen) showOverlay = true
     }
 
-    // Lifecycle management
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
@@ -102,34 +93,49 @@ fun VideoPlayer(
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    // Release player when this Composable leaves composition,
-    // pero SOLO si la URL actual del ViewModel coincide con la nuestra.
-    // Esto evita que la pantalla saliente (TDA) destruya el player
-    // que la pantalla entrante (Pluto) acaba de crear.
-    DisposableEffect(Unit) {
-        onDispose {
-            if (viewModel.playerState.value.currentUrl == videoUrl) {
-                viewModel.releasePlayer()
-            }
-        }
-    }
+    Box(modifier = modifier.background(Color.Black)) {
+        // VLCVideoLayout — superficie unica reutilizada.
+        // El telon opaco de buffering oculta ghost frames al cambiar canal.
+        // attachViews con guard de activeVideoLayout maneja tab switching.
+        AndroidView(
+            factory = { ctx ->
+                VLCVideoLayout(ctx).apply {
+                    layoutParams = FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                    )
+                    keepScreenOn = true
+                    viewModel.attachViews(this)
 
-    // UI
-    Box(modifier = modifier) {
-        // PlayerView surface — always present, hidden behind error overlay when needed
-        playerState.player?.let { player ->
-            PlayerSurface(player = player)
-        }
+                    // Cuando movableContentOf mueve esta vista a otro padre
+                    // (fullscreen ↔ normal), la superficie VLC se destruye.
+                    // Re-vincular al detectar que la vista volvio al arbol de ventana.
+                    addOnAttachStateChangeListener(object : android.view.View.OnAttachStateChangeListener {
+                        override fun onViewAttachedToWindow(v: android.view.View) {
+                            // Diferir al siguiente frame — la Surface del SurfaceView
+                            // interno de VLC no esta lista hasta despues del layout pass.
+                            v.post { viewModel.attachViews(v as VLCVideoLayout) }
+                        }
+                        override fun onViewDetachedFromWindow(v: android.view.View) {
+                            // No desvincular aqui — la vista puede estar siendo movida,
+                            // no destruida. La desvinculacion real ocurre en onRelease.
+                        }
+                    })
+                }
+            },
+            onRelease = { layout ->
+                viewModel.detachViews(layout)
+            },
+            modifier = Modifier.fillMaxSize()
+        )
 
-        // Buffering indicator
+        // Telon de Carga — fondo opaco sobre el frame congelado de VLC
         VideoPlayerBuffering(visible = playerState.isBuffering && !playerState.hasError)
 
-        // Error screen with retry
+        // Telon de Error — fondo opaco que bloquea visualmente al VLC congelado
         VideoPlayerError(
             visible = playerState.hasError,
             errorMessage = playerState.errorMessage,
@@ -144,25 +150,6 @@ fun VideoPlayer(
             currentProgram = currentProgram
         )
     }
-}
-
-@Composable
-private fun PlayerSurface(player: ExoPlayer) {
-    AndroidView(
-        factory = {
-            PlayerView(it).apply {
-                layoutParams = FrameLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT
-                )
-                this.player = player
-                useController = false
-                keepScreenOn = true
-            }
-        },
-        update = { view -> view.player = player },
-        modifier = Modifier.fillMaxSize()
-    )
 }
 
 private fun Context.findActivity(): ComponentActivity? = when (this) {

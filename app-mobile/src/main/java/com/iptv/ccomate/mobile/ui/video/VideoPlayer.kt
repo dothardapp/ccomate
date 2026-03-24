@@ -28,9 +28,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.ui.PlayerView
 import com.iptv.ccomate.viewmodel.VideoPlayerViewModel
+import org.videolan.libvlc.util.VLCVideoLayout
 
 @Composable
 fun VideoPlayer(
@@ -47,21 +46,25 @@ fun VideoPlayer(
     val playerState by viewModel.playerState.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
 
+    // Trigger playUrl cuando cambia la URL
     LaunchedEffect(videoUrl) {
         Log.d("VideoPlayer", "URL changed: $videoUrl")
         viewModel.playUrl(videoUrl)
     }
 
+    // Notificar al padre sobre playback
     LaunchedEffect(playerState.isPlaying) {
         if (playerState.isPlaying) onPlaybackStarted?.invoke()
     }
 
+    // Notificar al padre sobre errores
     LaunchedEffect(playerState.hasError, playerState.errorMessage) {
         if (playerState.hasError && playerState.errorMessage.isNotEmpty()) {
             onPlaybackError?.invoke(Exception(playerState.errorMessage))
         }
     }
 
+    // Lifecycle: pause/resume
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
@@ -75,56 +78,76 @@ fun VideoPlayer(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    DisposableEffect(Unit) {
-        onDispose {
-            if (viewModel.playerState.value.currentUrl == videoUrl) {
-                viewModel.releasePlayer()
-            }
-        }
-    }
-
     Box(
         modifier = modifier.background(Color.Black),
         contentAlignment = Alignment.Center
     ) {
-        playerState.player?.let { player ->
-            PlayerSurface(player = player)
-        }
+        // VLCVideoLayout — superficie unica reutilizada.
+        // movableContentOf en MobileChannelScreen preserva esta vista durante rotacion.
+        // El telon opaco de buffering oculta ghost frames al cambiar canal.
+        AndroidView(
+            factory = { ctx ->
+                VLCVideoLayout(ctx).apply {
+                    layoutParams = FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                    )
+                    keepScreenOn = true
+                    viewModel.attachViews(this)
 
+                    // Cuando movableContentOf mueve esta vista a otro padre
+                    // (portrait ↔ landscape), la superficie VLC se destruye.
+                    // Re-vincular al detectar que la vista volvio al arbol de ventana.
+                    addOnAttachStateChangeListener(object : android.view.View.OnAttachStateChangeListener {
+                        override fun onViewAttachedToWindow(v: android.view.View) {
+                            // Diferir al siguiente frame — la Surface del SurfaceView
+                            // interno de VLC no esta lista hasta despues del layout pass.
+                            v.post { viewModel.attachViews(v as VLCVideoLayout) }
+                        }
+                        override fun onViewDetachedFromWindow(v: android.view.View) {
+                            // No desvincular aqui — la vista puede estar siendo movida,
+                            // no destruida. La desvinculacion real ocurre en onRelease.
+                        }
+                    })
+                }
+            },
+            onRelease = { layout ->
+                viewModel.detachViews(layout)
+            },
+            modifier = Modifier.fillMaxSize()
+        )
+
+        // Telon de Carga — fondo opaco que oculta el frame congelado de VLC
         if (playerState.isBuffering && !playerState.hasError) {
-            CircularProgressIndicator(
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(48.dp)
-            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(48.dp)
+                )
+            }
         }
 
+        // Telon de Error — fondo opaco que bloquea visualmente al VLC congelado
         if (playerState.hasError) {
-            Text(
-                text = "Error: ${playerState.errorMessage}",
-                color = Color.White,
-                style = MaterialTheme.typography.bodyMedium
-            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Error: ${playerState.errorMessage}",
+                    color = Color.White,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
         }
     }
-}
-
-@Composable
-private fun PlayerSurface(player: ExoPlayer) {
-    AndroidView(
-        factory = {
-            PlayerView(it).apply {
-                layoutParams = FrameLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT
-                )
-                this.player = player
-                useController = false
-                keepScreenOn = true
-            }
-        },
-        update = { view -> view.player = player },
-        modifier = Modifier.fillMaxSize()
-    )
 }
 
 private fun Context.findActivity(): ComponentActivity? = when (this) {

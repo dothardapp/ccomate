@@ -27,7 +27,11 @@ abstract class ChannelListViewModel(
         loadExtraData()
     }
 
-    private fun loadChannels() {
+    /**
+     * Recarga canales desde cache (Room). Si la cache fue actualizada
+     * (ej: desde Settings), los nuevos canales se reflejan en la UI.
+     */
+    fun loadChannels() {
         viewModelScope.launch {
             try {
                 _uiState.value = _uiState.value.copy(
@@ -69,6 +73,49 @@ abstract class ChannelListViewModel(
     protected open fun onChannelsLoaded() {}
 
     protected open fun onChannelSelected() {}
+
+    /**
+     * Fuerza recarga de canales desde red, ignorando cache.
+     * Usado desde la pantalla de configuracion.
+     */
+    fun refreshChannels() {
+        viewModelScope.launch {
+            try {
+                _uiState.value = _uiState.value.copy(
+                    statusMessage = "Actualizando canales $sourceName...",
+                    isLoading = true
+                )
+
+                val channels = withContext(Dispatchers.IO) {
+                    channelRepository.forceRefresh(sourceName, playlistUrl)
+                }
+
+                val groups = channels.mapNotNull { it.group }.distinct()
+                val firstChannel = channels.firstOrNull()
+
+                // Mantener seleccion actual si el canal sigue existiendo
+                val currentUrl = _uiState.value.selectedChannelUrl
+                val currentStillExists = channels.any { it.url == currentUrl }
+
+                _uiState.value = _uiState.value.copy(
+                    allChannels = channels,
+                    groups = groups,
+                    statusMessage = "Actualizado. ${channels.size} canales $sourceName.",
+                    selectedChannelUrl = if (currentStillExists) currentUrl else firstChannel?.url,
+                    selectedChannelName = if (currentStillExists) _uiState.value.selectedChannelName else firstChannel?.name,
+                    isLoading = false
+                )
+
+                onChannelsLoaded()
+            } catch (e: Exception) {
+                Log.e(sourceName, "Error refreshing channels", e)
+                _uiState.value = _uiState.value.copy(
+                    statusMessage = "Error al actualizar $sourceName: ${e.localizedMessage ?: "desconocido"}",
+                    isLoading = false
+                )
+            }
+        }
+    }
 
     fun selectGroup(index: Int) {
         _uiState.value = _uiState.value.copy(selectedGroupIndex = index)

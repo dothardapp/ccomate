@@ -85,7 +85,7 @@ fun ChannelScreen(
     }
 
     // movableContentOf: permite mover el VideoPanel entre layout normal y fullscreen
-    // sin destruir/recrear el ExoPlayer
+    // sin destruir/recrear el player VLC
     val videoContent = remember {
         movableContentOf { url: String?, name: String?, isFull: Boolean, program: EPGProgram? ->
             VideoPanel(

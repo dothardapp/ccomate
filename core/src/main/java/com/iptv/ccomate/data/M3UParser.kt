@@ -30,7 +30,9 @@ class M3UParser @Inject constructor() {
                 // Prioritize channel-id, fallback to tvg-id
                 val extractedId = channelIdRegex.find(line)?.groupValues?.get(1)
                 currentTvgId = extractedId ?: tvgIdRegex.find(line)?.groupValues?.get(1)
-            } else if (line.startsWith("http")) {
+            } else if (!line.startsWith("#") && line.contains("://")) {
+                // Acepta cualquier protocolo: http, https, udp, rtp, rtsp, etc.
+                // Lineas que empiezan con # son comentarios o directivas M3U.
                 channels.add(
                         Channel(currentName, line.trim(), currentLogo, currentGroup, currentTvgId)
                 )

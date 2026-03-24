@@ -41,8 +41,8 @@ object AppColors {
     val accentBlueBorder = Color(0xFF64B5F6)
 
     // Overlays
-    val overlayDark = Color(0x66000000)
-    val overlayDarker = Color(0xE6121212)
+    val overlayDark = Color(0xFF000000)
+    val overlayDarker = Color(0xFF121212)
     val overlayPanel = Color(0xAB030301)
 
     // Texto específico del reproductor

@@ -69,7 +69,7 @@ fun MobileChannelScreen(viewModel: ChannelListViewModel) {
     // Immersive system bars control
     ImmersiveMode(isLandscape)
 
-    // movableContentOf preserva el VideoPlayer (ExoPlayer) al cambiar de layout
+    // movableContentOf preserva el VideoPlayer (VLC) al cambiar de layout
     val videoContent = remember {
         movableContentOf { url: String?, name: String? ->
             if (url != null) {

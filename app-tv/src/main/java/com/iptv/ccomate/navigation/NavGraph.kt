@@ -6,6 +6,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.NavHostController
 import com.iptv.ccomate.ui.screens.HomeScreen
 import com.iptv.ccomate.ui.screens.pluto.PlutoTvScreen
+import com.iptv.ccomate.ui.screens.settings.SettingsScreen
 import com.iptv.ccomate.ui.screens.tda.TDAScreen
 
 @Composable
@@ -14,5 +15,6 @@ fun AppNavGraph(navController: NavHostController) {
         composable(Route.Home.path) { HomeScreen() }
         composable(Route.TDA.path) { TDAScreen() }
         composable(Route.PlutoTV.path) { PlutoTvScreen() }
+        composable(Route.Settings.path) { SettingsScreen() }
     }
 }

@@ -52,11 +52,8 @@ dependencies {
     api(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
 
-    // ── Media3 ExoPlayer ──
-    api(libs.androidx.media3.exoplayer)
-    api(libs.androidx.media3.exoplayer.hls)
-    api(libs.androidx.media3.ui)
-    api(libs.androidx.media3.datasource.okhttp)
+    // ── LibVLC ──
+    api(libs.libvlc.all)
 
     // ── Lifecycle + Compose (ViewModels exponen StateFlow) ──
     api(libs.androidx.lifecycle.runtime.compose)

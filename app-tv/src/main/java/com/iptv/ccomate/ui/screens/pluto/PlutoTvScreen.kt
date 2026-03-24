@@ -1,6 +1,7 @@
 package com.iptv.ccomate.ui.screens.pluto
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -14,6 +15,9 @@ private const val ENABLE_EPG_SIDE_PANEL = true
 fun PlutoTvScreen(
     viewModel: PlutoTvViewModel = hiltViewModel()
 ) {
+    // Recargar desde cache al entrar en composicion (recoge cambios de Settings)
+    LaunchedEffect(Unit) { viewModel.loadChannels() }
+
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     ChannelScreen(

@@ -3,6 +3,9 @@
 
     <!-- Permiso necesario para acceder a recursos de red (videos HTTP/HTTPS) -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Permisos para recibir trafico multicast UDP (IPTV) -->
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
 
     <!-- Soporte para dispositivos sin pantalla táctil (como Android TV) -->
     <uses-feature

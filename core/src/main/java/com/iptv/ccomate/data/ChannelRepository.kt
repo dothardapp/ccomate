@@ -43,6 +43,16 @@ class ChannelRepository @Inject constructor(
         return channels
     }
 
+    /**
+     * Fuerza recarga desde red, ignorando la cache.
+     * Usar desde pantalla de configuracion para refresh manual.
+     */
+    suspend fun forceRefresh(source: String, playlistUrl: String): List<Channel> =
+        withContext(Dispatchers.IO) {
+            Log.d("ChannelRepository", "Force refresh for $source")
+            fetchAndCache(source, playlistUrl)
+        }
+
     private suspend fun refreshInBackground(source: String, playlistUrl: String) {
         try {
             fetchAndCache(source, playlistUrl)
