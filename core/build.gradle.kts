@@ -35,6 +35,16 @@ android {
     kotlinOptions {
         jvmTarget = "11"
     }
+    flavorDimensions += "player"
+    productFlavors {
+        create("exoplayer") {
+            dimension = "player"
+        }
+        create("vlc") {
+            dimension = "player"
+        }
+    }
+
     buildFeatures {
         compose = true
     }
@@ -52,8 +62,12 @@ dependencies {
     api(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
 
-    // ── LibVLC ──
-    api(libs.libvlc.all)
+    // ── Player engines (flavor-specific) ──
+    add("vlcApi", libs.libvlc.all)
+    add("exoplayerApi", libs.androidx.media3.exoplayer)
+    add("exoplayerApi", libs.androidx.media3.exoplayer.hls)
+    add("exoplayerApi", libs.androidx.media3.ui)
+    add("exoplayerApi", libs.androidx.media3.datasource.okhttp)
 
     // ── Lifecycle + Compose (ViewModels exponen StateFlow) ──
     api(libs.androidx.lifecycle.runtime.compose)

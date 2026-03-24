@@ -37,6 +37,16 @@ android {
     kotlinOptions {
         jvmTarget = "11"
     }
+    flavorDimensions += "player"
+    productFlavors {
+        create("exoplayer") {
+            dimension = "player"
+        }
+        create("vlc") {
+            dimension = "player"
+        }
+    }
+
     buildFeatures {
         compose = true
     }
