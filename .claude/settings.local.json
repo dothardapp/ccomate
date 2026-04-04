@@ -4,7 +4,24 @@
       "Bash(./gradlew assembleDebug)",
       "Bash(mv \"app/src/main/res/drawable/CCOMate.png\" \"app/src/main/res/drawable/ccomate_original.png\")",
       "Bash(mv \"app/src/main/res/drawable/CCONet.png\" \"app/src/main/res/drawable/cconet_original.png\")",
-      "Bash(python -c \":*)"
+      "Bash(python -c \":*)",
+      "Bash(./gradlew :core:compileVlcDebugKotlin :core:compileExoplayerDebugKotlin)",
+      "Bash(ls -lh /c/Users/josel/AndroidStudioProjects/CCOMate/app-tv/src/main/res/drawable*)",
+      "Bash(./gradlew :app-tv:compileVlcDebugKotlin)",
+      "Bash(./gradlew :app-tv:compileVlcDebugKotlin :core:compileVlcDebugKotlin)",
+      "Bash(grep -E \"\\\\.png$\")",
+      "Read(//c/Users/josel/AndroidStudioProjects/CCOMate/**)",
+      "Bash(./gradlew :core:compileExoplayerDebugKotlin :app-tv:compileExoplayerDebugKotlin)",
+      "Bash(find c:/Users/josel/AndroidStudioProjects/CCOMate -name *.jks -o -name *.keystore)",
+      "Read(//c/Users/josel/AndroidStudioProjects/CCOMate/$USERPROFILE/.android/**)",
+      "Read(//c/Users/josel/AndroidStudioProjects/CCOMate/$HOME/.android/**)",
+      "Bash(./gradlew :app-tv:compileVlcDebugKotlin :app-tv:compileExoplayerDebugKotlin)",
+      "Bash(jar tf:*)",
+      "Bash(javap -cp \"C:/Users/josel/.gradle/caches/9.3.1/transforms/4a4440cf81d31a44a85d7b53fc76e09a/workspace/transformed/media3-datasource-1.6.1-runtime.jar\" androidx.media3.datasource.UdpDataSource)",
+      "Bash(./gradlew :app-mobile:compileExoplayerReleaseKotlin :app-mobile:compileVlcReleaseKotlin)",
+      "Bash(./gradlew :app-mobile:assembleExoplayerRelease :app-mobile:assembleVlcRelease)",
+      "Bash(ls -lh c:/Users/josel/AndroidStudioProjects/CCOMate/app-mobile/build/outputs/apk/exoplayer/release/*.apk c:/Users/josel/AndroidStudioProjects/CCOMate/app-mobile/build/outputs/apk/vlc/release/*.apk)",
+      "Bash(./gradlew :app-mobile:assembleExoplayerRelease)"
     ]
   }
 }

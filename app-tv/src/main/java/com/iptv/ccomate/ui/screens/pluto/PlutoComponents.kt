@@ -11,6 +11,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -23,6 +24,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Text
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import androidx.compose.ui.platform.LocalContext
 import com.iptv.ccomate.model.EPGProgram
 import java.time.format.DateTimeFormatter
 
@@ -96,8 +99,15 @@ fun ChannelInfoPanel(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Logo del canal
+            val context = LocalContext.current
             AsyncImage(
-                model = channelLogo,
+                model = remember(channelLogo) {
+                    ImageRequest.Builder(context)
+                        .data(channelLogo)
+                        .size(260, 144) // 130dp × 2 para xhdpi
+                        .crossfade(true)
+                        .build()
+                },
                 contentDescription = "Logo del canal",
                 contentScale = ContentScale.Fit,
                 modifier = Modifier

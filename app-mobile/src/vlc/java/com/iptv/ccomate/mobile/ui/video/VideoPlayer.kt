@@ -78,6 +78,16 @@ fun VideoPlayer(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
+    // Liberar player cuando este Composable sale de composicion,
+    // pero SOLO si la URL actual del ViewModel coincide con la nuestra.
+    DisposableEffect(Unit) {
+        onDispose {
+            if (viewModel.playerState.value.currentUrl == videoUrl) {
+                viewModel.releasePlayer()
+            }
+        }
+    }
+
     Box(
         modifier = modifier.background(Color.Black),
         contentAlignment = Alignment.Center

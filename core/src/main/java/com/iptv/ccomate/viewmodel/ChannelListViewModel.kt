@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.iptv.ccomate.data.ChannelRepository
 import com.iptv.ccomate.model.Channel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,6 +23,10 @@ abstract class ChannelListViewModel(
     protected val _uiState = MutableStateFlow(ChannelUiState())
     val uiState: StateFlow<ChannelUiState> = _uiState.asStateFlow()
 
+    // Job activo de carga — evita fetches duplicados cuando init{} y
+    // LaunchedEffect(Unit) llaman a loadChannels() casi simultaneamente.
+    private var loadJob: Job? = null
+
     protected fun initialize() {
         loadChannels()
         loadExtraData()
@@ -30,9 +35,14 @@ abstract class ChannelListViewModel(
     /**
      * Recarga canales desde cache (Room). Si la cache fue actualizada
      * (ej: desde Settings), los nuevos canales se reflejan en la UI.
+     * Si ya hay una carga en curso, la llamada se ignora.
      */
     fun loadChannels() {
-        viewModelScope.launch {
+        if (loadJob?.isActive == true) {
+            Log.d(sourceName, "loadChannels() skipped — already in progress")
+            return
+        }
+        loadJob = viewModelScope.launch {
             try {
                 _uiState.value = _uiState.value.copy(
                     statusMessage = "Cargando canales $sourceName...",

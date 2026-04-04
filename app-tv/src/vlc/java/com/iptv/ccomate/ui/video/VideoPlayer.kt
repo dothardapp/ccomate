@@ -96,6 +96,17 @@ fun VideoPlayer(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
+    // Liberar player cuando este Composable sale de composicion,
+    // pero SOLO si la URL actual del ViewModel coincide con la nuestra.
+    // Evita que una pantalla saliente destruya el player de la pantalla entrante.
+    DisposableEffect(Unit) {
+        onDispose {
+            if (viewModel.playerState.value.currentUrl == videoUrl) {
+                viewModel.releasePlayer()
+            }
+        }
+    }
+
     Box(modifier = modifier.background(Color.Black)) {
         // VLCVideoLayout — superficie unica reutilizada.
         // El telon opaco de buffering oculta ghost frames al cambiar canal.
@@ -109,21 +120,6 @@ fun VideoPlayer(
                     )
                     keepScreenOn = true
                     viewModel.attachViews(this)
-
-                    // Cuando movableContentOf mueve esta vista a otro padre
-                    // (fullscreen ↔ normal), la superficie VLC se destruye.
-                    // Re-vincular al detectar que la vista volvio al arbol de ventana.
-                    addOnAttachStateChangeListener(object : android.view.View.OnAttachStateChangeListener {
-                        override fun onViewAttachedToWindow(v: android.view.View) {
-                            // Diferir al siguiente frame — la Surface del SurfaceView
-                            // interno de VLC no esta lista hasta despues del layout pass.
-                            v.post { viewModel.attachViews(v as VLCVideoLayout) }
-                        }
-                        override fun onViewDetachedFromWindow(v: android.view.View) {
-                            // No desvincular aqui — la vista puede estar siendo movida,
-                            // no destruida. La desvinculacion real ocurre en onRelease.
-                        }
-                    })
                 }
             },
             onRelease = { layout ->

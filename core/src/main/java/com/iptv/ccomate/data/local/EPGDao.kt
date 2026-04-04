@@ -12,7 +12,7 @@ interface EPGDao {
     @Query("SELECT * FROM epg_programs WHERE channelId = :channelId AND endTime > :currentTime ORDER BY startTime ASC LIMIT :limit")
     suspend fun getProgramsForChannel(channelId: String, currentTime: String, limit: Int = 20): List<EPGEntity>
 
-    @Query("SELECT * FROM epg_programs WHERE endTime > :currentTime ORDER BY channelId, startTime ASC")
+    @Query("SELECT * FROM epg_programs WHERE endTime > :currentTime AND startTime <= :currentTime ORDER BY channelId, startTime ASC")
     suspend fun getActivePrograms(currentTime: String): List<EPGEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

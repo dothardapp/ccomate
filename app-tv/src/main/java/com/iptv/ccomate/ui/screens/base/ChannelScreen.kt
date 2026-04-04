@@ -9,15 +9,23 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.iptv.ccomate.model.Channel
-import com.iptv.ccomate.model.EPGProgram
 import com.iptv.ccomate.ui.screens.ChannelList
 import com.iptv.ccomate.ui.screens.GroupList
 import com.iptv.ccomate.ui.screens.pluto.PlutoColors
@@ -84,66 +92,65 @@ fun ChannelScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    // movableContentOf: permite mover el VideoPanel entre layout normal y fullscreen
-    // sin destruir/recrear el player VLC
-    val videoContent = remember {
-        movableContentOf { url: String?, name: String?, isFull: Boolean, program: EPGProgram? ->
-            VideoPanel(
-                videoUrl = url,
-                channelName = name,
-                onPlaybackStarted = { onPlaybackStarted(name) },
-                onPlaybackError = { error ->
-                    onPlaybackError(error)
-                    Log.e("ChannelScreen", "Error de reproduccion", error)
-                },
-                modifier = Modifier.fillMaxSize(),
-                onErrorStateChanged = { hasPlayerError = it },
-                currentProgram = program,
-                isFullscreen = isFull
-            )
-        }
-    }
+    // Bounds del panel de video en pixeles, relativo al Box raiz.
+    // IMPORTANTE: Almacenamos Rect (data class con equals por valor), NO LayoutCoordinates.
+    // LayoutCoordinates no implementa equals() por valor — cada layout pass crea un objeto nuevo,
+    // lo que dispararia recomposicion infinita si se guardara en mutableStateOf.
+    var videoPanelBounds by remember { mutableStateOf(Rect.Zero) }
+    // Ref no-reactiva para las coordenadas del root — no dispara recomposicion al cambiar.
+    val rootCoordsRef = remember { arrayOfNulls<LayoutCoordinates>(1) }
+    val density = LocalDensity.current
 
     // -- Render --
-    if (isFullscreen) {
-        FullscreenDPadContainer(
-            channels = filteredChannels,
-            selectedChannelUrl = uiState.selectedChannelUrl,
-            hasPlayerError = hasPlayerError,
-            backgroundColor = fullscreenBackground,
-            onChannelChanged = { channel ->
-                onSelectChannel(channel)
-                onUpdateLastClicked(channel.url)
-            },
-            onExitFullscreen = {
-                restoreFocus = true
-                fullscreenState.value = false
-            }
-        ) {
-            videoContent(uiState.selectedChannelUrl, selectedChannel?.name, true, uiState.currentProgram)
-        }
-    } else {
+    // Estrategia: el VideoPanel se renderiza en una posicion FIJA en el arbol de Compose.
+    // En modo normal se posiciona sobre el placeholder con offset/size.
+    // En fullscreen se expande a fillMaxSize.
+    // Al no mover el AndroidView entre padres, la Surface nativa NUNCA se destruye,
+    // eliminando la pausa de pantalla negra durante transiciones fullscreen.
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .onGloballyPositioned { rootCoordsRef[0] = it }
+    ) {
+        // Layer 1: Layout normal (siempre presente para tracking de bounds)
         Column(
             modifier = modifier
                 .fillMaxSize()
                 .background(screenGradient)
                 .padding(horizontal = 48.dp, vertical = 27.dp)
         ) {
-            // -- Fila superior: Video + Info --
+            // -- Fila superior: Placeholder de video + Info --
             Row(modifier = Modifier.weight(1.2f).fillMaxWidth()) {
-                // Panel de video
+                // Placeholder que captura los bounds para posicionar el video
                 StyledPanelBox(
-                    modifier = Modifier.weight(1f).padding(8.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(8.dp)
+                        .onGloballyPositioned { panelCoords ->
+                            val root = rootCoordsRef[0] ?: return@onGloballyPositioned
+                            val relativePos = root.localPositionOf(panelCoords, Offset.Zero)
+                            val size = panelCoords.size
+                            val newBounds = Rect(
+                                relativePos.x,
+                                relativePos.y,
+                                relativePos.x + size.width,
+                                relativePos.y + size.height
+                            )
+                            if (newBounds != videoPanelBounds) {
+                                videoPanelBounds = newBounds
+                            }
+                        },
                     gradient = PlutoColors.VideoContainerGradient
                 ) {
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        videoContent(uiState.selectedChannelUrl, selectedChannel?.name, false, uiState.currentProgram)
-
-                        TimeWarningBanner(
-                            isVisible = isTimeIncorrect,
-                            timeMessage = currentTimeMessage,
-                            modifier = Modifier.align(Alignment.TopCenter)
-                        )
+                    // Contenido sobre el video (solo en modo normal)
+                    if (!isFullscreen) {
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            TimeWarningBanner(
+                                isVisible = isTimeIncorrect,
+                                timeMessage = currentTimeMessage,
+                                modifier = Modifier.align(Alignment.TopCenter)
+                            )
+                        }
                     }
                 }
 
@@ -189,6 +196,65 @@ fun ChannelScreen(
                         isLoading = uiState.isLoading
                     )
                 }
+            }
+        }
+
+        // Layer 2: Video — posicion fija en el arbol, bounds dinamicos.
+        // En modo normal se posiciona sobre el placeholder; en fullscreen llena la pantalla.
+        // Al no re-parentear el AndroidView, la Surface nativa se preserva intacta.
+        // Usamos localPositionOf para calcular la posicion relativa al Box raiz,
+        // evitando desajustes por el drawer/navigation que desplaza boundsInRoot.
+        val videoModifier = if (isFullscreen || videoPanelBounds == Rect.Zero) {
+            Modifier.fillMaxSize().background(fullscreenBackground)
+        } else {
+            with(density) {
+                Modifier
+                    .offset(
+                        x = videoPanelBounds.left.toDp(),
+                        y = videoPanelBounds.top.toDp()
+                    )
+                    .size(
+                        width = videoPanelBounds.width.toDp(),
+                        height = videoPanelBounds.height.toDp()
+                    )
+                    .shadow(2.dp, RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(12.dp))
+            }
+        }
+
+        Box(modifier = videoModifier) {
+            VideoPanel(
+                videoUrl = uiState.selectedChannelUrl,
+                channelName = selectedChannel?.name,
+                onPlaybackStarted = { onPlaybackStarted(selectedChannel?.name) },
+                onPlaybackError = { error ->
+                    onPlaybackError(error)
+                    Log.e("ChannelScreen", "Error de reproduccion", error)
+                },
+                modifier = Modifier.fillMaxSize(),
+                onErrorStateChanged = { hasPlayerError = it },
+                currentProgram = uiState.currentProgram,
+                isFullscreen = isFullscreen
+            )
+        }
+
+        // Layer 3: Overlay fullscreen (D-Pad, inmersivo, back handler)
+        if (isFullscreen) {
+            FullscreenDPadContainer(
+                channels = filteredChannels,
+                selectedChannelUrl = uiState.selectedChannelUrl,
+                hasPlayerError = hasPlayerError,
+                backgroundColor = Color.Transparent,
+                onChannelChanged = { channel ->
+                    onSelectChannel(channel)
+                    onUpdateLastClicked(channel.url)
+                },
+                onExitFullscreen = {
+                    restoreFocus = true
+                    fullscreenState.value = false
+                }
+            ) {
+                // Vacio — el video esta en Layer 2
             }
         }
     }

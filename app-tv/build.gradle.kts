@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -5,6 +7,13 @@ plugins {
     id("kotlin-parcelize")
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt.android)
+}
+
+// ── Carga de credenciales de firma ────────────────────────────────────────────
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.inputStream().use { keystoreProperties.load(it) }
 }
 
 android {
@@ -19,15 +28,35 @@ android {
         versionName = "1.0"
     }
 
-    buildTypes {
-        release {
-            isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
+    // ── Firma ─────────────────────────────────────────────────────────────────
+    signingConfigs {
+        create("release") {
+            storeFile = file(keystoreProperties["storeFile"] as String)
+            storePassword = keystoreProperties["storePassword"] as String
+            keyAlias = keystoreProperties["keyAlias"] as String
+            keyPassword = keystoreProperties["keyPassword"] as String
         }
     }
+
+    buildTypes {
+        release {
+            signingConfig = signingConfigs.getByName("release")
+
+            // ── R8 / minificación ────────────────────────────────────────────
+            isMinifyEnabled = true          // Activa R8: minifica + ofusca + optimiza
+            isShrinkResources = true        // Elimina recursos no referenciados
+
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"), // Reglas base de Android con optimizaciones
+                "proguard-rules.pro"                                      // Reglas del proyecto
+            )
+        }
+        debug {
+            // Debug sin minificación para builds rápidos de desarrollo
+            isMinifyEnabled = false
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11

@@ -45,6 +45,9 @@ fun VideoPlayer(
         ?: throw IllegalStateException("VideoPlayer debe ser alojado en un ComponentActivity")
     val viewModel: VideoPlayerViewModel = hiltViewModel(viewModelStoreOwner = activity)
     val playerState by viewModel.playerState.collectAsStateWithLifecycle()
+    // P1.3: player en StateFlow propio — PlayerSurface no recompone ante cambios de
+    // isBuffering/isPlaying/hasError, solo cuando la referencia al player cambia.
+    val player by viewModel.player.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
 
     // Overlay auto-hide
@@ -122,8 +125,8 @@ fun VideoPlayer(
     // UI
     Box(modifier = modifier) {
         // PlayerView surface — always present, hidden behind error overlay when needed
-        playerState.player?.let { player ->
-            PlayerSurface(player = player)
+        player?.let {
+            PlayerSurface(player = it)
         }
 
         // Buffering indicator

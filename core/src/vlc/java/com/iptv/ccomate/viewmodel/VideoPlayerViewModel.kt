@@ -8,12 +8,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.videolan.libvlc.LibVLC
 import org.videolan.libvlc.Media
 import org.videolan.libvlc.MediaPlayer
@@ -30,6 +33,7 @@ data class PlayerUiState(
 
 private const val TAG = "VideoPlayerVM"
 private const val BUFFERING_TIMEOUT_MS = 15000L
+private const val BUFFERING_TIMEOUT_UDP_MS = 30000L
 
 @HiltViewModel
 class VideoPlayerViewModel @Inject constructor(
@@ -46,6 +50,23 @@ class VideoPlayerViewModel @Inject constructor(
     private var currentPlaybackJob: Job? = null
     private var activeVideoLayout: VLCVideoLayout? = null
     private var multicastLock: WifiManager.MulticastLock? = null
+    private var isUdpStream: Boolean = false
+
+    init {
+        // Pre-calentar LibVLC y MediaPlayer en IO thread durante la construcción del ViewModel.
+        // LibVLC() carga los binarios nativos C++ (~30-50MB de shared libraries) — es la operación
+        // más costosa del player. Ejecutarla aquí evita que bloquee el Main thread cuando el
+        // usuario selecciona su primer canal.
+        viewModelScope.launch(Dispatchers.IO) {
+            getOrCreateLibVLC()
+            getOrCreateMediaPlayer()
+            // P3: Pre-calentar MulticastLock junto al player — la primera llamada a
+            // WifiManager.createMulticastLock() implica IPC al sistema (~1-5ms).
+            // Hacerla en init{} la saca del path crítico del primer canal UDP.
+            // Para canales no-UDP, playUrl() llama a releaseMulticastLock() sin overhead.
+            acquireMulticastLock()
+        }
+    }
 
     private val vlcArgs = arrayListOf(
         // Transporte RTSP sobre TCP (evita problemas de NAT/firewall con UDP)
@@ -59,7 +80,16 @@ class VideoPlayerViewModel @Inject constructor(
         // Sin esto, frames se acumulan y la latencia crece progresivamente.
         "--drop-late-frames",
         "--skip-frames",
-        // Verbose logging para diagnostico (quitar en release si es necesario)
+        // ── Optimizaciones para dispositivos de gama baja ──
+        // Skip deblocking filter (H.264 loop filter) — ahorra ~30% CPU de decodificacion.
+        // En TV en vivo la diferencia visual es imperceptible.
+        // Valores: 0=none, 1=non-ref, 2=bidir, 3=non-key, 4=all
+        "--avcodec-skiploopfilter=4",
+        // Modo hurry-up: cuando el decoder se atrasa, salta frames non-reference
+        // automaticamente para recuperar sincronizacion A/V.
+        "--avcodec-hurry-up",
+        // No re-escalar tempo de audio al corregir sync — ahorra CPU de DSP.
+        "--no-audio-time-stretch",
         "--verbose=0"
     )
 
@@ -68,10 +98,16 @@ class VideoPlayerViewModel @Inject constructor(
             MediaPlayer.Event.Buffering -> {
                 val percent = event.buffering
                 if (percent < 100f) {
-                    _playerState.value = _playerState.value.copy(
-                        isBuffering = true,
-                        isPlaying = false
-                    )
+                    // P1.2: Solo emitir cuando cambia de no-buffering a buffering.
+                    // VLC dispara este evento decenas de veces por segundo con cada
+                    // actualización de porcentaje — sin este guard, Compose recompone
+                    // en cada disparo aunque el estado resultante sea idéntico.
+                    if (!_playerState.value.isBuffering) {
+                        _playerState.value = _playerState.value.copy(
+                            isBuffering = true,
+                            isPlaying = false
+                        )
+                    }
                     startBufferingTimeout()
                 } else {
                     cancelBufferingTimeout()
@@ -240,70 +276,87 @@ class VideoPlayerViewModel @Inject constructor(
         }
 
         currentPlaybackJob?.cancel()
-
-        _playerState.value = _playerState.value.copy(
-            isBuffering = true,
-            hasError = false,
-            errorMessage = "",
-            currentUrl = videoUrl
-        )
-
         currentPlaybackJob = viewModelScope.launch {
+            // P2.2: Debounce 250ms — evita reproducir canales intermedios al navegar rapido
+            // con el mando. Si el usuario cambia canal antes de 250ms, este Job se cancela
+            // y no se ejecuta ningun trabajo pesado (stop, Media creation, play).
+            delay(250)
+
+            _playerState.value = _playerState.value.copy(
+                isBuffering = true,
+                hasError = false,
+                errorMessage = "",
+                currentUrl = videoUrl
+            )
+
             try {
                 val player = getOrCreateMediaPlayer()
 
-                // Liberar media anterior
-                currentMedia?.release()
+                // Detener reproduccion ANTES de crear nuevo media.
+                // Libera el hardware decoder inmediatamente para que el nuevo canal
+                // pueda usarlo sin competir con el stream anterior.
+                // Critico en dispositivos de gama baja con un solo decoder HW.
+                player.stop()
 
-                // Crear nuevo Media desde URI
-                val vlc = getOrCreateLibVLC()
-                val uri = Uri.parse(videoUrl)
-                val media = Media(vlc, uri)
+                // P2.1: try/finally garantiza que newMedia se libera si la configuración
+                // de opciones falla. Sin este guard, Media() quedaría en memoria nativa C++
+                // hasta que el GC detecte la referencia huérfana (no determinístico en JNI).
+                val (media, scheme) = withContext(Dispatchers.IO) {
+                    val prevMedia = currentMedia
+                    currentMedia = null
+                    prevMedia?.release()
 
-                // HW decoder con fallback a software — si el codec HW falla
-                // (ej: perfil no soportado), VLC cae a avcodec automaticamente.
-                media.setHWDecoderEnabled(true, true)
+                    val vlc = getOrCreateLibVLC()
+                    val uri = Uri.parse(videoUrl)
+                    val newMedia = Media(vlc, uri)
+                    try {
+                        // HW decoder con fallback a software — si el codec HW falla
+                        // (ej: perfil no soportado), VLC cae a avcodec automaticamente.
+                        newMedia.setHWDecoderEnabled(true, true)
 
-                // Opciones por protocolo de transporte
-                val scheme = uri.scheme?.lowercase() ?: ""
-                when {
-                    scheme == "udp" || scheme == "rtp" -> {
-                        // Android filtra multicast por defecto — necesitamos el lock
-                        acquireMulticastLock()
-                        // Multicast/UDP: mas buffer para absorber jitter de red.
-                        // UDP no tiene retransmision, necesita margen para perdida de paquetes.
-                        media.addOption(":network-caching=2000")
-                        media.addOption(":live-caching=2000")
-                        Log.d(TAG, "Applied multicast/UDP options for: $videoUrl")
-                    }
-                    scheme == "rtsp" -> {
-                        releaseMulticastLock()
-                        // RTSP: caching moderado, TCP ya maneja retransmision.
-                        media.addOption(":network-caching=1500")
-                        media.addOption(":live-caching=1500")
-                    }
-                    scheme == "http" || scheme == "https" -> {
-                        releaseMulticastLock()
-                        // HTTP(S): streams HLS/DASH o HTTP directo.
-                        media.addOption(":network-caching=1500")
-                        media.addOption(":live-caching=1500")
-                        media.addOption(":http-user-agent=Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36")
-                        media.addOption(":http-referrer=$videoUrl")
-                    }
-                    else -> {
-                        releaseMulticastLock()
-                        media.addOption(":network-caching=1500")
-                        media.addOption(":live-caching=1500")
+                        // Opciones por protocolo de transporte
+                        val detectedScheme = uri.scheme?.lowercase() ?: ""
+                        when {
+                            detectedScheme == "udp" || detectedScheme == "rtp" -> {
+                                isUdpStream = true
+                                acquireMulticastLock()
+                                newMedia.addOption(":network-caching=3000")
+                                newMedia.addOption(":live-caching=3000")
+                                Log.d(TAG, "Applied multicast/UDP options for: $videoUrl")
+                            }
+                            detectedScheme == "rtsp" -> {
+                                isUdpStream = false
+                                releaseMulticastLock()
+                                newMedia.addOption(":network-caching=1500")
+                                newMedia.addOption(":live-caching=1500")
+                            }
+                            detectedScheme == "http" || detectedScheme == "https" -> {
+                                isUdpStream = false
+                                releaseMulticastLock()
+                                newMedia.addOption(":network-caching=1500")
+                                newMedia.addOption(":live-caching=1500")
+                                newMedia.addOption(":http-user-agent=Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36")
+                                newMedia.addOption(":http-referrer=$videoUrl")
+                            }
+                            else -> {
+                                releaseMulticastLock()
+                                newMedia.addOption(":network-caching=1500")
+                                newMedia.addOption(":live-caching=1500")
+                            }
+                        }
+                        currentMedia = newMedia
+                        Pair(newMedia, detectedScheme)
+                    } catch (e: Exception) {
+                        newMedia.release()
+                        throw e
                     }
                 }
-
-                currentMedia = media
 
                 player.media = media
                 player.play()
 
                 Log.d(TAG, "Playing ($scheme): $videoUrl")
-            } catch (e: kotlinx.coroutines.CancellationException) {
+            } catch (e: CancellationException) {
                 Log.d(TAG, "Playback cancelled for: $videoUrl")
                 throw e
             } catch (e: Exception) {
@@ -395,8 +448,9 @@ class VideoPlayerViewModel @Inject constructor(
 
     private fun startBufferingTimeout() {
         cancelBufferingTimeout()
+        val timeout = if (isUdpStream) BUFFERING_TIMEOUT_UDP_MS else BUFFERING_TIMEOUT_MS
         bufferingTimeoutJob = viewModelScope.launch {
-            delay(BUFFERING_TIMEOUT_MS)
+            delay(timeout)
             val state = _playerState.value
             if (state.isBuffering && !state.hasError) {
                 Log.w(TAG, "Buffering timeout for: ${state.currentUrl}")

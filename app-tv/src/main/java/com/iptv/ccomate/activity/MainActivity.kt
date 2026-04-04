@@ -6,7 +6,6 @@ import androidx.activity.compose.setContent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.movableContentOf
 import androidx.compose.runtime.remember
 import androidx.navigation.compose.rememberNavController
 import com.iptv.ccomate.navigation.AppNavGraph
@@ -30,10 +29,13 @@ fun CcoMateApp() {
 
     CCOMateTheme {
         CompositionLocalProvider(LocalFullscreenState provides fullscreenState) {
-            val navContent = remember {
-                movableContentOf { AppNavGraph(navController = navController) }
+            // movableContentOf removido: el NavGraph no se mueve entre padres, por lo que
+            // el wrapper no aportaba ningún beneficio y solo agregaba overhead de recomposición.
+            // La arquitectura de 3 capas en ChannelScreen maneja la estabilidad de Surface
+            // sin necesitar movableContentOf a nivel de Activity.
+            CcoNavigationDrawer(navController = navController) {
+                AppNavGraph(navController = navController)
             }
-            CcoNavigationDrawer(navController = navController) { navContent() }
         }
     }
 }

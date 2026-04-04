@@ -27,9 +27,21 @@
         android:networkSecurityConfig="@xml/network_security_config">
 
         <!-- Actividad principal para lanzamiento en dispositivos móviles y Android TV -->
+        <!--
+            launchMode="singleTask": garantiza una sola instancia de MainActivity en el stack.
+            Si el TCL Launcher o el sistema relanza la app mientras el proceso aún existe,
+            Android enruta al onNewIntent() en vez de crear una segunda instancia — elimina
+            el conflicto "two processes with the same name" reportado por TGuardMemoryClassifier.
+
+            configChanges: evita que Android destruya y recree la Activity ante cambios de
+            teclado/pantalla, lo que en TV puede ocurrir al conectar/desconectar mandos.
+            La Activity maneja estos cambios internamente sin reinicio.
+        -->
         <activity
             android:name=".activity.MainActivity"
-            android:exported="true">
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:configChanges="keyboard|keyboardHidden|navigation">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

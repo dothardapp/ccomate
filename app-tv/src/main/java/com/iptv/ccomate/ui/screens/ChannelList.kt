@@ -43,11 +43,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Icon
 import androidx.tv.material3.Text
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import coil.size.Size
 import com.iptv.ccomate.model.Channel
 import com.iptv.ccomate.util.AppConfig
 import kotlinx.coroutines.delay
@@ -206,13 +209,28 @@ fun ChannelList(
                             horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            AsyncImage(
-                                    model = channel.logo ?: AppConfig.DEFAULT_CHANNEL_LOGO,
-                                    contentDescription = "Logo canal",
-                                    modifier =
-                                            Modifier.background(Color(0xFF121212))
-                                                    .size(80.dp, 45.dp)
-                            )
+                            if (!channel.logo.isNullOrBlank()) {
+                                val context = LocalContext.current
+                                AsyncImage(
+                                        model = remember(channel.logo) {
+                                            ImageRequest.Builder(context)
+                                                .data(channel.logo)
+                                                .size(160, 90) // 80dp × 2 para xhdpi, evita decodificar a resolución completa
+                                                .crossfade(true)
+                                                .build()
+                                        },
+                                        contentDescription = "Logo canal",
+                                        modifier =
+                                                Modifier.background(Color(0xFF121212))
+                                                        .size(80.dp, 45.dp)
+                                )
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .background(Color(0xFF121212))
+                                        .size(80.dp, 45.dp)
+                                )
+                            }
                             Spacer(modifier = Modifier.width(12.dp))
                             Text(
                                     text = channel.name,
