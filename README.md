@@ -90,11 +90,23 @@ UI especifica para moviles y tablets:
 - Lista scrolleable de canales con logo y nombre
 - movableContentOf para video sin interrupcion al rotar
 
+## Documentación Técnica
+
+Para análisis profundos de cada capa arquitectónica, consultar:
+
+- **[etapa1_infraestructura.md](etapa1_infraestructura.md)** — Grafo de módulos, Product Flavors, stack tecnológico completo, configuración de Gradle
+- **[etapa2_datos_y_dominio.md](etapa2_datos_y_dominio.md)** — Room database, parsers (M3U/EPG), repositorios, networking, modelos de dominio
+- **[etapa3_logica_negocio.md](etapa3_logica_negocio.md)** — ViewModels, máquinas de estado, integración de EPG, reproducción de video (ExoPlayer/VLC)
+- **[etapa4_interfaces_ui.md](etapa4_interfaces_ui.md)** — Arquitectura de UI para TV (D-Pad, Drawer, 3-capas) y Mobile (responsive, BottomNav)
+
+**Status:** ✅ 100% Implementado (4 etapas, 95 componentes verificados)
+
 ## Notas
 
 - Los certificados SSL personalizados estan en `res/raw/` y configurados en `network_security_config.xml` de cada modulo app
 - El proyecto usa `api()` en `:core` para exponer dependencias transitivas a los modulos app
 - Los ViewModels de canal son `Activity-scoped` para sobrevivir a la navegacion entre pantallas
+- El proyecto soporta 2 players multimedia mediante Product Flavors: ExoPlayer (Media3) y LibVLC, compilables para ambas plataformas (TV y Mobile)
 
 ## Capturas
 
