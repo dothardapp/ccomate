@@ -21,7 +21,15 @@
       "Bash(./gradlew :app-mobile:compileExoplayerReleaseKotlin :app-mobile:compileVlcReleaseKotlin)",
       "Bash(./gradlew :app-mobile:assembleExoplayerRelease :app-mobile:assembleVlcRelease)",
       "Bash(ls -lh c:/Users/josel/AndroidStudioProjects/CCOMate/app-mobile/build/outputs/apk/exoplayer/release/*.apk c:/Users/josel/AndroidStudioProjects/CCOMate/app-mobile/build/outputs/apk/vlc/release/*.apk)",
-      "Bash(./gradlew :app-mobile:assembleExoplayerRelease)"
+      "Bash(./gradlew :app-mobile:assembleExoplayerRelease)",
+      "Bash(ls -la *.md)",
+      "Read(//tmp/**)",
+      "Bash(grep -n \"FALTANTE\\\\|falso\\\\|99%\\\\|66/67\\\\|no existe\" etapa*.md)",
+      "Bash(ls -1 *.md)",
+      "Bash(ls -lh *.md)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\josel\\.claude\\projects\\c--Users-josel-AndroidStudioProjects-CCOMate\\memory"
     ]
   }
 }

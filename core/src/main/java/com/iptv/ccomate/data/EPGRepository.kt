@@ -5,7 +5,7 @@ import android.util.Log
 import com.iptv.ccomate.data.local.EPGDao
 import com.iptv.ccomate.data.local.EPGEntity
 import com.iptv.ccomate.model.EPGProgram
-import com.iptv.ccomate.util.AppConfig
+import com.iptv.ccomate.util.UrlPreferences
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsChannel
@@ -19,7 +19,8 @@ class EPGRepository @Inject constructor(
     @ApplicationContext private val context: Context,
     private val epgDao: EPGDao,
     private val networkClient: NetworkClient,
-    private val epgParser: EPGParser
+    private val epgParser: EPGParser,
+    private val urlPreferences: UrlPreferences
 ) {
     private val sharedPrefs = context.getSharedPreferences("epg_prefs", Context.MODE_PRIVATE)
     
@@ -36,7 +37,7 @@ class EPGRepository @Inject constructor(
             return@withContext loadFromLocal()
         } else {
             Log.d("EPGRepository", "Fetching fresh EPG data")
-            return@withContext fetchAndSave()
+            return@withContext fetchAndSaveAll()
         }
     }
 
@@ -48,25 +49,39 @@ class EPGRepository @Inject constructor(
         }
     }
 
-    private suspend fun fetchAndSave(): Map<String, List<EPGProgram>> {
+    private suspend fun fetchAndSaveAll(): Map<String, List<EPGProgram>> {
         try {
-            val response = networkClient.client.get(AppConfig.EPG_URL)
-            val parsedData = response.bodyAsChannel().toInputStream().use { stream ->
-                epgParser.parse(stream)
+            val allParsedData = mutableMapOf<String, List<EPGProgram>>()
+
+            val epgUrls = listOfNotNull(
+                urlPreferences.plutoEpgUrl.ifBlank { null },
+                urlPreferences.tdaEpgUrl.ifBlank { null }
+            )
+
+            for (url in epgUrls) {
+                try {
+                    val response = networkClient.client.get(url)
+                    val parsedData = response.bodyAsChannel().toInputStream().use { stream ->
+                        epgParser.parse(stream)
+                    }
+                    allParsedData.putAll(parsedData)
+                    Log.d("EPGRepository", "Fetched EPG from $url: ${parsedData.size} channels")
+                } catch (e: Exception) {
+                    Log.w("EPGRepository", "Error fetching EPG from $url: ${e.message}")
+                }
             }
 
-            val entities = parsedData.flatMap { (_, programs) ->
-                programs.map { it.toEntity() }
+            if (allParsedData.isNotEmpty()) {
+                val entities = allParsedData.flatMap { (_, programs) ->
+                    programs.map { it.toEntity() }
+                }
+                epgDao.replaceAll(entities)
+                sharedPrefs.edit().putLong("last_update", System.currentTimeMillis()).apply()
             }
 
-            epgDao.replaceAll(entities)
-
-            sharedPrefs.edit().putLong("last_update", System.currentTimeMillis()).apply()
-
-            return parsedData
+            return allParsedData.ifEmpty { loadFromLocal() }
         } catch (e: Exception) {
             Log.e("EPGRepository", "Error fetching EPG", e)
-            // If fetch fails, try to return whatever we have in local even if expired
             return loadFromLocal()
         }
     }

@@ -17,16 +17,23 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -38,6 +45,13 @@ import com.iptv.ccomate.viewmodel.SettingsViewModel
 @Composable
 fun MobileSettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val keyboardController = LocalSoftwareKeyboardController.current
+
+    DisposableEffect(Unit) {
+        onDispose {
+            keyboardController?.hide()
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -65,9 +79,25 @@ fun MobileSettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
         HorizontalDivider(thickness = 0.5.dp, color = MobileColors.divider)
         Spacer(modifier = Modifier.height(20.dp))
 
+        // --- Refresh buttons ---
+        Text(
+            text = "Actualizar datos",
+            fontSize = 18.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = MobileColors.textPrimary
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = "Recarga los canales y la guia de programacion desde las URLs configuradas",
+            fontSize = 13.sp,
+            color = MobileColors.textSecondary
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         MobileRefreshButton(
             label = "Actualizar canales TDA",
-            description = "Recarga la lista de canales TDA desde el servidor",
+            description = "Recarga la lista de canales TDA",
             isLoading = uiState.isRefreshingTda,
             result = uiState.lastResults.find { it.source == "TDA" },
             onClick = { viewModel.refreshTda() }
@@ -77,7 +107,7 @@ fun MobileSettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
 
         MobileRefreshButton(
             label = "Actualizar canales Pluto TV",
-            description = "Recarga la lista de canales Pluto TV desde el servidor",
+            description = "Recarga la lista de canales Pluto TV",
             isLoading = uiState.isRefreshingPluto,
             result = uiState.lastResults.find { it.source == "PLUTO" },
             onClick = { viewModel.refreshPluto() }
@@ -87,14 +117,12 @@ fun MobileSettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
 
         MobileRefreshButton(
             label = "Actualizar EPG",
-            description = "Recarga la guia de programacion de Pluto TV",
+            description = "Recarga la guia de programacion desde todas las fuentes EPG configuradas",
             isLoading = uiState.isRefreshingEpg,
             result = uiState.lastResults.find { it.source == "EPG" },
             onClick = { viewModel.refreshEpg() }
         )
 
-        Spacer(modifier = Modifier.height(20.dp))
-        HorizontalDivider(thickness = 0.5.dp, color = MobileColors.divider)
         Spacer(modifier = Modifier.height(20.dp))
 
         MobileRefreshButton(
@@ -104,6 +132,110 @@ fun MobileSettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             result = null,
             onClick = { viewModel.refreshAll() }
         )
+
+        Spacer(modifier = Modifier.height(20.dp))
+        HorizontalDivider(thickness = 0.5.dp, color = MobileColors.divider)
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // --- URL Configuration ---
+        Text(
+            text = "URLs de contenido",
+            fontSize = 18.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = MobileColors.textPrimary
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = "Configura los enlaces M3U y EPG para cada fuente",
+            fontSize = 13.sp,
+            color = MobileColors.textSecondary
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // TDA section
+        Text(
+            text = "TDA (Television Digital Abierta)",
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Medium,
+            color = MobileColors.primary
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        MobileUrlField(
+            label = "Playlist M3U",
+            value = uiState.tdaPlaylistUrl,
+            error = uiState.tdaPlaylistError,
+            onValueChange = { viewModel.updateTdaPlaylistUrl(it) }
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        MobileUrlField(
+            label = "EPG (XML)",
+            value = uiState.tdaEpgUrl,
+            error = uiState.tdaEpgError,
+            placeholder = "Sin configurar (opcional)",
+            onValueChange = { viewModel.updateTdaEpgUrl(it) }
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Pluto section
+        Text(
+            text = "Pluto TV",
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Medium,
+            color = MobileColors.primary
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        MobileUrlField(
+            label = "Playlist M3U",
+            value = uiState.plutoPlaylistUrl,
+            error = uiState.plutoPlaylistError,
+            onValueChange = { viewModel.updatePlutoPlaylistUrl(it) }
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        MobileUrlField(
+            label = "EPG (XML)",
+            value = uiState.plutoEpgUrl,
+            error = uiState.plutoEpgError,
+            onValueChange = { viewModel.updatePlutoEpgUrl(it) }
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Save / Reset buttons
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Button(
+                onClick = { viewModel.saveUrls() },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF4CAF50)
+                ),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text("Guardar URLs", color = Color.White)
+            }
+            Button(
+                onClick = { viewModel.resetUrlsToDefaults() },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFFF9800)
+                ),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text("Restaurar por defecto", color = Color.White)
+            }
+        }
+
+        if (uiState.urlsSaved) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "URLs guardadas correctamente",
+                fontSize = 13.sp,
+                color = Color(0xFF4CAF50)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
     }
 }
 
@@ -163,6 +295,56 @@ private fun MobileRefreshButton(
                     strokeWidth = 2.5.dp
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun MobileUrlField(
+    label: String,
+    value: String,
+    error: String?,
+    onValueChange: (String) -> Unit,
+    placeholder: String = ""
+) {
+    Column {
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            label = { Text(label) },
+            placeholder = if (placeholder.isNotEmpty()) {
+                { Text(placeholder, fontSize = 14.sp) }
+            } else null,
+            isError = error != null,
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = MobileColors.textPrimary,
+                unfocusedTextColor = MobileColors.textPrimary,
+                cursorColor = MobileColors.primary,
+                focusedBorderColor = MobileColors.primary,
+                unfocusedBorderColor = MobileColors.divider,
+                errorBorderColor = Color(0xFFEF5350),
+                focusedLabelColor = MobileColors.primary,
+                unfocusedLabelColor = MobileColors.textSecondary,
+                errorLabelColor = Color(0xFFEF5350),
+                focusedContainerColor = MobileColors.surface,
+                unfocusedContainerColor = MobileColors.surface,
+                errorContainerColor = MobileColors.surface,
+                focusedPlaceholderColor = MobileColors.textSecondary.copy(alpha = 0.5f),
+                unfocusedPlaceholderColor = MobileColors.textSecondary.copy(alpha = 0.5f)
+            ),
+            shape = RoundedCornerShape(8.dp),
+            modifier = Modifier.fillMaxWidth()
+        )
+        if (error != null) {
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = error,
+                fontSize = 12.sp,
+                color = Color(0xFFEF5350),
+                modifier = Modifier.padding(start = 4.dp)
+            )
         }
     }
 }

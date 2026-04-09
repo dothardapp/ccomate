@@ -5,7 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.iptv.ccomate.data.ChannelRepository
 import com.iptv.ccomate.data.EPGRepository
 
-import com.iptv.ccomate.util.AppConfig
+import com.iptv.ccomate.util.UrlPreferences
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -17,11 +17,13 @@ import javax.inject.Inject
 @HiltViewModel
 class PlutoTvViewModel @Inject constructor(
     private val epgRepository: EPGRepository,
-    channelRepository: ChannelRepository
+    channelRepository: ChannelRepository,
+    private val urlPreferences: UrlPreferences
 ) : ChannelListViewModel(channelRepository) {
 
     override val sourceName = "PLUTO"
-    override val playlistUrl = AppConfig.PLUTO_PLAYLIST_URL
+    override val playlistUrl: String
+        get() = urlPreferences.plutoPlaylistUrl
 
     private var epgData: Map<String, List<EPGProgram>> = emptyMap()
 

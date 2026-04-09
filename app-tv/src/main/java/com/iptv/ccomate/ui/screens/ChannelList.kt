@@ -58,6 +58,8 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.res.painterResource
+import com.iptv.ccomate.core.R
 
 @Composable
 fun ChannelList(
@@ -209,28 +211,22 @@ fun ChannelList(
                             horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            if (!channel.logo.isNullOrBlank()) {
-                                val context = LocalContext.current
-                                AsyncImage(
-                                        model = remember(channel.logo) {
-                                            ImageRequest.Builder(context)
-                                                .data(channel.logo)
-                                                .size(160, 90) // 80dp × 2 para xhdpi, evita decodificar a resolución completa
-                                                .crossfade(true)
-                                                .build()
-                                        },
-                                        contentDescription = "Logo canal",
-                                        modifier =
-                                                Modifier.background(Color(0xFF121212))
-                                                        .size(80.dp, 45.dp)
-                                )
-                            } else {
-                                Box(
-                                    modifier = Modifier
-                                        .background(Color(0xFF121212))
-                                        .size(80.dp, 45.dp)
-                                )
-                            }
+                            val context = LocalContext.current
+                            AsyncImage(
+                                    model = remember(channel.logo) {
+                                        ImageRequest.Builder(context)
+                                            .data(channel.logo)
+                                            .size(160, 90) // 80dp × 2 para xhdpi, evita decodificar a resolución completa
+                                            .crossfade(true)
+                                            .build()
+                                    },
+                                    contentDescription = "Logo canal",
+                                    fallback = painterResource(id = R.drawable.ic_channel_placeholder),
+                                    error = painterResource(id = R.drawable.ic_channel_placeholder),
+                                    modifier =
+                                            Modifier.background(Color(0xFF121212))
+                                                    .size(80.dp, 45.dp)
+                            )
                             Spacer(modifier = Modifier.width(12.dp))
                             Text(
                                     text = channel.name,

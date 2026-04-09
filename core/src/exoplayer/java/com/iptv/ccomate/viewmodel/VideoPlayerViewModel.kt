@@ -305,6 +305,11 @@ class VideoPlayerViewModel @Inject constructor(
             dataSourceFactory!!
         }
 
+    private fun isPrivateIpUrl(url: String): Boolean {
+        val host = Uri.parse(url).host ?: return false
+        return host.matches(Regex("""^(10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.).*"""))
+    }
+
     private suspend fun createMediaSource(videoUrl: String): MediaSource =
         withContext(Dispatchers.IO) {
             val mediaItem = MediaItem.fromUri(videoUrl.toUri())
@@ -324,7 +329,13 @@ class VideoPlayerViewModel @Inject constructor(
                     .createMediaSource(mediaItem)
             }
 
-            val factory = getOrCreateDataSourceFactory()
+            // Para IPs privadas (encoders locales), no enviar Referer/Origin — pueden rechazarlos
+            val factory = if (isPrivateIpUrl(videoUrl)) {
+                OkHttpDataSource.Factory(okHttpClient).setUserAgent(buildDynamicUserAgent())
+            } else {
+                getOrCreateDataSourceFactory()
+            }
+
             when {
                 urlLower.endsWith(".flv") ->
                     ProgressiveMediaSource.Factory(factory).createMediaSource(mediaItem)

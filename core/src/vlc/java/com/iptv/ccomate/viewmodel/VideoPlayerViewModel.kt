@@ -175,6 +175,11 @@ class VideoPlayerViewModel @Inject constructor(
 
     // ── Multicast lock ──
 
+    private fun isPrivateIpUrl(url: String): Boolean {
+        val host = Uri.parse(url).host ?: return false
+        return host.matches(Regex("""^(10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.).*"""))
+    }
+
     private fun acquireMulticastLock() {
         if (multicastLock?.isHeld == true) return
         try {
@@ -336,7 +341,10 @@ class VideoPlayerViewModel @Inject constructor(
                                 newMedia.addOption(":network-caching=1500")
                                 newMedia.addOption(":live-caching=1500")
                                 newMedia.addOption(":http-user-agent=Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36")
-                                newMedia.addOption(":http-referrer=$videoUrl")
+                                // Para IPs privadas (encoders locales) no enviar referrer — pueden rechazarlo
+                                if (!isPrivateIpUrl(videoUrl)) {
+                                    newMedia.addOption(":http-referrer=${AppConfig.VIDEO_REFERER}")
+                                }
                             }
                             else -> {
                                 releaseMulticastLock()

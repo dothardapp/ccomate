@@ -41,6 +41,8 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.painterResource
+import com.iptv.ccomate.core.R
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -233,9 +235,11 @@ private fun ChannelRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         AsyncImage(
-            model = channel.logo ?: AppConfig.DEFAULT_CHANNEL_LOGO,
+            model = channel.logo,
             contentDescription = channel.name,
             contentScale = ContentScale.Fit,
+            error = painterResource(id = R.drawable.ic_channel_placeholder),
+            fallback = painterResource(id = R.drawable.ic_channel_placeholder),
             modifier = Modifier
                 .size(48.dp)
                 .clip(RoundedCornerShape(8.dp))

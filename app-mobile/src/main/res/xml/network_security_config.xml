@@ -30,8 +30,9 @@
         </trust-anchors>
     </domain-config>
 
-    <!-- Configuración para 10.224.24.232 (tráfico en texto claro) -->
+    <!-- Configuración para red interna 10.224.24.x (tráfico en texto claro) -->
     <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">10.224.24.229</domain>
         <domain includeSubdomains="true">10.224.24.232</domain>
         <domain includeSubdomains="true">10.224.24.233</domain>
     </domain-config>

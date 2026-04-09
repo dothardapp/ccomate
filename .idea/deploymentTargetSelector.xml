@@ -4,10 +4,10 @@
     <selectionStates>
       <SelectionState runConfigName="CCOMate">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2026-03-22T01:43:49.017309Z">
+        <DropdownSelection timestamp="2026-04-04T18:20:46.873498Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="Default" identifier="serial=172.16.85.43:5555;connection=8570fab6" />
+              <DeviceId pluginId="Default" identifier="serial=172.16.2.3:5555;connection=172687c8" />
             </handle>
           </Target>
         </DropdownSelection>
@@ -15,10 +15,10 @@
       </SelectionState>
       <SelectionState runConfigName="app-mobile">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2026-03-21T17:43:01.508773Z">
+        <DropdownSelection timestamp="2026-04-04T17:51:02.237756Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="PhysicalDevice" identifier="serial=4l8lypwojvojfqw4" />
+              <DeviceId pluginId="Default" identifier="serial=172.16.2.3:5555;connection=209e2c61" />
             </handle>
           </Target>
         </DropdownSelection>

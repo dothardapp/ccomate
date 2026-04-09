@@ -17,7 +17,4 @@ object AppConfig {
     // Headers y Seguridad
     const val VIDEO_REFERER = "https://ccomate.iptv.com"
     const val VIDEO_ORIGIN = "https://ccomate.iptv.com"
-
-    // Imágenes por defecto
-    const val DEFAULT_CHANNEL_LOGO = "https://media.istockphoto.com/id/1409329028/vector/no-picture-available-placeholder-thumbnail-icon-illustration-design.jpg"
 }
