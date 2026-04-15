@@ -31,10 +31,12 @@ fun TDAScreen(
         infoPanelContent = { selectedChannel ->
             ChannelInfoPanel(
                 channelLogo = selectedChannel?.logo,
+                channelName = selectedChannel?.name,
                 statusMessage = uiState.statusMessage,
                 playbackError = uiState.playbackError,
                 currentProgram = null,
-                showEpg = false
+                showEpg = false,
+                isPlaying = uiState.isPlaying
             )
         }
     )

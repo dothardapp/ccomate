@@ -14,5 +14,6 @@ data class ChannelUiState(
     val playbackError: Throwable? = null,
     val isPlaying: Boolean = false,
     val isLoading: Boolean = false,
-    val currentProgram: EPGProgram? = null
+    val currentProgram: EPGProgram? = null,
+    val nextProgram: EPGProgram? = null
 )

@@ -120,7 +120,7 @@ fun ChannelScreen(
                 .padding(horizontal = 48.dp, vertical = 27.dp)
         ) {
             // -- Fila superior: Placeholder de video + Info --
-            Row(modifier = Modifier.weight(1.2f).fillMaxWidth()) {
+            Row(modifier = Modifier.weight(1.35f).fillMaxWidth()) {
                 // Placeholder que captura los bounds para posicionar el video
                 StyledPanelBox(
                     modifier = Modifier
@@ -165,7 +165,7 @@ fun ChannelScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             // -- Fila inferior: Grupos + Canales --
-            Row(modifier = Modifier.weight(1.6f).fillMaxSize().padding(8.dp)) {
+            Row(modifier = Modifier.weight(1.45f).fillMaxSize().padding(8.dp)) {
                 StyledPanelBox(modifier = Modifier.weight(1f).focusRequester(groupListFocusRequester)) {
                     GroupList(
                         groups = uiState.groups,

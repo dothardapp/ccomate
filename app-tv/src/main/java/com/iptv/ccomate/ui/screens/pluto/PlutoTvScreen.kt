@@ -33,10 +33,13 @@ fun PlutoTvScreen(
         infoPanelContent = { selectedChannel ->
             ChannelInfoPanel(
                 channelLogo = selectedChannel?.logo,
+                channelName = selectedChannel?.name,
                 statusMessage = uiState.statusMessage,
                 playbackError = uiState.playbackError,
                 currentProgram = uiState.currentProgram,
-                showEpg = ENABLE_EPG_SIDE_PANEL
+                showEpg = ENABLE_EPG_SIDE_PANEL,
+                isPlaying = uiState.isPlaying,
+                nextProgram = uiState.nextProgram
             )
         }
     )

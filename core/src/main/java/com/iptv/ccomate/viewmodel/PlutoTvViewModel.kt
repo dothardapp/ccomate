@@ -58,11 +58,24 @@ class PlutoTvViewModel @Inject constructor(
         val state = _uiState.value
         val selectedChannel = state.allChannels.firstOrNull { it.url == state.selectedChannelUrl }
 
-        val program = selectedChannel?.tvgId?.let { tvgId -> epgData[tvgId] }?.find { p ->
-            val now = ZonedDateTime.now()
+        val programs = selectedChannel?.tvgId?.let { tvgId -> epgData[tvgId] }
+        val now = ZonedDateTime.now()
+
+        val program = programs?.find { p ->
             now.isAfter(p.startTime) && now.isBefore(p.endTime)
         }
 
-        _uiState.value = _uiState.value.copy(currentProgram = program)
+        // Buscar el siguiente programa: el primero que empiece después del actual
+        val nextProgram = if (program != null) {
+            programs?.filter { it.startTime >= program.endTime }
+                ?.minByOrNull { it.startTime }
+        } else {
+            null
+        }
+
+        _uiState.value = _uiState.value.copy(
+            currentProgram = program,
+            nextProgram = nextProgram
+        )
     }
 }

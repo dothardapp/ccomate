@@ -43,7 +43,7 @@ class EPGRepository @Inject constructor(
 
     private suspend fun loadFromLocal(): Map<String, List<EPGProgram>> {
         val now = ZonedDateTime.now().toString()
-        val entities = epgDao.getActivePrograms(now)
+        val entities = epgDao.getActiveAndUpcomingPrograms(now)
         return entities.groupBy { it.channelId }.mapValues { entry ->
             entry.value.map { it.toDomainModel() }
         }

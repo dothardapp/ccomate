@@ -40,4 +40,14 @@ object PlutoColors {
 
     // ── Fullscreen ──
     val FullscreenBackground = Color(0xFF121212) // TV-safe: evitar negro puro
+
+    // ── Estado de reproducción ──
+    val StatusLive = Color(0xFF4CAF50)       // Verde — reproduciendo en vivo
+    val StatusBuffering = Color(0xFFFFC107)  // Ámbar — cargando/buffering
+
+    // ── Barra de progreso EPG ──
+    val ProgressTrack = Color(0xFF3A3A3A)    // Track oscuro de la barra
+
+    // ── Divisor de secciones del panel ──
+    val DividerPanel = Color(0x66B0B0B0)     // Gris sutil con transparencia
 }

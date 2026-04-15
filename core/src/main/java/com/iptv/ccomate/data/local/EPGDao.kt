@@ -15,6 +15,9 @@ interface EPGDao {
     @Query("SELECT * FROM epg_programs WHERE endTime > :currentTime AND startTime <= :currentTime ORDER BY channelId, startTime ASC")
     suspend fun getActivePrograms(currentTime: String): List<EPGEntity>
 
+    @Query("SELECT * FROM epg_programs WHERE endTime > :currentTime ORDER BY channelId, startTime ASC")
+    suspend fun getActiveAndUpcomingPrograms(currentTime: String): List<EPGEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(programs: List<EPGEntity>)
 
