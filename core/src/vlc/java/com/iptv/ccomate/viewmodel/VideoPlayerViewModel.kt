@@ -387,28 +387,41 @@ class VideoPlayerViewModel @Inject constructor(
 
     fun pausePlayer() {
         mediaPlayer?.pause()
+        _playerState.value = _playerState.value.copy(isPlaying = false)
     }
 
     fun resumePlayer() {
         val player = mediaPlayer ?: return
-        // Si el player fue detenido (ON_STOP → stopPlayer), play() sobre un player
-        // en estado Stopped no funciona — necesita re-asignar el media para reiniciar.
-        // Si fue pausado (ON_PAUSE → pausePlayer), play() lo reanuda correctamente.
-        if (currentMedia != null && !player.isPlaying) {
-            val url = _playerState.value.currentUrl
-            if (url != null && player.media == null) {
-                // Player fue detenido: re-asignar media y reproducir
+        val url = _playerState.value.currentUrl
+
+        // Después de stopPlayer() (ON_STOP al apagar TV), el pipeline de decodificación
+        // de VLC se destruye. Un simple play() no funciona en estado Stopped.
+        // Detectamos que el player no está reproduciendo y hay una URL válida para restaurar.
+        if (!player.isPlaying && !url.isNullOrEmpty()) {
+            if (currentMedia != null) {
+                // Re-asignar media forzosamente y reproducir.
+                // Esto es necesario incluso si player.media no es null, porque después
+                // de stop() el pipeline interno está destruido y necesita re-inicializarse.
                 player.media = currentMedia
                 player.play()
-                Log.d(TAG, "Resumed from stopped state: $url")
+                Log.d(TAG, "Resumed from stopped state (re-assigned media): $url")
                 return
             }
+            // currentMedia fue liberado — re-crear todo desde cero
+            Log.d(TAG, "Resumed from stopped state (full re-play): $url")
+            playUrl(url)
+            return
         }
+
         player.play()
     }
 
     fun stopPlayer() {
         mediaPlayer?.stop()
+        _playerState.value = _playerState.value.copy(
+            isPlaying = false,
+            isBuffering = false
+        )
     }
 
     fun releasePlayer() {

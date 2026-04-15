@@ -114,6 +114,10 @@ class VideoPlayerViewModel @Inject constructor(
                 }
                 Player.STATE_IDLE -> {
                     cancelBufferingTimeout()
+                    _playerState.value = _playerState.value.copy(
+                        isBuffering = false,
+                        isPlaying = false
+                    )
                 }
             }
         }
@@ -437,12 +441,23 @@ class VideoPlayerViewModel @Inject constructor(
             it.playWhenReady = false
             it.pause()
         }
+        _playerState.value = _playerState.value.copy(isPlaying = false)
     }
 
     fun resumePlayer() {
-        exoPlayer?.let {
-            it.playWhenReady = true
+        val player = exoPlayer ?: return
+        val url = _playerState.value.currentUrl
+
+        // Después de stopPlayer() (ON_STOP al apagar TV), ExoPlayer queda en STATE_IDLE
+        // sin MediaSource. playWhenReady=true no tiene efecto en ese estado.
+        // Detectamos esta situación y re-preparamos el stream completo.
+        if (player.playbackState == Player.STATE_IDLE && !url.isNullOrEmpty()) {
+            Log.d("VideoPlayerVM", "Player in IDLE state after stop, re-preparing: $url")
+            playUrl(url)
+            return
         }
+
+        player.playWhenReady = true
     }
 
     fun stopPlayer() {
@@ -450,6 +465,10 @@ class VideoPlayerViewModel @Inject constructor(
             it.playWhenReady = false
             it.stop()
         }
+        _playerState.value = _playerState.value.copy(
+            isPlaying = false,
+            isBuffering = false
+        )
     }
 
     override fun onCleared() {
