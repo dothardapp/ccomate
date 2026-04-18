@@ -2,6 +2,7 @@ package com.iptv.ccomate.ui.screens
 
 import android.view.KeyEvent
 import com.iptv.ccomate.ui.components.GroupSkeletonItem
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -26,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -36,6 +38,7 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Text
+import com.iptv.ccomate.ui.DesignTokens
 
 @Composable
 fun GroupList(
@@ -76,6 +79,11 @@ fun GroupList(
                             animationSpec = tween(durationMillis = 200)
                     )
 
+            val focusElevation by animateDpAsState(
+                targetValue = if (hasFocus) 16.dp else 0.dp,
+                animationSpec = tween(durationMillis = 200)
+            )
+
             Box(
                     modifier =
                             Modifier.Companion.fillMaxWidth(
@@ -83,17 +91,26 @@ fun GroupList(
                                     ) // ~90.9%: al escalar 1.1x llena 100%
                                     .padding(vertical = 4.dp)
                                     .scale(focusScale)
-                                    .clip(RoundedCornerShape(6.dp))
+                                    .shadow(
+                                        elevation = focusElevation,
+                                        shape = RoundedCornerShape(12.dp),
+                                        ambientColor = DesignTokens.Colors.accentGlow,
+                                        spotColor = DesignTokens.Colors.accentGlow
+                                    )
+                                    .clip(RoundedCornerShape(12.dp))
                                     .background(
-                                            if (hasFocus) Color.Companion.DarkGray
-                                            else Color(0xFF1C1C1C)
+                                            when {
+                                                hasFocus -> DesignTokens.Colors.bgHighlight
+                                                isSelected -> DesignTokens.Colors.bgElevated
+                                                else -> DesignTokens.Colors.bgBase
+                                            }
                                     )
                                     .border(
-                                            width = if (hasFocus) 2.dp else 0.dp,
+                                            width = if (hasFocus) 1.dp else 0.dp,
                                             color =
-                                                    if (hasFocus) Color(0xFFF5F5F5)
+                                                    if (hasFocus) DesignTokens.Colors.accent
                                                     else Color.Transparent,
-                                            shape = RoundedCornerShape(6.dp)
+                                            shape = RoundedCornerShape(12.dp)
                                     )
                                     .focusRequester(itemFocusRequester)
                                     .onFocusChanged { hasFocus = it.isFocused }
@@ -120,9 +137,9 @@ fun GroupList(
                             fontSize = 16.sp,
                             color =
                                     when {
-                                        hasFocus -> Color(0xFFFFEB3B) // Amarillo TV-safe
-                                        isSelected -> Color(0xFF9ACD32)
-                                        else -> Color(0xFFF5F5F5) // TV-safe: evitar blanco puro
+                                        hasFocus -> DesignTokens.Colors.textPrimary
+                                        isSelected -> DesignTokens.Colors.accent
+                                        else -> DesignTokens.Colors.textSecondary
                                     }
                     )
                 }

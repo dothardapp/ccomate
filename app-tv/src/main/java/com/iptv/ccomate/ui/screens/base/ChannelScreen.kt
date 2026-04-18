@@ -243,6 +243,7 @@ fun ChannelScreen(
             FullscreenDPadContainer(
                 channels = filteredChannels,
                 selectedChannelUrl = uiState.selectedChannelUrl,
+                currentProgram = uiState.currentProgram,
                 hasPlayerError = hasPlayerError,
                 backgroundColor = Color.Transparent,
                 onChannelChanged = { channel ->

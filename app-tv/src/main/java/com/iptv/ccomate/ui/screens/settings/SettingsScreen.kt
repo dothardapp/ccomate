@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.iptv.ccomate.ui.DesignTokens
 import com.iptv.ccomate.ui.theme.AppColors
 import com.iptv.ccomate.ui.theme.AppDimensions
 import com.iptv.ccomate.ui.theme.AppGradients
@@ -89,7 +90,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
         )
 
         Spacer(modifier = Modifier.height(24.dp))
-        HorizontalDivider(thickness = 0.5.dp, color = AppColors.gray3)
+        HorizontalDivider(thickness = 0.5.dp, color = DesignTokens.Colors.divider)
         Spacer(modifier = Modifier.height(24.dp))
 
         // --- Refresh buttons ---
@@ -147,7 +148,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
         )
 
         Spacer(modifier = Modifier.height(24.dp))
-        HorizontalDivider(thickness = 0.5.dp, color = AppColors.gray3)
+        HorizontalDivider(thickness = 0.5.dp, color = DesignTokens.Colors.divider)
         Spacer(modifier = Modifier.height(24.dp))
 
         // --- URL Configuration ---
@@ -222,12 +223,12 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             ActionButton(
                 label = "Guardar URLs",
                 onClick = { viewModel.saveUrls() },
-                accentColor = Color(0xFF4CAF50)
+                accentColor = DesignTokens.Colors.success
             )
             ActionButton(
                 label = "Restaurar por defecto",
                 onClick = { viewModel.resetUrlsToDefaults() },
-                accentColor = Color(0xFFFF9800)
+                accentColor = DesignTokens.Colors.warning
             )
         }
 
@@ -236,7 +237,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             Text(
                 text = "URLs guardadas correctamente",
                 fontSize = 14.sp,
-                color = Color(0xFF4CAF50)
+                color = DesignTokens.Colors.success
             )
         }
 
@@ -278,13 +279,13 @@ private fun UrlField(
                         .border(
                             width = if (isFocused) 2.dp else 1.dp,
                             color = when {
-                                error != null -> Color(0xFFEF5350)
+                                error != null -> DesignTokens.Colors.error
                                 isFocused -> AppColors.accentBlueBorder
-                                else -> AppColors.gray4
+                                else -> DesignTokens.Colors.divider
                             },
                             shape = RoundedCornerShape(8.dp)
                         )
-                        .background(Color(0xFF1C1C1C), RoundedCornerShape(8.dp))
+                        .background(DesignTokens.Colors.bgElevated, RoundedCornerShape(8.dp))
                         .padding(horizontal = 12.dp, vertical = 10.dp)
                 ) {
                     if (value.isEmpty() && placeholder.isNotEmpty()) {
@@ -306,7 +307,7 @@ private fun UrlField(
             Text(
                 text = error,
                 fontSize = 12.sp,
-                color = Color(0xFFEF5350)
+                color = DesignTokens.Colors.error
             )
         }
     }
@@ -324,11 +325,11 @@ private fun ActionButton(
         modifier = Modifier
             .border(
                 width = if (isFocused) 2.dp else 1.dp,
-                color = if (isFocused) accentColor else AppColors.gray4,
+                color = if (isFocused) accentColor else DesignTokens.Colors.divider,
                 shape = RoundedCornerShape(8.dp)
             )
             .background(
-                if (isFocused) accentColor.copy(alpha = 0.15f) else Color(0xFF1C1C1C),
+                if (isFocused) accentColor.copy(alpha = 0.15f) else DesignTokens.Colors.bgElevated,
                 RoundedCornerShape(8.dp)
             )
             .onFocusChanged { isFocused = it.isFocused }
@@ -364,11 +365,11 @@ private fun RefreshButton(
 
     val borderColor = when {
         isFocused -> AppColors.accentBlueBorder
-        else -> AppColors.gray4
+        else -> DesignTokens.Colors.divider
     }
     val bgColor = when {
-        isFocused -> Color(0xFF1E3A5F)
-        else -> Color(0xFF1C1C1C)
+        isFocused -> DesignTokens.Colors.bgHighlight
+        else -> DesignTokens.Colors.bgElevated
     }
 
     Box(
@@ -416,7 +417,7 @@ private fun RefreshButton(
                         else
                             "Error: ${result.errorMessage ?: "desconocido"}",
                         fontSize = 14.sp,
-                        color = if (result.success) Color(0xFF4CAF50) else Color(0xFFEF5350)
+                        color = if (result.success) DesignTokens.Colors.success else DesignTokens.Colors.error
                     )
                 }
             }

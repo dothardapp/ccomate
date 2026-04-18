@@ -9,10 +9,10 @@ import androidx.tv.material3.darkColorScheme
 fun CCOMateTheme(content: @Composable () -> Unit) {
     val colorScheme = darkColorScheme(
         primary = AppColors.textPrimary,
-        secondary = AppColors.gray2,
+        secondary = AppColors.textSecondary,
         background = AppColors.background,
-        surface = AppColors.gray5,
-        error = Color(0xFFFF5252)
+        surface = AppColors.backgroundSecondary,
+        error = com.iptv.ccomate.ui.DesignTokens.Colors.error
     )
 
     MaterialTheme(

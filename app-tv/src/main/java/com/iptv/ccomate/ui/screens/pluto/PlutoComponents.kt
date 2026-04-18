@@ -15,7 +15,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -342,7 +341,7 @@ private fun PlaybackStatusRow(
 private fun StatusDot(
     color: Color,
     pulsate: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier.size(8.dp)
 ) {
     val dotAlpha = if (pulsate) {
         val transition = rememberInfiniteTransition(label = "statusPulse")
@@ -362,7 +361,6 @@ private fun StatusDot(
 
     Box(
         modifier = modifier
-            .size(8.dp)
             .background(color.copy(alpha = dotAlpha), CircleShape)
     )
 }
@@ -467,15 +465,47 @@ private fun EpgProgressBar(
         }
     }
 
-    LinearProgressIndicator(
-        progress = { progress },
+    val animatedProgress by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = progress,
+        animationSpec = tween(durationMillis = 800)
+    )
+
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(4.dp)
-            .clip(RoundedCornerShape(2.dp)),
-        color = PlutoColors.StatusLive,
-        trackColor = PlutoColors.ProgressTrack
-    )
+            .height(6.dp)
+            .clip(RoundedCornerShape(3.dp))
+            .background(PlutoColors.ProgressTrack)
+    ) {
+        // Progreso con gradiente
+        Box(
+            modifier = Modifier
+                .fillMaxHeight()
+                .fillMaxWidth(animatedProgress)
+                .clip(RoundedCornerShape(3.dp))
+                .background(
+                    androidx.compose.ui.graphics.Brush.horizontalGradient(
+                        listOf(
+                            com.iptv.ccomate.ui.DesignTokens.Colors.accent,
+                            com.iptv.ccomate.ui.DesignTokens.Colors.success
+                        )
+                    )
+                )
+        ) {
+            // Punto animado indicando la posición actual
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .padding(end = 1.dp)
+            ) {
+                StatusDot(
+                    color = com.iptv.ccomate.ui.DesignTokens.Colors.textPrimary,
+                    pulsate = true,
+                    modifier = Modifier.size(4.dp)
+                )
+            }
+        }
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

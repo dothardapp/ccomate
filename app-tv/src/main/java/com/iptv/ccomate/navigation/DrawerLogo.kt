@@ -1,6 +1,7 @@
 package com.iptv.ccomate.navigation
 
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
@@ -9,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.DrawerState
@@ -29,17 +31,31 @@ fun DrawerLogo(drawerState: DrawerState) {
         animationSpec = tween(300),
         label = "logoSize"
     )
+    val satelliteAlpha by animateFloatAsState(
+        targetValue = if (isOpen) 1f else 0.6f,
+        animationSpec = tween(300),
+        label = "satelliteAlpha"
+    )
+    val logoAlpha by animateFloatAsState(
+        targetValue = if (isOpen) 1f else 0.8f,
+        animationSpec = tween(300),
+        label = "logoAlpha"
+    )
 
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Image(
             painter = painterResource(id = R.drawable.baseline_satellite_alt_24),
             contentDescription = "Logo CCO",
-            modifier = Modifier.size(satelliteSize)
+            modifier = Modifier
+                .size(satelliteSize)
+                .graphicsLayer { alpha = satelliteAlpha }
         )
         Image(
             painter = painterResource(id = R.drawable.cconetbar),
             contentDescription = "Logo CCO",
-            modifier = Modifier.size(logoSize)
+            modifier = Modifier
+                .size(logoSize)
+                .graphicsLayer { alpha = logoAlpha }
         )
     }
 }

@@ -1,5 +1,7 @@
 package com.iptv.ccomate.ui.components
 
+import androidx.compose.ui.graphics.compositeOver
+import com.iptv.ccomate.ui.DesignTokens
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -31,7 +33,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun ShimmerBox(
     modifier: Modifier = Modifier,
-    shape: Shape = RoundedCornerShape(6.dp)
+    shape: Shape = RoundedCornerShape(DesignTokens.Radius.md)
 ) {
     val transition = rememberInfiniteTransition(label = "shimmer_transition")
     val translateAnimation by transition.animateFloat(
@@ -44,8 +46,14 @@ fun ShimmerBox(
         label = "shimmer_translate"
     )
 
+    val shimmerColor = DesignTokens.Colors.accent.copy(alpha = 0.08f).compositeOver(DesignTokens.Colors.bgHighlight)
+
     val brush = Brush.linearGradient(
-        colors = listOf(Color(0xFF2C2C2C), Color(0xFF424242), Color(0xFF2C2C2C)),
+        colors = listOf(
+            DesignTokens.Colors.bgElevated,
+            shimmerColor,
+            DesignTokens.Colors.bgElevated
+        ),
         start = Offset(translateAnimation - 500f, translateAnimation - 500f),
         end = Offset(translateAnimation, translateAnimation)
     )
@@ -63,7 +71,7 @@ fun GroupSkeletonItem() {
             .fillMaxWidth()
             .padding(vertical = 4.dp, horizontal = 12.dp)
             .height(40.dp)
-            .clip(RoundedCornerShape(6.dp))
+            .clip(RoundedCornerShape(DesignTokens.Radius.md))
     )
 }
 
@@ -77,8 +85,8 @@ fun ChannelSkeletonItem() {
             .fillMaxWidth()
             .padding(vertical = 4.dp, horizontal = 12.dp)
             .height(65.dp)
-            .clip(RoundedCornerShape(6.dp))
-            .background(Color(0xFF1C1C1C))
+            .background(DesignTokens.Colors.bgBase, RoundedCornerShape(DesignTokens.Radius.md))
+            .clip(RoundedCornerShape(DesignTokens.Radius.md))
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -89,16 +97,16 @@ fun ChannelSkeletonItem() {
             ShimmerBox(
                 modifier = Modifier
                     .size(80.dp, 45.dp)
-                    .clip(RoundedCornerShape(4.dp)),
-                shape = RoundedCornerShape(4.dp)
+                    .clip(RoundedCornerShape(DesignTokens.Radius.sm)),
+                shape = RoundedCornerShape(DesignTokens.Radius.sm)
             )
             Spacer(modifier = Modifier.width(12.dp))
             ShimmerBox(
                 modifier = Modifier
                     .width(120.dp)
                     .height(18.dp)
-                    .clip(RoundedCornerShape(4.dp)),
-                shape = RoundedCornerShape(4.dp)
+                    .clip(RoundedCornerShape(DesignTokens.Radius.sm)),
+                shape = RoundedCornerShape(DesignTokens.Radius.sm)
             )
         }
     }

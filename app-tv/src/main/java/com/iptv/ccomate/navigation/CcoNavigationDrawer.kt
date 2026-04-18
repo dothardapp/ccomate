@@ -1,5 +1,6 @@
 package com.iptv.ccomate.navigation
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectableGroup
@@ -10,6 +11,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.tv.material3.*
 import com.iptv.ccomate.ui.theme.AppDimensions
 import com.iptv.ccomate.ui.theme.AppGradients
@@ -17,12 +19,17 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun CcoNavigationDrawer(navController: NavController, content: @Composable () -> Unit) {
-    var selectedIndex by remember { mutableIntStateOf(0) }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val contentFocusRequester = remember { FocusRequester() }
 
     val fullscreenState = com.iptv.ccomate.util.LocalFullscreenState.current
+
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = backStackEntry?.destination?.route
+    val selectedIndex = remember(currentRoute) {
+        drawerItems.indexOfFirst { it.route == currentRoute }.coerceAtLeast(0)
+    }
 
     LaunchedEffect(fullscreenState.value) {
         if (fullscreenState.value) {
@@ -39,6 +46,10 @@ fun CcoNavigationDrawer(navController: NavController, content: @Composable () ->
         }
     }
 
+    BackHandler(enabled = drawerState.currentValue == DrawerValue.Open) {
+        scope.launch { drawerState.setValue(DrawerValue.Closed) }
+    }
+
     NavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
@@ -48,8 +59,7 @@ fun CcoNavigationDrawer(navController: NavController, content: @Composable () ->
                         .fillMaxHeight()
                         .background(brush = AppGradients.verticalGrayGradient)
                         .selectableGroup(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(AppDimensions.drawerItemSpacing)
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Spacer(modifier = Modifier.height(AppDimensions.drawerLogoSpacing))
                     DrawerLogo(drawerState)
@@ -57,14 +67,12 @@ fun CcoNavigationDrawer(navController: NavController, content: @Composable () ->
                     DrawerItemRenderer(
                         items = drawerItems,
                         selectedIndex = selectedIndex,
-                        onItemClick = { index, route ->
-                            val currentRoute = navController.currentBackStackEntry?.destination?.route
-                            if (currentRoute == route) {
-                                // Ya estamos en esta pantalla, solo cerrar el drawer
+                        onItemClick = { _, route ->
+                            val current = navController.currentBackStackEntry?.destination?.route
+                            if (current == route) {
                                 scope.launch { drawerState.setValue(DrawerValue.Closed) }
                                 return@DrawerItemRenderer
                             }
-                            selectedIndex = index
                             navController.navigate(route) {
                                 popUpTo(Route.Home.path) { saveState = true }
                                 launchSingleTop = true
@@ -75,8 +83,8 @@ fun CcoNavigationDrawer(navController: NavController, content: @Composable () ->
                     )
                 }
             } else {
-                // Keep the drawer effectively invisible/gone when fullscreen
-                Spacer(Modifier.width(0.dp))
+                // drawerContent vacío intencional en fullscreen
+                Box(Modifier.width(0.dp))
             }
         }
     ) {

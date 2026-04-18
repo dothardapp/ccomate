@@ -1,53 +1,53 @@
 package com.iptv.ccomate.ui.screens.pluto
 
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
+import com.iptv.ccomate.ui.DesignTokens
 
 /**
  * Paleta de colores centralizada para la pantalla PlutoTV.
- * Evita colores hardcodeados dispersos y facilita el mantenimiento del tema visual.
+ * Consumida directamente desde DesignTokens en :core
  */
 object PlutoColors {
 
     // ── Fondos principales ──
     val ScreenGradient = Brush.verticalGradient(
-        listOf(Color(0xFFD3D3D3), Color(0xFF808080), Color(0xFF4A4A4A))
+        listOf(DesignTokens.Colors.bgBase, DesignTokens.Colors.bgElevated)
     )
 
     val VideoContainerGradient = Brush.verticalGradient(
-        listOf(Color(0xFF696969), Color(0xFF2F4F4F))
+        listOf(DesignTokens.Colors.bgElevated, DesignTokens.Colors.bgHighlight)
     )
 
     val PanelGradient = Brush.verticalGradient(
-        listOf(Color(0xFF696969), Color(0xFF4A4A4A))
+        listOf(DesignTokens.Colors.bgElevated, DesignTokens.Colors.bgHighlight)
     )
 
-    val InfoPanelBackground = Color(0xCC696969)
+    val InfoPanelBackground = DesignTokens.Colors.bgElevated.copy(alpha = 0.8f)
 
     // ── Bordes ──
-    val PanelBorder = Color(0xFFB0B0B0)
-    val DividerColor = Color(0xFFB0B0B0)
+    val PanelBorder = DesignTokens.Colors.divider
+    val DividerColor = DesignTokens.Colors.divider
 
     // ── Textos ──
-    val TextPrimary = Color(0xFFF5F5F5) // TV-safe: evitar blanco puro
-    val TextSecondary = Color(0xFFCFD8DC)
-    val TextSubtle = Color(0xFFB0B0B0)
-    val TextError = Color(0xFFFF5252)
+    val TextPrimary = DesignTokens.Colors.textPrimary
+    val TextSecondary = DesignTokens.Colors.textSecondary
+    val TextSubtle = DesignTokens.Colors.textTertiary
+    val TextError = DesignTokens.Colors.error
 
     // ── Banner de advertencia (reloj) ──
-    val WarningBannerBackground = Color(0xE6FF6F00)
-    val WarningBannerBorder = Color(0xFFF5F5F5)
+    val WarningBannerBackground = DesignTokens.Colors.warning.copy(alpha = 0.9f)
+    val WarningBannerBorder = DesignTokens.Colors.warning
 
     // ── Fullscreen ──
-    val FullscreenBackground = Color(0xFF121212) // TV-safe: evitar negro puro
+    val FullscreenBackground = DesignTokens.Colors.bgBase
 
     // ── Estado de reproducción ──
-    val StatusLive = Color(0xFF4CAF50)       // Verde — reproduciendo en vivo
-    val StatusBuffering = Color(0xFFFFC107)  // Ámbar — cargando/buffering
+    val StatusLive = DesignTokens.Colors.success
+    val StatusBuffering = DesignTokens.Colors.warning
 
     // ── Barra de progreso EPG ──
-    val ProgressTrack = Color(0xFF3A3A3A)    // Track oscuro de la barra
+    val ProgressTrack = DesignTokens.Colors.bgHighlight
 
     // ── Divisor de secciones del panel ──
-    val DividerPanel = Color(0x66B0B0B0)     // Gris sutil con transparencia
+    val DividerPanel = DesignTokens.Colors.divider.copy(alpha = 0.4f)
 }

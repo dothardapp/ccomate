@@ -3,6 +3,7 @@ package com.iptv.ccomate.ui.screens
 import android.view.KeyEvent
 import com.iptv.ccomate.ui.components.ChannelSkeletonItem
 
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -36,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -60,6 +62,7 @@ import kotlinx.coroutines.launch
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.res.painterResource
 import com.iptv.ccomate.core.R
+import com.iptv.ccomate.ui.DesignTokens
 
 @Composable
 fun ChannelList(
@@ -145,6 +148,11 @@ fun ChannelList(
                             animationSpec = tween(durationMillis = 200)
                     )
 
+            val focusElevation by animateDpAsState(
+                targetValue = if (hasFocus) 16.dp else 0.dp,
+                animationSpec = tween(durationMillis = 200)
+            )
+
             // Vincular el FocusRequester del mapa
             val itemFocusRequester = remember {
                 focusRequesters.getOrPut(index) { FocusRequester() }
@@ -157,21 +165,27 @@ fun ChannelList(
                                     ) // ~90.9%: al escalar 1.1x llena 100%
                                     .padding(vertical = 4.dp)
                                     .scale(focusScale)
-                                    .clip(RoundedCornerShape(6.dp))
+                                    .shadow(
+                                        elevation = focusElevation,
+                                        shape = RoundedCornerShape(12.dp),
+                                        ambientColor = DesignTokens.Colors.accentGlow,
+                                        spotColor = DesignTokens.Colors.accentGlow
+                                    )
+                                    .clip(RoundedCornerShape(12.dp))
                                     .background(
                                             when {
-                                                isPlaying && hasFocus -> Color(0xFF4CAF50)
-                                                isPlaying -> Color(0xFF2E7D32)
-                                                hasFocus -> Color.DarkGray
-                                                else -> Color(0xFF1C1C1C)
+                                                isPlaying && hasFocus -> DesignTokens.Colors.success.copy(alpha = 0.2f)
+                                                hasFocus -> DesignTokens.Colors.bgHighlight
+                                                isPlaying -> DesignTokens.Colors.bgElevated
+                                                else -> DesignTokens.Colors.bgBase
                                             }
                                     )
                                     .border(
-                                            width = if (hasFocus) 2.dp else 0.dp,
+                                            width = if (hasFocus) 1.dp else 0.dp,
                                             color =
-                                                    if (hasFocus) Color(0xFFF5F5F5)
+                                                    if (hasFocus) DesignTokens.Colors.accent
                                                     else Color.Transparent,
-                                            shape = RoundedCornerShape(6.dp)
+                                            shape = RoundedCornerShape(12.dp)
                                     )
                                     .focusRequester(itemFocusRequester)
                                     .onFocusChanged {
@@ -231,7 +245,7 @@ fun ChannelList(
                             Text(
                                     text = channel.name,
                                     fontSize = 18.sp,
-                                    color = if (hasFocus) Color(0xFFFFEB3B) else Color(0xFFF5F5F5)
+                                    color = if (hasFocus) DesignTokens.Colors.textPrimary else DesignTokens.Colors.textSecondary
                             )
                         }
 
@@ -239,7 +253,7 @@ fun ChannelList(
                             Icon(
                                     imageVector = Icons.Default.PlayArrow,
                                     contentDescription = "Reproduciendo",
-                                    tint = Color(0xFF9ACD32),
+                                    tint = DesignTokens.Colors.accent,
                                     modifier = Modifier.size(28.dp)
                             )
                         }

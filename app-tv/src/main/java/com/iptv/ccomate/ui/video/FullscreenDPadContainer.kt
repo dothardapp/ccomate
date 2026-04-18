@@ -26,7 +26,17 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.dp
 import com.iptv.ccomate.model.Channel
+import com.iptv.ccomate.model.EPGProgram
+import kotlinx.coroutines.delay
 
 /**
  * Contenedor fullscreen unificado con navegacion D-Pad para cambio de canal.
@@ -43,6 +53,7 @@ import com.iptv.ccomate.model.Channel
 fun FullscreenDPadContainer(
     channels: List<Channel>,
     selectedChannelUrl: String?,
+    currentProgram: EPGProgram? = null,
     hasPlayerError: Boolean = false,
     backgroundColor: Color = Color(0xFF121212),
     onChannelChanged: (Channel) -> Unit,
@@ -96,6 +107,38 @@ fun FullscreenDPadContainer(
     ) {
         // Capa 1: Contenido de video (sin foco propio)
         content()
+
+        // Lógica de Zapping Overlay
+        var zappingChannel by remember { mutableStateOf<Channel?>(null) }
+        var zappingProgram by remember { mutableStateOf<EPGProgram?>(null) }
+        var isInitialLoad by remember { mutableStateOf(true) }
+
+        LaunchedEffect(selectedChannelUrl) {
+            if (isInitialLoad) {
+                isInitialLoad = false
+            } else {
+                zappingChannel = channels.firstOrNull { it.url == selectedChannelUrl }
+                zappingProgram = currentProgram
+                delay(2500)
+                zappingChannel = null
+            }
+        }
+
+        // Capa 1.5: Overlay de zapping
+        Box(modifier = Modifier.fillMaxSize()) {
+            AnimatedContent(
+                targetState = zappingChannel,
+                transitionSpec = {
+                    slideInHorizontally { width -> width } + fadeIn() togetherWith fadeOut()
+                },
+                modifier = Modifier.align(Alignment.TopEnd).padding(32.dp),
+                label = "zapping_overlay"
+            ) { channel ->
+                if (channel != null) {
+                    ZappingCard(channel = channel, program = zappingProgram)
+                }
+            }
+        }
 
         // Capa 2: Controlador D-Pad invisible (solo presente cuando NO hay error)
         // Cuando hay error, este nodo se quita de composicion y el boton Reintentar

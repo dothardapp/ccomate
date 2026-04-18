@@ -8,45 +8,42 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+import com.iptv.ccomate.ui.DesignTokens
+
 /**
  * Paleta de colores centralizada para toda la aplicación.
  * Facilita cambios globales de tema y mantiene consistencia visual.
  */
 object AppColors {
-    // Grises
-    val lightGray = Color(0xFFF5F5F5)  // Gris claro (casi blanco)
-    val gray1 = Color(0xFFD3D3D3)      // Gris claro
-    val gray2 = Color(0xFFB0B0B0)      // Gris claro medio
-    val gray3 = Color(0xFF808080)      // Gris medio
-    val gray4 = Color(0xFF696969)      // Gris oscuro
-    val gray5 = Color(0xFF4A4A4A)      // Gris muy oscuro
-    val darkGray = Color(0xFF2F4F4F)   // Gris oscuro (casi negro)
+    // Fondos
+    val background = DesignTokens.Colors.bgBase
+    val backgroundSecondary = DesignTokens.Colors.bgElevated
 
-    // Fondos (TV-safe: evitar negro puro #000000)
-    val background = Color(0xFF121212)
-    val backgroundSecondary = darkGray
-
-    // Textos (TV-safe: evitar blanco puro #FFFFFF)
-    val textPrimary = Color(0xFFF5F5F5)
-    val textSecondary = Color(0xFFF5F5F5).copy(alpha = 0.7f)
-    val textTertiary = Color(0xFFF5F5F5).copy(alpha = 0.5f)
+    // Textos
+    val textPrimary = DesignTokens.Colors.textPrimary
+    val textSecondary = DesignTokens.Colors.textSecondary
+    val textTertiary = DesignTokens.Colors.textTertiary
 
     // Estado
-    val selected = Color(0xFFF5F5F5)
-    val unselected = Color(0xFFF5F5F5).copy(alpha = 0.7f)
+    val selected = DesignTokens.Colors.textPrimary
+    val unselected = DesignTokens.Colors.textSecondary
 
     // Acentos
-    val accentBlue = Color(0xFF2196F3)
-    val accentBlueFocused = Color(0xFF42A5F5)
-    val accentBlueBorder = Color(0xFF64B5F6)
+    val accentBlue = DesignTokens.Colors.accent
+    val accentBlueFocused = DesignTokens.Colors.accent
+    val accentBlueBorder = DesignTokens.Colors.accentGlow
+
+    // Drawer
+    val drawerSelectionIndicator = DesignTokens.Colors.accent
+    val drawerItemFocused = DesignTokens.Colors.bgHighlight
 
     // Overlays
-    val overlayDark = Color(0xFF000000)
-    val overlayDarker = Color(0xFF121212)
-    val overlayPanel = Color(0xAB030301)
+    val overlayDark = DesignTokens.Colors.overlayDark
+    val overlayDarker = DesignTokens.Colors.bgBase
+    val overlayPanel = DesignTokens.Colors.bgElevated.copy(alpha = 0.9f)
 
     // Texto específico del reproductor
-    val textDescription = Color(0xFFF5F5F5).copy(alpha = 0.8f)
+    val textDescription = DesignTokens.Colors.textSecondary
 }
 
 /**
@@ -55,18 +52,12 @@ object AppColors {
  */
 object AppGradients {
     /**
-     * Gradiente vertical gris usado en HomeScreen y Drawer.
-     * Va de gris claro a gris oscuro (casi negro).
+     * Gradiente vertical sutil charcoal.
      */
     val verticalGrayGradient: Brush = Brush.verticalGradient(
             colors = listOf(
-                AppColors.lightGray,
-                AppColors.gray1,
-                AppColors.gray2,
-                AppColors.gray3,
-                AppColors.gray4,
-                AppColors.gray5,
-                AppColors.darkGray
+                DesignTokens.Colors.bgBase,
+                DesignTokens.Colors.bgElevated
             ),
             startY = 0f,
             endY = Float.POSITIVE_INFINITY
@@ -132,4 +123,6 @@ object AppDimensions {
     // Drawer específico
     val drawerItemSpacing: Dp = 10.dp
     val drawerLogoSpacing: Dp = 12.dp
+    val drawerSelectionIndicatorWidth: Dp = 3.dp
+    val drawerSelectionIndicatorHeight: Dp = 24.dp
 }
