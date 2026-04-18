@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -26,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -36,6 +38,7 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Text
+import com.iptv.ccomate.ui.theme.AppColors
 
 @Composable
 fun GroupList(
@@ -81,19 +84,29 @@ fun GroupList(
                             Modifier.Companion.fillMaxWidth(
                                             1f / scaleFactor
                                     ) // ~90.9%: al escalar 1.1x llena 100%
-                                    .padding(vertical = 4.dp)
+                                    .padding(vertical = 6.dp)
                                     .scale(focusScale)
-                                    .clip(RoundedCornerShape(6.dp))
+                                    .shadow(
+                                            elevation = if (hasFocus) 16.dp else 0.dp,
+                                            shape = RoundedCornerShape(12.dp),
+                                            ambientColor = AppColors.accentGlow,
+                                            spotColor = AppColors.accentGlow
+                                    )
+                                    .clip(RoundedCornerShape(12.dp))
                                     .background(
-                                            if (hasFocus) Color.Companion.DarkGray
-                                            else Color(0xFF1C1C1C)
+                                            when {
+                                                isSelected && hasFocus -> AppColors.accent.copy(alpha = 0.2f)
+                                                hasFocus -> AppColors.bgHighlight
+                                                isSelected -> AppColors.bgElevated
+                                                else -> AppColors.bgBase
+                                            }
                                     )
                                     .border(
-                                            width = if (hasFocus) 2.dp else 0.dp,
+                                            width = if (hasFocus) 1.dp else 0.dp,
                                             color =
-                                                    if (hasFocus) Color(0xFFF5F5F5)
+                                                    if (hasFocus) AppColors.accent
                                                     else Color.Transparent,
-                                            shape = RoundedCornerShape(6.dp)
+                                            shape = RoundedCornerShape(12.dp)
                                     )
                                     .focusRequester(itemFocusRequester)
                                     .onFocusChanged { hasFocus = it.isFocused }
@@ -109,10 +122,12 @@ fun GroupList(
             ) {
                 Row(verticalAlignment = Alignment.Companion.CenterVertically) {
                     if (isSelected) {
-                        Text(
-                                "🟡",
-                                fontSize = 14.sp,
-                                modifier = Modifier.Companion.padding(end = 8.dp)
+                        Box(
+                                modifier = Modifier.Companion
+                                        .padding(end = 8.dp)
+                                        .size(8.dp)
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(AppColors.accent)
                         )
                     }
                     Text(
@@ -120,9 +135,9 @@ fun GroupList(
                             fontSize = 16.sp,
                             color =
                                     when {
-                                        hasFocus -> Color(0xFFFFEB3B) // Amarillo TV-safe
-                                        isSelected -> Color(0xFF9ACD32)
-                                        else -> Color(0xFFF5F5F5) // TV-safe: evitar blanco puro
+                                        hasFocus -> AppColors.textPrimary
+                                        isSelected -> AppColors.accentBright
+                                        else -> AppColors.textSecondary
                                     }
                     )
                 }

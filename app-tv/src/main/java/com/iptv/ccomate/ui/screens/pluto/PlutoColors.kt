@@ -2,52 +2,55 @@ package com.iptv.ccomate.ui.screens.pluto
 
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import com.iptv.ccomate.ui.theme.AppColors
 
 /**
- * Paleta de colores centralizada para la pantalla PlutoTV.
- * Evita colores hardcodeados dispersos y facilita el mantenimiento del tema visual.
+ * Paleta scoped para las pantallas Pluto/TDA.
+ * Los tokens se mapean al sistema unificado "cinema dark" (AppColors).
+ * Se mantiene el objeto como capa de compatibilidad y para definir
+ * gradientes específicos de estas pantallas.
  */
 object PlutoColors {
 
     // ── Fondos principales ──
     val ScreenGradient = Brush.verticalGradient(
-        listOf(Color(0xFFD3D3D3), Color(0xFF808080), Color(0xFF4A4A4A))
+        listOf(AppColors.bgBase, AppColors.bgElevated)
     )
 
     val VideoContainerGradient = Brush.verticalGradient(
-        listOf(Color(0xFF696969), Color(0xFF2F4F4F))
+        listOf(AppColors.bgElevated, AppColors.bgBase)
     )
 
     val PanelGradient = Brush.verticalGradient(
-        listOf(Color(0xFF696969), Color(0xFF4A4A4A))
+        listOf(AppColors.bgElevated, AppColors.bgSurface)
     )
 
-    val InfoPanelBackground = Color(0xCC696969)
+    val InfoPanelBackground = AppColors.bgElevated.copy(alpha = 0.92f)
 
     // ── Bordes ──
-    val PanelBorder = Color(0xFFB0B0B0)
-    val DividerColor = Color(0xFFB0B0B0)
+    val PanelBorder = AppColors.divider
+    val DividerColor = AppColors.dividerSoft
 
     // ── Textos ──
-    val TextPrimary = Color(0xFFF5F5F5) // TV-safe: evitar blanco puro
-    val TextSecondary = Color(0xFFCFD8DC)
-    val TextSubtle = Color(0xFFB0B0B0)
-    val TextError = Color(0xFFFF5252)
+    val TextPrimary = AppColors.textPrimary
+    val TextSecondary = AppColors.textSecondary
+    val TextSubtle = AppColors.textSubtle
+    val TextError = AppColors.error
 
     // ── Banner de advertencia (reloj) ──
-    val WarningBannerBackground = Color(0xE6FF6F00)
-    val WarningBannerBorder = Color(0xFFF5F5F5)
+    val WarningBannerBackground = Color(0xE6D29922) // warning con opacidad
+    val WarningBannerBorder = AppColors.warning
 
     // ── Fullscreen ──
-    val FullscreenBackground = Color(0xFF121212) // TV-safe: evitar negro puro
+    val FullscreenBackground = AppColors.bgBase
 
     // ── Estado de reproducción ──
-    val StatusLive = Color(0xFF4CAF50)       // Verde — reproduciendo en vivo
-    val StatusBuffering = Color(0xFFFFC107)  // Ámbar — cargando/buffering
+    val StatusLive = AppColors.success
+    val StatusBuffering = AppColors.warning
 
     // ── Barra de progreso EPG ──
-    val ProgressTrack = Color(0xFF3A3A3A)    // Track oscuro de la barra
+    val ProgressTrack = AppColors.bgHighlight
 
     // ── Divisor de secciones del panel ──
-    val DividerPanel = Color(0x66B0B0B0)     // Gris sutil con transparencia
+    val DividerPanel = AppColors.dividerSoft
 }

@@ -45,8 +45,8 @@ import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-private val PanelCornerShape = RoundedCornerShape(12.dp)
-private val LogoCornerShape = RoundedCornerShape(6.dp)
+private val PanelCornerShape = RoundedCornerShape(16.dp)
+private val LogoCornerShape = RoundedCornerShape(8.dp)
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TimeWarningBanner

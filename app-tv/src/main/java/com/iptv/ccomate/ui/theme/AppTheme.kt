@@ -9,68 +9,97 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 /**
- * Paleta de colores centralizada para toda la aplicación.
- * Facilita cambios globales de tema y mantiene consistencia visual.
+ * Paleta "cinema dark" — charcoal + blue accent, TV-safe.
+ * Los tokens semánticos (background, textPrimary, accentBlue, etc.) se mantienen
+ * para no romper call-sites, pero sus valores se actualizaron a la nueva paleta.
  */
 object AppColors {
-    // Grises
-    val lightGray = Color(0xFFF5F5F5)  // Gris claro (casi blanco)
-    val gray1 = Color(0xFFD3D3D3)      // Gris claro
-    val gray2 = Color(0xFFB0B0B0)      // Gris claro medio
-    val gray3 = Color(0xFF808080)      // Gris medio
-    val gray4 = Color(0xFF696969)      // Gris oscuro
-    val gray5 = Color(0xFF4A4A4A)      // Gris muy oscuro
-    val darkGray = Color(0xFF2F4F4F)   // Gris oscuro (casi negro)
+    // ── Base dark (antes gris claro/medio) ──
+    val bgBase = Color(0xFF0E1116)        // casi negro TV-safe — fondo general
+    val bgElevated = Color(0xFF161B22)    // superficies: panels, cards
+    val bgHighlight = Color(0xFF21262D)   // focus/hover bg, items destacados
+    val bgSurface = Color(0xFF1C2128)     // surface intermedio
 
-    // Fondos (TV-safe: evitar negro puro #000000)
-    val background = Color(0xFF121212)
-    val backgroundSecondary = darkGray
+    // ── Accent principal ──
+    val accent = Color(0xFF4F8EF7)        // azul saturado — color primario de marca
+    val accentBright = Color(0xFF6BA3FF)  // variante clara para focused/hover
+    val accentSoft = Color(0xFF2D5FBA)    // variante oscura para borders sutiles
+    val accentGlow = Color(0x664F8EF7)    // mismo azul 40% — para halos/shadows
 
-    // Textos (TV-safe: evitar blanco puro #FFFFFF)
-    val textPrimary = Color(0xFFF5F5F5)
-    val textSecondary = Color(0xFFF5F5F5).copy(alpha = 0.7f)
-    val textTertiary = Color(0xFFF5F5F5).copy(alpha = 0.5f)
+    // ── Estados semánticos ──
+    val success = Color(0xFF3FB950)       // en vivo, OK
+    val warning = Color(0xFFD29922)       // buffering, advertencia
+    val error = Color(0xFFF85149)         // error
 
-    // Estado
-    val selected = Color(0xFFF5F5F5)
-    val unselected = Color(0xFFF5F5F5).copy(alpha = 0.7f)
+    // ── Texto TV-safe (sin blanco puro) ──
+    val textPrimary = Color(0xFFE6EDF3)
+    val textSecondary = Color(0xFFB1BAC4)
+    val textTertiary = Color(0xFF8B949E)
+    val textSubtle = Color(0xFF6E7681)
+    val textDescription = Color(0xFFE6EDF3).copy(alpha = 0.8f)
 
-    // Acentos
-    val accentBlue = Color(0xFF2196F3)
-    val accentBlueFocused = Color(0xFF42A5F5)
-    val accentBlueBorder = Color(0xFF64B5F6)
+    // ── Estado de selección (drawer, listas) ──
+    val selected = textPrimary
+    val unselected = textSecondary
 
-    // Overlays
-    val overlayDark = Color(0xFF000000)
-    val overlayDarker = Color(0xFF121212)
-    val overlayPanel = Color(0xAB030301)
+    // ── Overlays ──
+    val overlayDark = Color(0xCC0E1116)   // oscuro traslúcido sobre video
+    val overlayDarker = Color(0xE60E1116) // más denso para errores
+    val overlayPanel = Color(0xAB0E1116)  // panel sobre video
 
-    // Texto específico del reproductor
-    val textDescription = Color(0xFFF5F5F5).copy(alpha = 0.8f)
+    // ── Divisores ──
+    val divider = Color(0xFF30363D)
+    val dividerSoft = Color(0x4D30363D)
+
+    // ── Aliases de compatibilidad (legacy API) ──
+    // Estos nombres existían en la paleta gris anterior; se mapean a la nueva
+    // paleta semánticamente equivalente para evitar tocar call-sites.
+    val lightGray = textPrimary
+    val gray1 = textSecondary
+    val gray2 = textTertiary
+    val gray3 = divider
+    val gray4 = Color(0xFF3D444D)
+    val gray5 = bgElevated
+    val darkGray = bgBase
+    val background = bgBase
+    val backgroundSecondary = bgElevated
+    val accentBlue = accent
+    val accentBlueFocused = accentBright
+    val accentBlueBorder = accentSoft
 }
 
 /**
  * Gradientes reutilizables en toda la aplicación.
- * Evita duplicación de código y facilita cambios globales.
  */
 object AppGradients {
     /**
-     * Gradiente vertical gris usado en HomeScreen y Drawer.
-     * Va de gris claro a gris oscuro (casi negro).
+     * Gradiente vertical principal — charcoal sutil (antes gris "arco iris").
+     * Se usa como fondo en HomeScreen, Drawer, Settings y ChannelScreen.
      */
     val verticalGrayGradient: Brush = Brush.verticalGradient(
-            colors = listOf(
-                AppColors.lightGray,
-                AppColors.gray1,
-                AppColors.gray2,
-                AppColors.gray3,
-                AppColors.gray4,
-                AppColors.gray5,
-                AppColors.darkGray
-            ),
-            startY = 0f,
-            endY = Float.POSITIVE_INFINITY
+        colors = listOf(
+            AppColors.bgBase,
+            AppColors.bgElevated
         )
+    )
+
+    /** Alias semántico del nuevo nombre. */
+    val screenGradient: Brush = verticalGrayGradient
+
+    /** Gradiente para el contenedor del video cuando no hay playback. */
+    val videoContainerGradient: Brush = Brush.verticalGradient(
+        colors = listOf(
+            AppColors.bgElevated,
+            AppColors.bgBase
+        )
+    )
+
+    /** Gradiente vertical para overlay cinemático sobre video. */
+    val videoOverlayGradient: Brush = Brush.verticalGradient(
+        0.0f to Color.Transparent,
+        0.4f to Color.Transparent,
+        1.0f to Color(0xCC000000)
+    )
 }
 
 /**
@@ -85,7 +114,7 @@ object AppTypography {
 
     val drawerLabelSelected = TextStyle(
         fontSize = 18.sp,
-        fontWeight = FontWeight.Normal,
+        fontWeight = FontWeight.Medium,
         color = AppColors.selected
     )
 
@@ -104,7 +133,6 @@ object AppTypography {
 
 /**
  * Dimensiones y espaciados reutilizables.
- * Mantiene consistencia visual y facilita mantenimiento.
  */
 object AppDimensions {
     // Espacios
@@ -132,4 +160,10 @@ object AppDimensions {
     // Drawer específico
     val drawerItemSpacing: Dp = 10.dp
     val drawerLogoSpacing: Dp = 12.dp
+
+    // Radius (UI-03)
+    val radiusSm: Dp = 8.dp
+    val radiusMd: Dp = 12.dp
+    val radiusLg: Dp = 16.dp
+    val radiusXl: Dp = 24.dp
 }

@@ -36,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -52,6 +53,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import coil.size.Size
 import com.iptv.ccomate.model.Channel
+import com.iptv.ccomate.ui.theme.AppColors
 import com.iptv.ccomate.util.AppConfig
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filter
@@ -155,23 +157,29 @@ fun ChannelList(
                             Modifier.fillMaxWidth(
                                             1f / scaleFactor
                                     ) // ~90.9%: al escalar 1.1x llena 100%
-                                    .padding(vertical = 4.dp)
+                                    .padding(vertical = 6.dp)
                                     .scale(focusScale)
-                                    .clip(RoundedCornerShape(6.dp))
+                                    .shadow(
+                                            elevation = if (hasFocus) 16.dp else 0.dp,
+                                            shape = RoundedCornerShape(12.dp),
+                                            ambientColor = AppColors.accentGlow,
+                                            spotColor = AppColors.accentGlow
+                                    )
+                                    .clip(RoundedCornerShape(12.dp))
                                     .background(
                                             when {
-                                                isPlaying && hasFocus -> Color(0xFF4CAF50)
-                                                isPlaying -> Color(0xFF2E7D32)
-                                                hasFocus -> Color.DarkGray
-                                                else -> Color(0xFF1C1C1C)
+                                                isPlaying && hasFocus -> AppColors.accent.copy(alpha = 0.2f)
+                                                hasFocus -> AppColors.bgHighlight
+                                                isPlaying -> AppColors.bgElevated
+                                                else -> AppColors.bgBase
                                             }
                                     )
                                     .border(
-                                            width = if (hasFocus) 2.dp else 0.dp,
+                                            width = if (hasFocus) 1.dp else 0.dp,
                                             color =
-                                                    if (hasFocus) Color(0xFFF5F5F5)
+                                                    if (hasFocus) AppColors.accent
                                                     else Color.Transparent,
-                                            shape = RoundedCornerShape(6.dp)
+                                            shape = RoundedCornerShape(12.dp)
                                     )
                                     .focusRequester(itemFocusRequester)
                                     .onFocusChanged {
@@ -224,14 +232,15 @@ fun ChannelList(
                                     fallback = painterResource(id = R.drawable.ic_channel_placeholder),
                                     error = painterResource(id = R.drawable.ic_channel_placeholder),
                                     modifier =
-                                            Modifier.background(Color(0xFF121212))
+                                            Modifier.clip(RoundedCornerShape(8.dp))
+                                                    .background(AppColors.bgBase)
                                                     .size(80.dp, 45.dp)
                             )
                             Spacer(modifier = Modifier.width(12.dp))
                             Text(
                                     text = channel.name,
                                     fontSize = 18.sp,
-                                    color = if (hasFocus) Color(0xFFFFEB3B) else Color(0xFFF5F5F5)
+                                    color = if (hasFocus) AppColors.textPrimary else AppColors.textSecondary
                             )
                         }
 
@@ -239,7 +248,7 @@ fun ChannelList(
                             Icon(
                                     imageVector = Icons.Default.PlayArrow,
                                     contentDescription = "Reproduciendo",
-                                    tint = Color(0xFF9ACD32),
+                                    tint = AppColors.success,
                                     modifier = Modifier.size(28.dp)
                             )
                         }
@@ -248,7 +257,7 @@ fun ChannelList(
                     if (showHint && isPlaying) {
                         Text(
                                 text = "Presioná de nuevo para ver en pantalla completa",
-                                color = Color(0xFFBDBDBD),
+                                color = AppColors.textTertiary,
                                 fontSize = 14.sp, // Mínimo 14sp para TV
                                 modifier = Modifier.padding(top = 6.dp)
                         )

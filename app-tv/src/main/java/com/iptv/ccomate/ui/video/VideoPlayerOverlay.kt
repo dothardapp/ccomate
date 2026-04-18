@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -19,6 +18,7 @@ import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Text
 import com.iptv.ccomate.model.EPGProgram
 import com.iptv.ccomate.ui.theme.AppColors
+import com.iptv.ccomate.ui.theme.AppGradients
 import java.time.format.DateTimeFormatter
 
 private val TIME_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
@@ -39,14 +39,11 @@ fun VideoPlayerOverlay(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(24.dp)
-                .background(
-                    AppColors.background.copy(alpha = 0.7f),
-                    RoundedCornerShape(8.dp)
-                ),
-            contentAlignment = Alignment.CenterStart
+                .background(AppGradients.videoOverlayGradient)
+                .padding(horizontal = 48.dp, vertical = 32.dp),
+            contentAlignment = Alignment.BottomStart
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
+            Column {
                 Text(
                     text = currentProgram?.title ?: channelName ?: "",
                     fontSize = 22.sp,

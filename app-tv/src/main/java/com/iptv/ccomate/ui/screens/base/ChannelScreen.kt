@@ -217,8 +217,8 @@ fun ChannelScreen(
                         width = videoPanelBounds.width.toDp(),
                         height = videoPanelBounds.height.toDp()
                     )
-                    .shadow(2.dp, RoundedCornerShape(12.dp))
-                    .clip(RoundedCornerShape(12.dp))
+                    .shadow(2.dp, RoundedCornerShape(16.dp))
+                    .clip(RoundedCornerShape(16.dp))
             }
         }
 
