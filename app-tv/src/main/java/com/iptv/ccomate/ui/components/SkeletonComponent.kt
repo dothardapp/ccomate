@@ -24,14 +24,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
+import com.iptv.ccomate.core.ui.DesignTokens
 
 @Composable
 fun ShimmerBox(
     modifier: Modifier = Modifier,
-    shape: Shape = RoundedCornerShape(6.dp)
+    shape: Shape = RoundedCornerShape(DesignTokens.Radius.sm)
 ) {
     val transition = rememberInfiniteTransition(label = "shimmer_transition")
     val translateAnimation by transition.animateFloat(
@@ -45,7 +45,11 @@ fun ShimmerBox(
     )
 
     val brush = Brush.linearGradient(
-        colors = listOf(Color(0xFF2C2C2C), Color(0xFF424242), Color(0xFF2C2C2C)),
+        colors = listOf(
+            DesignTokens.Colors.bgElevated,
+            DesignTokens.Colors.bgHighlight.copy(alpha = 0.8f),
+            DesignTokens.Colors.bgElevated
+        ),
         start = Offset(translateAnimation - 500f, translateAnimation - 500f),
         end = Offset(translateAnimation, translateAnimation)
     )
@@ -63,7 +67,7 @@ fun GroupSkeletonItem() {
             .fillMaxWidth()
             .padding(vertical = 4.dp, horizontal = 12.dp)
             .height(40.dp)
-            .clip(RoundedCornerShape(6.dp))
+            .clip(RoundedCornerShape(DesignTokens.Radius.sm))
     )
 }
 
@@ -77,8 +81,8 @@ fun ChannelSkeletonItem() {
             .fillMaxWidth()
             .padding(vertical = 4.dp, horizontal = 12.dp)
             .height(65.dp)
-            .clip(RoundedCornerShape(6.dp))
-            .background(Color(0xFF1C1C1C))
+            .clip(RoundedCornerShape(DesignTokens.Radius.sm))
+            .background(DesignTokens.Colors.bgSurface)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -89,17 +93,18 @@ fun ChannelSkeletonItem() {
             ShimmerBox(
                 modifier = Modifier
                     .size(80.dp, 45.dp)
-                    .clip(RoundedCornerShape(4.dp)),
-                shape = RoundedCornerShape(4.dp)
+                    .clip(RoundedCornerShape(DesignTokens.Radius.sm)),
+                shape = RoundedCornerShape(DesignTokens.Radius.sm)
             )
             Spacer(modifier = Modifier.width(12.dp))
             ShimmerBox(
                 modifier = Modifier
                     .width(120.dp)
                     .height(18.dp)
-                    .clip(RoundedCornerShape(4.dp)),
-                shape = RoundedCornerShape(4.dp)
+                    .clip(RoundedCornerShape(DesignTokens.Radius.sm)),
+                shape = RoundedCornerShape(DesignTokens.Radius.sm)
             )
         }
     }
 }
+

@@ -15,7 +15,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Text
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.iptv.ccomate.core.ui.DesignTokens
 import com.iptv.ccomate.model.EPGProgram
 import kotlinx.coroutines.delay
 import java.time.Duration
@@ -467,15 +468,60 @@ private fun EpgProgressBar(
         }
     }
 
-    LinearProgressIndicator(
-        progress = { progress },
+    val progressBrush = Brush.horizontalGradient(
+        colors = listOf(
+            DesignTokens.Colors.accent,
+            DesignTokens.Colors.accentBright
+        )
+    )
+    val barHeight = 6.dp
+    val barRadius = 3.dp
+
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(4.dp)
-            .clip(RoundedCornerShape(2.dp)),
-        color = PlutoColors.StatusLive,
-        trackColor = PlutoColors.ProgressTrack
-    )
+            .height(barHeight)
+            .clip(RoundedCornerShape(barRadius))
+            .background(DesignTokens.Colors.bgHighlight)
+    ) {
+        // Barra de progreso con gradiente horizontal
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(progress)
+                .fillMaxHeight()
+                .background(progressBrush, RoundedCornerShape(barRadius))
+        )
+
+        // Punto pulsante animado en la posición actual del progreso
+        if (progress > 0.02f && progress < 1f) {
+            val dotTransition = rememberInfiniteTransition(label = "epgDotPulse")
+            val dotAlpha by dotTransition.animateFloat(
+                initialValue = 0.6f,
+                targetValue = 1f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(800),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "dotAlpha"
+            )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(progress)
+                    .fillMaxHeight(),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(10.dp)
+                        .background(
+                            DesignTokens.Colors.accentBright.copy(alpha = dotAlpha),
+                            CircleShape
+                        )
+                )
+            }
+        }
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

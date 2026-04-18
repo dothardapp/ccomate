@@ -26,7 +26,10 @@
       "Read(//tmp/**)",
       "Bash(grep -n \"FALTANTE\\\\|falso\\\\|99%\\\\|66/67\\\\|no existe\" etapa*.md)",
       "Bash(ls -1 *.md)",
-      "Bash(ls -lh *.md)"
+      "Bash(ls -lh *.md)",
+      "Bash(gh repo *)",
+      "Bash(gh issue *)",
+      "Bash(gh label *)"
     ],
     "additionalDirectories": [
       "c:\\Users\\josel\\.claude\\projects\\c--Users-josel-AndroidStudioProjects-CCOMate\\memory"

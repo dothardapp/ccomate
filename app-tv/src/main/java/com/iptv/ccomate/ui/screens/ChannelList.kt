@@ -14,7 +14,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -52,9 +55,11 @@ import androidx.tv.material3.Text
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import coil.size.Size
+import com.iptv.ccomate.core.ui.DesignTokens
 import com.iptv.ccomate.model.Channel
 import com.iptv.ccomate.ui.theme.AppColors
 import com.iptv.ccomate.util.AppConfig
+import com.iptv.ccomate.util.QualityDetector
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
@@ -161,14 +166,14 @@ fun ChannelList(
                                     .scale(focusScale)
                                     .shadow(
                                             elevation = if (hasFocus) 16.dp else 0.dp,
-                                            shape = RoundedCornerShape(12.dp),
+                                            shape = RoundedCornerShape(DesignTokens.Radius.md),
                                             ambientColor = AppColors.accentGlow,
                                             spotColor = AppColors.accentGlow
                                     )
-                                    .clip(RoundedCornerShape(12.dp))
+                                    .clip(RoundedCornerShape(DesignTokens.Radius.md))
                                     .background(
                                             when {
-                                                isPlaying && hasFocus -> AppColors.accent.copy(alpha = 0.2f)
+                                                isPlaying && hasFocus -> AppColors.accent.copy(alpha = 0.15f)
                                                 hasFocus -> AppColors.bgHighlight
                                                 isPlaying -> AppColors.bgElevated
                                                 else -> AppColors.bgBase
@@ -179,7 +184,7 @@ fun ChannelList(
                                             color =
                                                     if (hasFocus) AppColors.accent
                                                     else Color.Transparent,
-                                            shape = RoundedCornerShape(12.dp)
+                                            shape = RoundedCornerShape(DesignTokens.Radius.md)
                                     )
                                     .focusRequester(itemFocusRequester)
                                     .onFocusChanged {
@@ -210,57 +215,115 @@ fun ChannelList(
                                             }
                                         }
                                     }
-                                    .padding(horizontal = 12.dp, vertical = 8.dp)
             ) {
-                Column {
-                    Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            val context = LocalContext.current
-                            AsyncImage(
-                                    model = remember(channel.logo) {
-                                        ImageRequest.Builder(context)
-                                            .data(channel.logo)
-                                            .size(160, 90) // 80dp × 2 para xhdpi, evita decodificar a resolución completa
-                                            .crossfade(true)
-                                            .build()
-                                    },
-                                    contentDescription = "Logo canal",
-                                    fallback = painterResource(id = R.drawable.ic_channel_placeholder),
-                                    error = painterResource(id = R.drawable.ic_channel_placeholder),
-                                    modifier =
-                                            Modifier.clip(RoundedCornerShape(8.dp))
-                                                    .background(AppColors.bgBase)
-                                                    .size(80.dp, 45.dp)
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text(
-                                    text = channel.name,
-                                    fontSize = 18.sp,
-                                    color = if (hasFocus) AppColors.textPrimary else AppColors.textSecondary
-                            )
-                        }
-
-                        if (isPlaying) {
-                            Icon(
-                                    imageVector = Icons.Default.PlayArrow,
-                                    contentDescription = "Reproduciendo",
-                                    tint = AppColors.success,
-                                    modifier = Modifier.size(28.dp)
-                            )
-                        }
+                // Row con IntrinsicSize para que la barra lateral ocupe todo el alto
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(IntrinsicSize.Min)
+                ) {
+                    // ── Barra lateral izquierda accent (solo si playing) ──
+                    if (isPlaying) {
+                        Box(
+                            modifier = Modifier
+                                .width(3.dp)
+                                .fillMaxHeight()
+                                .background(DesignTokens.Colors.accent)
+                        )
                     }
 
-                    if (showHint && isPlaying) {
-                        Text(
-                                text = "Presioná de nuevo para ver en pantalla completa",
-                                color = AppColors.textTertiary,
-                                fontSize = 14.sp, // Mínimo 14sp para TV
-                                modifier = Modifier.padding(top = 6.dp)
-                        )
+                    // ── Contenido principal ──
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                    ) {
+                        Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f, fill = false)
+                            ) {
+                                // ── Logo containerizado ──
+                                val context = LocalContext.current
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(DesignTokens.Radius.sm))
+                                        .background(DesignTokens.Colors.bgBase)
+                                        .border(
+                                            1.dp,
+                                            DesignTokens.Colors.dividerSoft,
+                                            RoundedCornerShape(DesignTokens.Radius.sm)
+                                        )
+                                        .padding(4.dp)
+                                ) {
+                                    AsyncImage(
+                                            model = remember(channel.logo) {
+                                                ImageRequest.Builder(context)
+                                                    .data(channel.logo)
+                                                    .size(160, 90)
+                                                    .crossfade(true)
+                                                    .build()
+                                            },
+                                            contentDescription = "Logo canal",
+                                            fallback = painterResource(id = R.drawable.ic_channel_placeholder),
+                                            error = painterResource(id = R.drawable.ic_channel_placeholder),
+                                            modifier = Modifier
+                                                    .clip(RoundedCornerShape(4.dp))
+                                                    .size(72.dp, 40.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(
+                                        text = channel.name,
+                                        fontSize = 18.sp,
+                                        color = if (hasFocus) AppColors.textPrimary else AppColors.textSecondary
+                                )
+                            }
+
+                            // ── Zona derecha: Chip de calidad + icono playing ──
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                // Chip de calidad (HD / FHD / 4K)
+                                val quality = remember(channel.name, channel.url) {
+                                    QualityDetector.detect(channel.name, channel.url)
+                                }
+                                quality?.let {
+                                    Text(
+                                        text = it.label,
+                                        fontSize = 11.sp,
+                                        color = DesignTokens.Colors.textTertiary,
+                                        modifier = Modifier
+                                            .background(
+                                                DesignTokens.Colors.bgHighlight,
+                                                RoundedCornerShape(4.dp)
+                                            )
+                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                }
+
+                                if (isPlaying) {
+                                    Icon(
+                                            imageVector = Icons.Default.PlayArrow,
+                                            contentDescription = "Reproduciendo",
+                                            tint = DesignTokens.Colors.accent,
+                                            modifier = Modifier.size(28.dp)
+                                    )
+                                }
+                            }
+                        }
+
+                        if (showHint && isPlaying) {
+                            Text(
+                                    text = "Presioná de nuevo para ver en pantalla completa",
+                                    color = AppColors.textTertiary,
+                                    fontSize = 14.sp, // Mínimo 14sp para TV
+                                    modifier = Modifier.padding(top = 6.dp)
+                            )
+                        }
                     }
                 }
             }

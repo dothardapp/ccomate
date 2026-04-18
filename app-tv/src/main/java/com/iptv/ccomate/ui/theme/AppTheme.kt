@@ -7,49 +7,53 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.iptv.ccomate.core.ui.DesignTokens
 
 /**
- * Paleta "cinema dark" — charcoal + blue accent, TV-safe.
- * Los tokens semánticos (background, textPrimary, accentBlue, etc.) se mantienen
- * para no romper call-sites, pero sus valores se actualizaron a la nueva paleta.
+ * Paleta "cinema dark" para app-tv — wrapper de [DesignTokens.Colors].
+ *
+ * Todos los valores se delegan al sistema centralizado en `:core`.
+ * Los aliases legacy se mantienen para no romper call-sites existentes.
+ *
+ * @see DesignTokens.Colors
  */
 object AppColors {
-    // ── Base dark (antes gris claro/medio) ──
-    val bgBase = Color(0xFF0E1116)        // casi negro TV-safe — fondo general
-    val bgElevated = Color(0xFF161B22)    // superficies: panels, cards
-    val bgHighlight = Color(0xFF21262D)   // focus/hover bg, items destacados
-    val bgSurface = Color(0xFF1C2128)     // surface intermedio
+    // ── Base dark ──
+    val bgBase       = DesignTokens.Colors.bgBase
+    val bgElevated   = DesignTokens.Colors.bgElevated
+    val bgHighlight  = DesignTokens.Colors.bgHighlight
+    val bgSurface    = DesignTokens.Colors.bgSurface
 
     // ── Accent principal ──
-    val accent = Color(0xFF4F8EF7)        // azul saturado — color primario de marca
-    val accentBright = Color(0xFF6BA3FF)  // variante clara para focused/hover
-    val accentSoft = Color(0xFF2D5FBA)    // variante oscura para borders sutiles
-    val accentGlow = Color(0x664F8EF7)    // mismo azul 40% — para halos/shadows
+    val accent       = DesignTokens.Colors.accent
+    val accentBright = DesignTokens.Colors.accentBright
+    val accentSoft   = DesignTokens.Colors.accentSoft
+    val accentGlow   = DesignTokens.Colors.accentGlow
 
     // ── Estados semánticos ──
-    val success = Color(0xFF3FB950)       // en vivo, OK
-    val warning = Color(0xFFD29922)       // buffering, advertencia
-    val error = Color(0xFFF85149)         // error
+    val success = DesignTokens.Colors.success
+    val warning = DesignTokens.Colors.warning
+    val error   = DesignTokens.Colors.error
 
     // ── Texto TV-safe (sin blanco puro) ──
-    val textPrimary = Color(0xFFE6EDF3)
-    val textSecondary = Color(0xFFB1BAC4)
-    val textTertiary = Color(0xFF8B949E)
-    val textSubtle = Color(0xFF6E7681)
-    val textDescription = Color(0xFFE6EDF3).copy(alpha = 0.8f)
+    val textPrimary   = DesignTokens.Colors.textPrimary
+    val textSecondary = DesignTokens.Colors.textSecondary
+    val textTertiary  = DesignTokens.Colors.textTertiary
+    val textSubtle    = DesignTokens.Colors.textSubtle
+    val textDescription = DesignTokens.Colors.textPrimary.copy(alpha = 0.8f)
 
     // ── Estado de selección (drawer, listas) ──
-    val selected = textPrimary
+    val selected   = textPrimary
     val unselected = textSecondary
 
     // ── Overlays ──
-    val overlayDark = Color(0xCC0E1116)   // oscuro traslúcido sobre video
-    val overlayDarker = Color(0xE60E1116) // más denso para errores
-    val overlayPanel = Color(0xAB0E1116)  // panel sobre video
+    val overlayDark   = DesignTokens.Colors.overlayDark
+    val overlayDarker = DesignTokens.Colors.overlayDarker
+    val overlayPanel  = DesignTokens.Colors.overlayPanel
 
     // ── Divisores ──
-    val divider = Color(0xFF30363D)
-    val dividerSoft = Color(0x4D30363D)
+    val divider     = DesignTokens.Colors.divider
+    val dividerSoft = DesignTokens.Colors.dividerSoft
 
     // ── Aliases de compatibilidad (legacy API) ──
     // Estos nombres existían en la paleta gris anterior; se mapean a la nueva
@@ -161,9 +165,9 @@ object AppDimensions {
     val drawerItemSpacing: Dp = 10.dp
     val drawerLogoSpacing: Dp = 12.dp
 
-    // Radius (UI-03)
-    val radiusSm: Dp = 8.dp
-    val radiusMd: Dp = 12.dp
-    val radiusLg: Dp = 16.dp
-    val radiusXl: Dp = 24.dp
+    // Radius — delegan a DesignTokens.Radius (UI-03 / UI-10)
+    val radiusSm: Dp = DesignTokens.Radius.sm
+    val radiusMd: Dp = DesignTokens.Radius.md
+    val radiusLg: Dp = DesignTokens.Radius.lg
+    val radiusXl: Dp = DesignTokens.Radius.xl
 }

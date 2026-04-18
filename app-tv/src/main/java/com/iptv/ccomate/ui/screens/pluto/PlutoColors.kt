@@ -2,55 +2,58 @@ package com.iptv.ccomate.ui.screens.pluto
 
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import com.iptv.ccomate.ui.theme.AppColors
+import com.iptv.ccomate.core.ui.DesignTokens
 
 /**
  * Paleta scoped para las pantallas Pluto/TDA.
- * Los tokens se mapean al sistema unificado "cinema dark" (AppColors).
- * Se mantiene el objeto como capa de compatibilidad y para definir
- * gradientes específicos de estas pantallas.
+ *
+ * Los tokens se delegan directamente a [DesignTokens.Colors] (`:core`).
+ * Solo se mantienen los gradientes específicos de estas pantallas
+ * y el alias semántico `WarningBannerBackground` (con opacidad custom).
+ *
+ * @see DesignTokens.Colors
  */
 object PlutoColors {
 
-    // ── Fondos principales ──
+    // ── Fondos principales (gradientes scoped) ──
     val ScreenGradient = Brush.verticalGradient(
-        listOf(AppColors.bgBase, AppColors.bgElevated)
+        listOf(DesignTokens.Colors.bgBase, DesignTokens.Colors.bgElevated)
     )
 
     val VideoContainerGradient = Brush.verticalGradient(
-        listOf(AppColors.bgElevated, AppColors.bgBase)
+        listOf(DesignTokens.Colors.bgElevated, DesignTokens.Colors.bgBase)
     )
 
     val PanelGradient = Brush.verticalGradient(
-        listOf(AppColors.bgElevated, AppColors.bgSurface)
+        listOf(DesignTokens.Colors.bgElevated, DesignTokens.Colors.bgSurface)
     )
 
-    val InfoPanelBackground = AppColors.bgElevated.copy(alpha = 0.92f)
+    val InfoPanelBackground = DesignTokens.Colors.bgElevated.copy(alpha = 0.92f)
 
     // ── Bordes ──
-    val PanelBorder = AppColors.divider
-    val DividerColor = AppColors.dividerSoft
+    val PanelBorder  = DesignTokens.Colors.divider
+    val DividerColor = DesignTokens.Colors.dividerSoft
 
     // ── Textos ──
-    val TextPrimary = AppColors.textPrimary
-    val TextSecondary = AppColors.textSecondary
-    val TextSubtle = AppColors.textSubtle
-    val TextError = AppColors.error
+    val TextPrimary   = DesignTokens.Colors.textPrimary
+    val TextSecondary = DesignTokens.Colors.textSecondary
+    val TextSubtle    = DesignTokens.Colors.textSubtle
+    val TextError     = DesignTokens.Colors.error
 
-    // ── Banner de advertencia (reloj) ──
-    val WarningBannerBackground = Color(0xE6D29922) // warning con opacidad
-    val WarningBannerBorder = AppColors.warning
+    // ── Banner de advertencia (reloj) — scoped: opacidad custom ──
+    val WarningBannerBackground = Color(0xE6D29922)
+    val WarningBannerBorder     = DesignTokens.Colors.warning
 
     // ── Fullscreen ──
-    val FullscreenBackground = AppColors.bgBase
+    val FullscreenBackground = DesignTokens.Colors.bgBase
 
     // ── Estado de reproducción ──
-    val StatusLive = AppColors.success
-    val StatusBuffering = AppColors.warning
+    val StatusLive      = DesignTokens.Colors.success
+    val StatusBuffering = DesignTokens.Colors.warning
 
     // ── Barra de progreso EPG ──
-    val ProgressTrack = AppColors.bgHighlight
+    val ProgressTrack = DesignTokens.Colors.bgHighlight
 
     // ── Divisor de secciones del panel ──
-    val DividerPanel = AppColors.dividerSoft
+    val DividerPanel = DesignTokens.Colors.dividerSoft
 }
